@@ -54,7 +54,7 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       RELEASE_PROPERTIES_BASE64: ${{ secrets.NUVIO_LOCAL_PROPERTIES_BASE64 }}
       RELEASE_KEYSTORE_BASE64: ${{ secrets.NUVIO_RELEASE_KEYSTORE_BASE64 }}
-      CONTRIBUTIONS_URL: https://api.github.com/repos/luqmanfadlli/NuvioMobile-Enhanced/contributors?per_page=100
+      CONTRIBUTIONS_URL: https://api.github.com/repos/Eibyx/NuvioMobileKai/contributors?per_page=100
 
     steps:
       - name: Check out full history
@@ -203,7 +203,7 @@ jobs:
       RELEASE_VERSION: ${{ needs.prepare.outputs.tag }}
       RELEASE_PROPERTIES_BASE64: ${{ secrets.NUVIO_LOCAL_PROPERTIES_BASE64 }}
       RELEASE_KEYSTORE_BASE64: ${{ secrets.NUVIO_RELEASE_KEYSTORE_BASE64 }}
-      CONTRIBUTIONS_URL: https://api.github.com/repos/luqmanfadlli/NuvioMobile-Enhanced/contributors?per_page=100
+      CONTRIBUTIONS_URL: https://api.github.com/repos/Eibyx/NuvioMobileKai/contributors?per_page=100
 
     steps:
       - name: Check out source
@@ -386,16 +386,3 @@ jobs:
             release_args+=(--draft)
           fi
           gh release create "${release_args[@]}" "${release_files[@]}"
-
-  store:
-    name: Update sideload source
-    if: inputs.mode == 'publish' && (inputs.target == 'all' || inputs.target == 'ios-only')
-    needs:
-      - prepare
-      - release
-    permissions:
-      contents: write
-    uses: ./.github/workflows/update-store-source.yml
-    with:
-      tag: ${{ needs.prepare.outputs.tag }}
-      version: ${{ needs.prepare.outputs.version }}
