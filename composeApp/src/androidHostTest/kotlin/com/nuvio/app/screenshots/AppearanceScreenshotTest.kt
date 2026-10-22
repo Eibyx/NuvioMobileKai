@@ -69,7 +69,11 @@ import com.nuvio.app.features.home.MetaPreview
 import com.nuvio.app.features.home.components.HomeContinueWatchingSection
 import com.nuvio.app.features.home.components.HomeHeroSection
 import com.nuvio.app.features.mdblist.MdbListSettingsRepository
+import com.nuvio.app.features.streams.AddonStreamGroup
+import com.nuvio.app.features.streams.MobileStreamsLayout
+import com.nuvio.app.features.streams.StreamBackgroundMode
 import com.nuvio.app.features.streams.StreamItem
+import com.nuvio.app.features.streams.StreamsUiState
 import com.nuvio.app.features.watchprogress.ContinueWatchingItem
 import com.nuvio.app.features.watchprogress.ContinueWatchingSectionStyle
 import com.nuvio.app.features.tracking.WatchProgressSource
@@ -242,6 +246,57 @@ class AppearanceScreenshotTest(private val appearance: AppearanceMode) {
         showDetail(MetaEpisodeCardStyle.List)
         scrollToText("Writer", substring = true)
         capture("detail_director_writer")
+    }
+
+    @Test
+    @Config(sdk = [GLASS_SDK])
+    fun streamsCinematicEpisode() {
+        val streams = listOf(
+            "Torbox" to "torbox",
+            "Comet" to "comet",
+        ).map { (name, id) ->
+            AddonStreamGroup(
+                addonName = name,
+                addonId = id,
+                streams = List(3) { index ->
+                    StreamItem(
+                        name = "$name ${listOf("4K", "1080p", "720p")[index]}",
+                        description = "Sample.Series.S01E03.${listOf("2160p", "1080p", "720p")[index]}.WEB-DL.x265\n" +
+                            "${listOf("8.4", "2.1", "1.2")[index]} GB · English",
+                        url = "https://example.invalid/$id/$index.mkv",
+                        addonName = name,
+                        addonId = id,
+                    )
+                },
+            )
+        }
+        setScreen {
+            MobileStreamsLayout(
+                isEpisode = true,
+                showSearchField = false,
+                searchQuery = "",
+                onSearchQueryChange = {},
+                backgroundMode = StreamBackgroundMode.Cinematic,
+                title = "Sample Series",
+                logo = LOGO,
+                heroArtwork = LIGHT_THUMB,
+                seasonNumber = 1,
+                episodeNumber = 3,
+                episodeTitle = "Episode Title 3",
+                blurEpisodeThumbnail = false,
+                uiState = StreamsUiState(groups = streams, activeAddonIds = setOf("torbox", "comet")),
+                debridEnabled = false,
+                appendInstantServiceToDefaultName = false,
+                resumePositionMs = null,
+                resumeProgressFraction = null,
+                onStreamSelected = { _, _, _ -> },
+                onStreamLongPress = {},
+                onRefresh = {},
+            )
+        }
+        compose.mainClock.advanceTimeBy(1_500L)
+        compose.waitForIdle()
+        capture("streams_cinematic_episode")
     }
 
     private fun scrollToText(text: String, substring: Boolean = false) {

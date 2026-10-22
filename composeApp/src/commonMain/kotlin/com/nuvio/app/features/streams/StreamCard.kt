@@ -37,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import com.nuvio.app.core.ui.isDarkAppearance
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -92,11 +93,9 @@ internal fun StreamCard(
             .clip(cardShape)
             .ambientLiquidGlass(
                 shape = cardShape,
-                tint = if (isCurrent) {
-                    MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-                } else {
-                    Color.White.copy(alpha = 0.05f)
-                }.compositeOver(Color.Black.copy(alpha = StreamGlassTintAlpha)),
+                tint = streamGlassTint(
+                    highlight = if (isCurrent) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else null,
+                ),
                 fallback = if (isCurrent) {
                     MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
                 } else {
@@ -328,9 +327,23 @@ private val StreamGlassTextShadow = Shadow(
     blurRadius = 4f,
 )
 
+/**
+ * The stream cards' glass tint: a dark smoke in the dark appearance, the episode cards' translucent
+ * surface in the light one, where the text is dark.
+ */
+@Composable
+internal fun streamGlassTint(highlight: Color? = null): Color =
+    if (MaterialTheme.isDarkAppearance) {
+        (highlight ?: Color.White.copy(alpha = 0.05f)).compositeOver(Color.Black.copy(alpha = StreamGlassTintAlpha))
+    } else {
+        val surface = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+        highlight?.compositeOver(surface) ?: surface
+    }
+
+/** A shadow under light text on dark glass; dark text on light glass needs none. */
 @Composable
 internal fun streamGlassTextShadow(): Shadow? =
-    if (isAmbientLiquidGlassActive()) StreamGlassTextShadow else null
+    if (isAmbientLiquidGlassActive() && MaterialTheme.isDarkAppearance) StreamGlassTextShadow else null
 
 private fun StreamItem.instantServiceLabel(): String? {
     val status = debridCacheStatus ?: return null

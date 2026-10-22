@@ -56,7 +56,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.graphicsLayer
+import com.nuvio.app.core.ui.ArtworkUnderStatusBar
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -443,7 +448,7 @@ fun StreamsScreen(
 }
 
 @Composable
-private fun MobileStreamsLayout(
+internal fun MobileStreamsLayout(
     isEpisode: Boolean,
     showSearchField: Boolean,
     searchQuery: String,
@@ -491,8 +496,9 @@ private fun MobileStreamsLayout(
             modifier = modifier,
         )
     }
-    // Over the blurred artwork the whole list stays dark in the light appearance.
-    if (backgroundMode == StreamBackgroundMode.Cinematic && heroArtwork != null) NuvioDarkSurface(underStatusBar = true, content = content) else content()
+    // The light appearance keeps its own colours in Cinematic too: glass over a light veil, like the
+    // detail page. (NuvioDarkSurface does nothing in the dark appearance.)
+    content()
 }
 
 @Composable
@@ -521,6 +527,8 @@ private fun MobileStreamsLayoutContent(
 ) {
     val streamsGlassBackdrop = rememberNuvioBackdrop()
     val streamsGlassEnabled = backgroundMode == StreamBackgroundMode.Cinematic && heroArtwork != null
+    val isDark = MaterialTheme.isDarkAppearance
+    val pageColor = MaterialTheme.colorScheme.background
     Box(modifier = modifier.fillMaxSize()) {
         if (backgroundMode == StreamBackgroundMode.Cinematic && heroArtwork != null) {
             AsyncImage(
@@ -535,7 +543,8 @@ private fun MobileStreamsLayoutContent(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black.copy(alpha = if (isEpisode) 0.72f else 0.62f)),
+                    // Dark: a black veil; light: a veil of the page colour, as on the detail page.
+                    .background((if (isDark) Color.Black else pageColor).copy(alpha = if (isEpisode) 0.72f else 0.62f)),
             )
         }
 
@@ -553,6 +562,7 @@ private fun MobileStreamsLayoutContent(
                         thumbnail = heroArtwork,
                         blurred = blurEpisodeThumbnail,
                         showTitle = title,
+                        meltIntoBackdrop = streamsGlassEnabled && !isDark,
                     )
                 } else {
                     MovieHeroBlock(
@@ -566,7 +576,8 @@ private fun MobileStreamsLayoutContent(
                         .fillMaxWidth()
                         .weight(1f),
                 ) {
-                    if (isEpisode && backgroundMode == StreamBackgroundMode.Cinematic) {
+                    // The light hero melts into the backdrop itself; a band of page colour would cut it off.
+                    if (isEpisode && backgroundMode == StreamBackgroundMode.Cinematic && isDark) {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -747,9 +758,24 @@ private fun EpisodeHeroBlock(
     thumbnail: String?,
     blurred: Boolean,
     showTitle: String,
+    meltIntoBackdrop: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
-    // The artwork header and its gradient stay dark in the light appearance.
+    if (meltIntoBackdrop) {
+        ArtworkUnderStatusBar()
+        EpisodeHeroBlockContent(
+            seasonNumber = seasonNumber,
+            episodeNumber = episodeNumber,
+            episodeTitle = episodeTitle,
+            thumbnail = thumbnail,
+            blurred = blurred,
+            showTitle = showTitle,
+            meltIntoBackdrop = true,
+            modifier = modifier,
+        )
+        return
+    }
+    // Otherwise the artwork header and its gradient stay dark in the light appearance.
     NuvioDarkSurface(underStatusBar = true) {
         EpisodeHeroBlockContent(
             seasonNumber = seasonNumber,
@@ -772,6 +798,7 @@ private fun EpisodeHeroBlockContent(
     blurred: Boolean,
     showTitle: String,
     modifier: Modifier,
+    meltIntoBackdrop: Boolean = false,
 ) {
     val heroBlendColor = MaterialTheme.colorScheme.background
 
@@ -787,11 +814,31 @@ private fun EpisodeHeroBlockContent(
                 contentDescription = null,
                 modifier = Modifier
                     .fillMaxSize()
-                    .then(if (blurred) Modifier.blur(18.dp) else Modifier),
+                    .then(if (blurred) Modifier.blur(18.dp) else Modifier)
+                    .then(if (meltIntoBackdrop) Modifier.fadeOutTowardsBottom() else Modifier),
                 contentScale = ContentScale.Crop,
             )
         }
 
+        if (meltIntoBackdrop) {
+            // The image fades into the blurred artwork and its light veil, like the detail page hero;
+            // a soft wash of the page colour keeps the dark titles readable on bright thumbnails.
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            // Back to nothing at the bottom edge, where the list's backdrop continues.
+                            colorStops = arrayOf(
+                                0.0f to Color.Transparent,
+                                0.4f to Color.Transparent,
+                                0.75f to heroBlendColor.copy(alpha = 0.45f),
+                                1.0f to Color.Transparent,
+                            ),
+                        ),
+                    ),
+            )
+        } else {
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -816,6 +863,8 @@ private fun EpisodeHeroBlockContent(
                     ),
                 ),
         )
+
+        }
 
         // Safe-area push-down for status bar, then content pinned to bottom
         Column(
@@ -862,6 +911,24 @@ private fun EpisodeHeroBlockContent(
         }
     }
 }
+
+/** Masks the image so it fades out over its lower half and shows what is behind it. */
+private fun Modifier.fadeOutTowardsBottom(): Modifier = this
+    .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+    .drawWithContent {
+        drawContent()
+        drawRect(
+            brush = Brush.verticalGradient(
+                colorStops = arrayOf(
+                    0.0f to Color.Black,
+                    0.45f to Color.Black,
+                    0.75f to Color.Black.copy(alpha = 0.55f),
+                    1.0f to Color.Transparent,
+                ),
+            ),
+            blendMode = BlendMode.DstIn,
+        )
+    }
 
 // ---------------------------------------------------------------------------
 // Stream List
@@ -1605,7 +1672,7 @@ internal fun StreamSearchField(
             .clip(fieldShape)
             .ambientLiquidGlass(
                 shape = fieldShape,
-                tint = Color.White.copy(alpha = 0.05f).compositeOver(Color.Black.copy(alpha = StreamGlassTintAlpha)),
+                tint = streamGlassTint(),
                 fallback = tokens.colors.surfaceCard,
                 blurRadius = 14.dp,
                 refractionHeight = 8.dp,
