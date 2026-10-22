@@ -90,6 +90,19 @@ val signDebugWithRelease = providers.gradleProperty("nuvio.android.signDebugWith
 val buildsReleaseApks = requestedTaskNames.any {
     it.startsWith("assemble", ignoreCase = true) && it.endsWith("Release", ignoreCase = true)
 }
+// -Pnuvio.android.abis=arm64-v8a (comma separated) builds only those ABIs; without it every
+// supported ABI is built. Release APKs are split per ABI, other builds keep just the listed ones.
+val supportedAndroidAbis = listOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
+val requestedAndroidAbis = providers.gradleProperty("nuvio.android.abis").orNull
+    ?.split(',')
+    ?.map(String::trim)
+    ?.filter(String::isNotEmpty)
+    ?.also { abis ->
+        check(abis.isNotEmpty() && abis.all(supportedAndroidAbis::contains)) {
+            "nuvio.android.abis must list ABIs from $supportedAndroidAbis, got $abis"
+        }
+    }
+val androidAbis = requestedAndroidAbis ?: supportedAndroidAbis
 
 android {
     namespace = "com.nuvio.android"
@@ -114,6 +127,10 @@ android {
         versionCode = releaseAppVersionCode
         versionName = releaseAppVersionName
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        // ABI splits and abiFilters cannot be combined, so the filter only applies when not splitting.
+        if (requestedAndroidAbis != null && !buildsReleaseApks) {
+            ndk { abiFilters += requestedAndroidAbis }
+        }
     }
 
     flavorDimensions += "distribution"
@@ -162,7 +179,7 @@ android {
         abi {
             isEnable = buildsReleaseApks
             reset()
-            include("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
+            include(*androidAbis.toTypedArray())
             isUniversalApk = false
         }
     }

@@ -53,8 +53,9 @@ jobs:
             echo "::warning::NUVIO_RELEASE_KEYSTORE_BASE64 is not set; this APK uses a one-off debug key and will not install over earlier builds."
           fi
 
+      # Only 64-bit ARM, like the release: a smaller APK and a faster build.
       - name: Build fullDebug APK
-        run: ./gradlew :androidApp:assembleFullDebug -Pnuvio.android.distribution=full -Pnuvio.ios.distribution=appstore ${SIGNING_ARGS:-} --stacktrace
+        run: ./gradlew :androidApp:assembleFullDebug -Pnuvio.android.distribution=full -Pnuvio.ios.distribution=appstore -Pnuvio.android.abis=arm64-v8a ${SIGNING_ARGS:-} --stacktrace
 
       - name: Upload fullDebug APK
         uses: actions/upload-artifact@v7

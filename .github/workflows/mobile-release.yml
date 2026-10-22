@@ -225,6 +225,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       RELEASE_VERSION: ${{ needs.prepare.outputs.tag }}
+      # Kai ships one APK, for 64-bit ARM phones.
+      RELEASE_ABI: arm64-v8a
       RELEASE_PROPERTIES_BASE64: ${{ secrets.NUVIO_LOCAL_PROPERTIES_BASE64 }}
       RELEASE_KEYSTORE_BASE64: ${{ secrets.NUVIO_RELEASE_KEYSTORE_BASE64 }}
       CONTRIBUTIONS_URL: https://api.github.com/repos/Eibyx/NuvioMobileKai/contributors?per_page=100
@@ -278,7 +280,7 @@ jobs:
           done
 
       - name: Build full release APKs
-        run: ./gradlew :androidApp:assembleFullRelease -Pnuvio.app.versionName="${RELEASE_VERSION}" --stacktrace
+        run: ./gradlew :androidApp:assembleFullRelease -Pnuvio.app.versionName="${RELEASE_VERSION}" -Pnuvio.android.abis="${RELEASE_ABI}" --stacktrace
 
       # The in-app updater picks the asset whose name contains the device ABI (arm64-v8a, ...).
       - name: Name APKs for the updater
@@ -286,18 +288,14 @@ jobs:
           apk_dir=androidApp/build/outputs/apk/full/release
           mkdir -p release-apks
           shopt -s nullglob
-          apks=("${apk_dir}"/androidApp-full-*-release.apk)
-          if (( ${#apks[@]} == 0 )); then
-            echo "No signed release APKs in ${apk_dir}:" >&2
+          apks=("${apk_dir}"/*.apk)
+          apk="${apk_dir}/androidApp-full-${RELEASE_ABI}-release.apk"
+          if (( ${#apks[@]} != 1 )) || [[ "${apks[0]}" != "${apk}" ]]; then
+            echo "Expected only the signed ${RELEASE_ABI} APK in ${apk_dir}:" >&2
             ls -l "${apk_dir}" >&2 || true
             exit 1
           fi
-          for apk in "${apks[@]}"; do
-            abi="$(basename "${apk}")"
-            abi="${abi#androidApp-full-}"
-            abi="${abi%-release.apk}"
-            cp "${apk}" "release-apks/NuvioKai-${RELEASE_VERSION}-${abi}.apk"
-          done
+          cp "${apk}" "release-apks/NuvioKai-${RELEASE_VERSION}-${RELEASE_ABI}.apk"
           ls -l release-apks
 
       - name: Upload Android artifacts
