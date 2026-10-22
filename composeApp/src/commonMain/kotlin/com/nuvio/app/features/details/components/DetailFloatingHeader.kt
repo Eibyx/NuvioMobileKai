@@ -1,5 +1,6 @@
 package com.nuvio.app.features.details.components
 
+import com.nuvio.app.core.ui.isDarkAppearance
 import com.nuvio.app.core.ui.surfaceOverlay
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -141,7 +142,8 @@ fun DetailFloatingHeader(
                         .padding(horizontal = 10.dp),
                     contentAlignment = Alignment.Center,
                 ) {
-                    if (!meta.logo.isNullOrBlank() && !logoLoadError) {
+                    // Logos are mostly drawn for dark artwork, so the light appearance shows the title.
+                    if (!meta.logo.isNullOrBlank() && !logoLoadError && MaterialTheme.isDarkAppearance) {
                         AsyncImage(
                             model = meta.logo,
                             contentDescription = stringResource(Res.string.detail_logo_content_description, meta.name),
