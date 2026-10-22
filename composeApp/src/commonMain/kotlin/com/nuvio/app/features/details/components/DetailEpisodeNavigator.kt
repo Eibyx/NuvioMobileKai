@@ -8,7 +8,15 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.withFrameNanos
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.zIndex
+import com.nuvio.app.core.ui.glass.ambientLiquidGlass
+import com.nuvio.app.core.ui.isDarkAppearance
+import com.nuvio.app.core.ui.glass.isAmbientLiquidGlassActive
+import kotlin.math.roundToInt
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
@@ -193,6 +201,7 @@ internal fun EpisodeNavigatorBar(
 ) {
     val tokens = MaterialTheme.nuvio
     val fieldShape = RoundedCornerShape(14.dp)
+    val controlFill = episodeNavigatorControlFill()
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -204,7 +213,7 @@ internal fun EpisodeNavigatorBar(
                     .weight(1f)
                     .heightIn(min = 44.dp)
                     .clip(fieldShape)
-                    .background(tokens.colors.surfaceSheet.copy(alpha = 0.6f))
+                    .background(controlFill)
                     .border(1.dp, tokens.colors.borderDefault, fieldShape)
                     .padding(horizontal = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -283,6 +292,7 @@ private fun EpisodeNavigatorChip(text: String, onClick: () -> Unit) {
         modifier = Modifier
             .heightIn(min = 44.dp)
             .clip(shape)
+            .background(episodeNavigatorControlFill())
             .border(1.dp, tokens.colors.borderDefault, shape)
             .clickable(onClick = onClick)
             .padding(horizontal = 14.dp),
@@ -530,6 +540,10 @@ internal fun EpisodeSortSheet(
     }
 }
 
+/** The translucent fill of the episode cards, so the search field and buttons read as part of the same glass. */
+@Composable
+private fun episodeNavigatorControlFill(): Color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+
 @Composable
 internal fun episodeMatchStyle(): SpanStyle =
     SpanStyle(color = MaterialTheme.nuvio.colors.accent, fontWeight = FontWeight.SemiBold, background = Color.Transparent)
@@ -716,19 +730,53 @@ private fun EpisodeNavigatorStickyBar(
         }
     }
 
+    // How far the bar is pushed down to sit under the floating header instead of behind it.
+    val pinOffset: () -> Float = {
+        val offset = listState.layoutInfo.visibleItemsInfo
+            .firstOrNull { it.key == STICKY_BAR_KEY }
+            ?.offset
+            ?: Int.MAX_VALUE
+        (floatingHeaderPx - offset).coerceIn(0f, floatingHeaderPx)
+    }
+    val glass = isAmbientLiquidGlassActive()
+    val pageColor = MaterialTheme.colorScheme.background
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .graphicsLayer {
-                val offset = listState.layoutInfo.visibleItemsInfo
-                    .firstOrNull { it.key == STICKY_BAR_KEY }
-                    ?.offset
-                    ?: Int.MAX_VALUE
-                translationY = (floatingHeaderPx - offset).coerceIn(0f, floatingHeaderPx)
-            }
-            .onSizeChanged { barHeightPx = it.height }
-            .background(background),
+            // Above the episode cards: a translated sticky item otherwise draws under the next card.
+            .zIndex(1f)
+            .graphicsLayer { translationY = pinOffset() }
+            .onSizeChanged { barHeightPx = it.height },
     ) {
+        // Once the bar reaches the floating header its backing also fills the space behind the header,
+        // so the season title and the cards passing there do not show through next to the back button.
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .layout { measurable, constraints ->
+                    val behindHeader = if (pinOffset() > 0f) floatingHeaderPx.roundToInt() else 0
+                    val placeable = measurable.measure(
+                        Constraints.fixed(constraints.maxWidth, constraints.maxHeight + behindHeader),
+                    )
+                    layout(constraints.maxWidth, constraints.maxHeight) { placeable.place(0, -behindHeader) }
+                }
+                .then(
+                    if (glass) {
+                        // Cinematic: the episode cards' glass over the artwork rather than the list, with a
+                        // denser page tint than the cards so the muted counter stays readable on any artwork.
+                        Modifier.ambientLiquidGlass(
+                            shape = RectangleShape,
+                            tint = pageColor.copy(alpha = if (MaterialTheme.isDarkAppearance) 0.62f else 0.5f),
+                            fallback = pageColor.copy(alpha = 0.94f),
+                            blurRadius = 18.dp,
+                            withHighlight = false,
+                        )
+                    } else {
+                        Modifier.background(background)
+                    },
+                ),
+        )
         EpisodeSectionContainer(horizontalPadding, contentMaxWidth, bottom = 0.dp, modifier = Modifier.padding(vertical = 10.dp)) {
             EpisodeNavigatorBar(
                 state = navigator,

@@ -17,4 +17,6 @@
     <string name="episode_navigator_sort_highest_rated">Highest rated</string>
     <string name="episode_navigator_sort_newest_aired">Newest aired</string>
     <string name="episode_navigator_sort_unwatched_first">Unwatched first</string>
+    <string name="settings_meta_episode_navigator">Episode finder</string>
+    <string name="settings_meta_episode_navigator_description">Shows the search, go to and sort bar above the episode list. List style only.</string>
 </resources>

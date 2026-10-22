@@ -17,4 +17,6 @@
     <string name="episode_navigator_sort_highest_rated">Mejor valorados</string>
     <string name="episode_navigator_sort_newest_aired">Emitidos más recientemente</string>
     <string name="episode_navigator_sort_unwatched_first">No vistos primero</string>
+    <string name="settings_meta_episode_navigator">Buscador de episodios</string>
+    <string name="settings_meta_episode_navigator_description">Muestra la barra para buscar, ir a un episodio y ordenar sobre la lista de episodios. Solo en el estilo de lista.</string>
 </resources>

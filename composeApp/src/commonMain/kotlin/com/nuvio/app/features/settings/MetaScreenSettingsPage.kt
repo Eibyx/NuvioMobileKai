@@ -99,6 +99,8 @@ import nuvio.composeapp.generated.resources.settings_meta_episodes
 import nuvio.composeapp.generated.resources.settings_meta_episodes_description
 import nuvio.composeapp.generated.resources.settings_meta_blur_unwatched_episodes
 import nuvio.composeapp.generated.resources.settings_meta_blur_unwatched_episodes_description
+import nuvio.composeapp.generated.resources.settings_meta_episode_navigator
+import nuvio.composeapp.generated.resources.settings_meta_episode_navigator_description
 import nuvio.composeapp.generated.resources.settings_meta_background_mode
 import nuvio.composeapp.generated.resources.settings_meta_background_mode_cinematic
 import nuvio.composeapp.generated.resources.settings_meta_background_mode_cinematic_description
@@ -242,6 +244,15 @@ internal fun LazyListScope.metaScreenSettingsContent(
                     isTablet = isTablet,
                     selectedStyle = uiState.episodeCardStyle,
                     onStyleSelected = MetaScreenSettingsRepository::setEpisodeCardStyle,
+                )
+                SettingsGroupDivider(isTablet = isTablet)
+                SettingsSwitchRow(
+                    title = stringResource(Res.string.settings_meta_episode_navigator),
+                    description = stringResource(Res.string.settings_meta_episode_navigator_description),
+                    checked = uiState.episodeNavigatorEnabled,
+                    enabled = uiState.episodeCardStyle == MetaEpisodeCardStyle.List,
+                    isTablet = isTablet,
+                    onCheckedChange = MetaScreenSettingsRepository::setEpisodeNavigatorEnabled,
                 )
                 SettingsGroupDivider(isTablet = isTablet)
                 SettingsSwitchRow(

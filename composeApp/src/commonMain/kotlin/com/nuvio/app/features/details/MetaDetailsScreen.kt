@@ -2294,7 +2294,8 @@ private fun LazyListScope.configuredMetaSectionItems(
     }
 
     fun addLazyEpisodeItems(): Boolean {
-        if (!hasEpisodes || settings.episodeCardStyle != MetaEpisodeCardStyle.List) return false
+        // With the finder turned off the list renders as a plain section, as upstream does.
+        if (!hasEpisodes || settings.episodeCardStyle != MetaEpisodeCardStyle.List || !settings.episodeNavigatorEnabled) return false
         val navigator = episodeNavigator ?: return false
         val state = listState ?: return false
         val emitted = detailEpisodeListItems(

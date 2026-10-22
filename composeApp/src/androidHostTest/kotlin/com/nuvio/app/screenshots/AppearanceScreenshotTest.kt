@@ -28,6 +28,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.captureToImage
@@ -35,7 +36,9 @@ import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performScrollToKey
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.asImage
@@ -59,6 +62,7 @@ import com.nuvio.app.features.details.MetaDetailsUiState
 import com.nuvio.app.features.details.MetaExternalRating
 import com.nuvio.app.features.details.MetaEpisodeCardStyle
 import com.nuvio.app.features.details.MetaPerson
+import com.nuvio.app.features.details.MetaScreenBackgroundMode
 import com.nuvio.app.features.details.MetaScreenSettingsRepository
 import com.nuvio.app.features.details.MetaVideo
 import com.nuvio.app.features.home.MetaPreview
@@ -189,12 +193,77 @@ class AppearanceScreenshotTest(private val appearance: AppearanceMode) {
         capture("unexpected_exit_notice")
     }
 
-    private fun showDetail(episodeCardStyle: MetaEpisodeCardStyle) {
+    @Test
+    @Config(sdk = [GLASS_SDK])
+    fun detailCinematicStickyNavigator() {
+        showDetail(MetaEpisodeCardStyle.List, backgroundMode = MetaScreenBackgroundMode.Cinematic, meta = singleSeasonSeries)
+        scrollToText("Episode Title 9")
+        capture("detail_cinematic_sticky_navigator")
+    }
+
+    @Test
+    @Config(sdk = [GLASS_SDK])
+    fun detailCinematicNavigatorPinning() {
+        showDetail(MetaEpisodeCardStyle.List, backgroundMode = MetaScreenBackgroundMode.Cinematic, meta = singleSeasonSeries)
+        val list = compose.onNode(hasScrollAction() and SemanticsMatcher.keyIsDefined(SemanticsProperties.VerticalScrollAxisRange))
+        list.performScrollToKey("detail-episodes-navigator-bar")
+        compose.mainClock.advanceTimeBy(500L)
+        // Back off a little so the bar sits between its own place and the floating header.
+        val backOff = with(compose.density) { 40.dp.toPx() }
+        list.performSemanticsAction(SemanticsActions.ScrollBy) { scrollBy -> scrollBy(0f, -backOff) }
+        compose.mainClock.advanceTimeBy(1_000L)
+        compose.waitForIdle()
+        capture("detail_cinematic_navigator_pinning")
+    }
+
+    @Test
+    @Config(sdk = [GLASS_SDK])
+    fun detailCinematicNavigatorReachingTheHeader() {
+        showDetail(MetaEpisodeCardStyle.List, backgroundMode = MetaScreenBackgroundMode.Cinematic)
+        scrollToText("Second Episode Title")
+        capture("detail_cinematic_navigator_reaching_header")
+    }
+
+    @Test
+    @Config(sdk = [GLASS_SDK])
+    fun detailCinematicWithoutEpisodeFinder() {
+        showDetail(
+            MetaEpisodeCardStyle.List,
+            backgroundMode = MetaScreenBackgroundMode.Cinematic,
+            meta = singleSeasonSeries,
+            episodeFinder = false,
+        )
+        scrollToText("Episode Title 4")
+        capture("detail_cinematic_without_episode_finder")
+    }
+
+    @Test
+    fun detailDirectorAndWriter() {
+        showDetail(MetaEpisodeCardStyle.List)
+        scrollToText("Writer", substring = true)
+        capture("detail_director_writer")
+    }
+
+    private fun scrollToText(text: String, substring: Boolean = false) {
+        compose.onNode(hasScrollAction() and SemanticsMatcher.keyIsDefined(SemanticsProperties.VerticalScrollAxisRange))
+            .performScrollToNode(hasText(text, substring = substring))
+        compose.mainClock.advanceTimeBy(1_000L)
+        compose.waitForIdle()
+    }
+
+    private fun showDetail(
+        episodeCardStyle: MetaEpisodeCardStyle,
+        backgroundMode: MetaScreenBackgroundMode = MetaScreenBackgroundMode.Normal,
+        meta: MetaDetails = sampleSeries,
+        episodeFinder: Boolean = true,
+    ) {
         MetaScreenSettingsRepository.ensureLoaded()
+        MetaScreenSettingsRepository.setEpisodeNavigatorEnabled(episodeFinder)
         MetaScreenSettingsRepository.setEpisodeCardStyle(episodeCardStyle)
-        seedMeta(sampleSeries)
+        MetaScreenSettingsRepository.setBackgroundMode(backgroundMode)
+        seedMeta(meta)
         setScreen {
-            MetaDetailsScreen(type = sampleSeries.type, id = sampleSeries.id, onBack = {})
+            MetaDetailsScreen(type = meta.type, id = meta.id, onBack = {})
         }
         compose.mainClock.advanceTimeBy(2_000L)
         compose.waitForIdle()
@@ -344,8 +413,10 @@ class AppearanceScreenshotTest(private val appearance: AppearanceMode) {
             MetaCompany(name = "Second Pictures"),
             MetaCompany(name = "Third Animation"),
         ),
+        director = listOf("Tomohiko Ito"),
+        writer = listOf("Reki Kawahara", "Yukito Kizawa", "Munemasa Nakamoto", "Kazuho Hyodo"),
         videos = (1..4).flatMap { season ->
-            (1..6).map { episode ->
+            (1..(if (season == 1) 24 else 6)).map { episode ->
                 MetaVideo(
                     id = "tt-sample:$season:$episode",
                     title = when (episode) {
@@ -353,7 +424,7 @@ class AppearanceScreenshotTest(private val appearance: AppearanceMode) {
                         2 -> "Second Episode Title"
                         else -> "Episode Title $episode"
                     },
-                    released = "2012-07-${(episode * 4).toString().padStart(2, '0')}T00:00:00.000Z",
+                    released = "2012-07-${((episode - 1) % 28 + 1).toString().padStart(2, '0')}T00:00:00.000Z",
                     thumbnail = if (episode % 2 == 0) DARK_THUMB else LIGHT_THUMB,
                     season = season,
                     episode = episode,
@@ -366,10 +437,21 @@ class AppearanceScreenshotTest(private val appearance: AppearanceMode) {
         },
     )
 
+    private val singleSeasonSeries = sampleSeries.copy(
+        id = "tt-sample-single",
+        videos = sampleSeries.videos.filter { it.season == 1 }.map { it.copy(id = it.id.replace("tt-sample", "tt-sample-single")) },
+    )
+
     companion object {
         @JvmStatic
         @ParameterizedRobolectricTestRunner.Parameters(name = "{0}")
         fun appearances(): List<Array<Any>> = listOf(arrayOf(AppearanceMode.LIGHT), arrayOf(AppearanceMode.DARK))
+
+        /**
+         * Robolectric cannot compile the refraction AGSL shader of SDK 33+, so glass screens render on
+         * SDK 32, which has RenderEffect blur but no RuntimeShader: the glass without refraction.
+         */
+        const val GLASS_SDK = 32
 
         const val LIGHT_BACKDROP = "sample://light-backdrop"
         const val DARK_BACKDROP = "sample://dark-backdrop"

@@ -35,6 +35,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -161,6 +165,7 @@ fun DetailMetaInfo(
             MetaLabelValueRow(
                 label = stringResource(Res.string.details_director),
                 value = meta.director.joinToString(", "),
+                centered = true,
             )
         }
 
@@ -168,6 +173,7 @@ fun DetailMetaInfo(
             MetaLabelValueRow(
                 label = stringResource(Res.string.details_writer),
                 value = meta.writer.joinToString(", "),
+                centered = true,
             )
         }
 
@@ -298,7 +304,25 @@ internal fun ImdbRatingSourceLabel(
 internal fun MetaLabelValueRow(
     label: String,
     value: String,
+    centered: Boolean = false,
 ) {
+    if (centered) {
+        // One text, so a name that wraps onto a second line is centred too.
+        val labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+        Text(
+            text = buildAnnotatedString {
+                withStyle(SpanStyle(color = labelColor, fontWeight = FontWeight.SemiBold)) {
+                    append("$label:  ")
+                }
+                append(value)
+            },
+            modifier = Modifier.fillMaxWidth(),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            textAlign = TextAlign.Center,
+        )
+        return
+    }
     Row {
         Text(
             text = "$label:  ",
