@@ -71,6 +71,25 @@ class AppUpdaterRepositoryTest {
         )
     }
 
+    @Test
+    fun kaiReleaseAssetsMatchTheDeviceAbi() {
+        val response = """[
+            {"tag_name": "1.0.0-beta", "name": "1.0.0-beta", "assets": [
+                {"name": "NuvioKai-1.0.0-beta-armeabi-v7a.apk", "browser_download_url": "https://example.com/v7a.apk"},
+                {"name": "NuvioKai-1.0.0-beta-arm64-v8a.apk", "browser_download_url": "https://example.com/arm64.apk"},
+                {"name": "NuvioKai-1.0.0-beta-x86.apk", "browser_download_url": "https://example.com/x86.apk"},
+                {"name": "NuvioKai-1.0.0-beta-x86_64.apk", "browser_download_url": "https://example.com/x86_64.apk"}
+            ]}
+        ]"""
+        val update = select(response, UpdateChannel.BETA)
+        assertEquals("1.0.0-beta", update?.tag)
+        assertEquals("NuvioKai-1.0.0-beta-arm64-v8a.apk", update?.assetName)
+        assertEquals(
+            "NuvioKai-1.0.0-beta-armeabi-v7a.apk",
+            AppUpdaterRepository.selectUpdate(response, UpdateChannel.BETA, listOf("armeabi-v7a", "armeabi"))?.assetName,
+        )
+    }
+
     private fun select(response: String, channel: UpdateChannel): AppUpdate? =
         AppUpdaterRepository.selectUpdate(response, channel, listOf("arm64-v8a"))
 }

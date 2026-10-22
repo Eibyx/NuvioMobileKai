@@ -6,6 +6,16 @@ import kotlin.test.Test
 
 class VersionUtilsTest {
     @Test
+    fun `kai beta tags compare against the installed version`() {
+        assertTrue(VersionUtils.isRemoteNewer("1.0.0-beta", "0.6.3-beta"))
+        assertTrue(VersionUtils.isRemoteNewer("1.0.1-beta", "1.0.0-beta"))
+        assertTrue(VersionUtils.isRemoteNewer("1.1.0-beta", "1.0.9-beta"))
+        assertFalse(VersionUtils.isRemoteNewer("1.0.0-beta", "1.0.0-beta"))
+        assertFalse(VersionUtils.isRemoteNewer("0.7.0-beta", "1.0.0-beta"))
+        assertTrue(UpdateChannel.defaultForVersion("1.0.0-beta") == UpdateChannel.BETA)
+    }
+
+    @Test
     fun `stable release is newer than its prerelease`() {
         assertTrue(VersionUtils.isRemoteNewer("1.1.0", "1.1.0-rc.2"))
     }
