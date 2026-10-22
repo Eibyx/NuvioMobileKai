@@ -12,13 +12,16 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -91,8 +94,11 @@ fun DetailMetaInfo(
             runtimeText != null ||
             ageBadge != null ||
             validImdbRating != null
+        // The year/runtime/rating line, the ratings and the synopsis are centred; this block only
+        // renders on phones, since TabletDetailHero lays these out itself.
         if (hasMetaRow) {
             Row(
+                modifier = Modifier.align(Alignment.CenterHorizontally),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
             ) {
@@ -146,6 +152,7 @@ fun DetailMetaInfo(
             DetailRatingsRow(
                 ratings = meta.externalRatings,
                 horizontalScrollPadding = horizontalScrollPadding,
+                centered = true,
             )
         }
 
@@ -168,6 +175,7 @@ fun DetailMetaInfo(
                 text = meta.description,
                 collapsedMaxLines = 3,
                 style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 22.sp),
+                centered = true,
             )
         }
     }
@@ -178,6 +186,7 @@ internal fun DetailRatingsRow(
     ratings: List<MetaExternalRating>,
     modifier: Modifier = Modifier,
     horizontalScrollPadding: Dp = 0.dp,
+    centered: Boolean = false,
 ) {
     val orderedRatings = remember(ratings) {
         val bySource = ratings.associateBy { it.source }
@@ -188,15 +197,7 @@ internal fun DetailRatingsRow(
 
     if (orderedRatings.isEmpty()) return
 
-    Row(
-        modifier = modifier
-            .nuvioHorizontalScrollBleed(horizontalScrollPadding)
-            .fillMaxWidth()
-            .horizontalScroll(rememberScrollState())
-            .padding(horizontal = horizontalScrollPadding),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
-    ) {
+    val ratingItems: @Composable RowScope.() -> Unit = {
         orderedRatings.forEach { (visuals, rating) ->
             val ratingTextStyle = MaterialTheme.typography.titleSmall.copy(
                 fontWeight = FontWeight.Bold,
@@ -229,6 +230,35 @@ internal fun DetailRatingsRow(
                 )
             }
         }
+    }
+    if (!centered) {
+        Row(
+            modifier = modifier
+                .nuvioHorizontalScrollBleed(horizontalScrollPadding)
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState())
+                .padding(horizontal = horizontalScrollPadding),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            content = ratingItems,
+        )
+        return
+    }
+    BoxWithConstraints(
+        modifier = modifier
+            .nuvioHorizontalScrollBleed(horizontalScrollPadding)
+            .fillMaxWidth(),
+    ) {
+        Row(
+            modifier = Modifier
+                .horizontalScroll(rememberScrollState())
+                // At least as wide as the viewport, so the ratings sit in the middle until they overflow it.
+                .widthIn(min = maxWidth)
+                .padding(horizontal = horizontalScrollPadding),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp, Alignment.CenterHorizontally),
+            content = ratingItems,
+        )
     }
 }
 

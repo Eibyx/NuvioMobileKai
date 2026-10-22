@@ -13,9 +13,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import nuvio.composeapp.generated.resources.Res
@@ -30,6 +32,7 @@ internal fun ExpandableDescription(
     modifier: Modifier = Modifier,
     style: TextStyle = MaterialTheme.typography.bodyMedium,
     color: Color = MaterialTheme.colorScheme.onSurface,
+    centered: Boolean = false,
 ) {
     var expanded by remember(text) { mutableStateOf(false) }
     var canExpand by remember(text) { mutableStateOf(false) }
@@ -39,11 +42,13 @@ internal fun ExpandableDescription(
             .fillMaxWidth()
             .animateContentSize()
             .clickable(enabled = canExpand) { expanded = !expanded },
+        horizontalAlignment = if (centered) Alignment.CenterHorizontally else Alignment.Start,
     ) {
         Text(
             text = text,
             style = style,
             color = color,
+            textAlign = if (centered) TextAlign.Center else TextAlign.Unspecified,
             maxLines = if (expanded) Int.MAX_VALUE else collapsedMaxLines,
             overflow = TextOverflow.Ellipsis,
             onTextLayout = { result ->
