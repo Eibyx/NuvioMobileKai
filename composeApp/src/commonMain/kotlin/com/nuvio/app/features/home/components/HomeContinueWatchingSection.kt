@@ -1,5 +1,6 @@
 package com.nuvio.app.features.home.components
 
+import com.nuvio.app.core.ui.surfaceOverlay
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -903,7 +904,7 @@ private fun ContinueWatchingWideCard(
             .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.92f))
             .border(
                 width = 1.5.dp,
-                color = Color.White.copy(alpha = 0.15f),
+                color = MaterialTheme.surfaceOverlay(0.15f),
                 shape = RoundedCornerShape(cornerRadius),
             )
             .combinedClickable(
@@ -999,7 +1000,7 @@ private fun ContinueWatchingWideCard(
                         progress = item.progressFraction,
                         modifier = Modifier.fillMaxWidth(),
                         height = layout.progressHeight,
-                        trackColor = Color.White.copy(alpha = 0.10f),
+                        trackColor = MaterialTheme.surfaceOverlay(0.10f),
                     )
                     Text(
                         text = stringResource(

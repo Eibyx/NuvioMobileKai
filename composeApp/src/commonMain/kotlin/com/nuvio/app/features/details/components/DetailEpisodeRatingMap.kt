@@ -1,5 +1,6 @@
 package com.nuvio.app.features.details.components
 
+import com.nuvio.app.core.ui.readableOnBackground
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -237,7 +238,7 @@ fun DetailEpisodeRatingMap(
                         Icon(
                             imageVector = Icons.Rounded.Star,
                             contentDescription = null,
-                            tint = Color(0xFFF5C518),
+                            tint = Color(0xFFF5C518).readableOnBackground(),
                             modifier = Modifier.size(16.dp),
                         )
                         Text(

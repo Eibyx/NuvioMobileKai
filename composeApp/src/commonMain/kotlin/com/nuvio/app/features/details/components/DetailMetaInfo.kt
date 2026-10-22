@@ -1,5 +1,6 @@
 package com.nuvio.app.features.details.components
 
+import com.nuvio.app.core.ui.readableOnBackground
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.expandVertically
@@ -137,7 +138,7 @@ fun DetailMetaInfo(
                         Text(
                             text = validImdbRating,
                             style = imdbTextStyle,
-                            color = ImdbYellow,
+                            color = ImdbYellow.readableOnBackground(),
                         )
                     }
                 }
@@ -209,7 +210,7 @@ internal fun DetailRatingsRow(
                 if (visuals.source == PROVIDER_IMDB && !AppFeaturePolicy.imdbRatingLogoEnabled) {
                     ImdbRatingSourceLabel(
                         storeTextStyle = ratingTextStyle,
-                        storeTextColor = visuals.valueColor,
+                        storeTextColor = visuals.valueColor.readableOnBackground(),
                     )
                 } else {
                     val logoHeight = when (rating.rottenTomatoesStatus) {
@@ -226,7 +227,7 @@ internal fun DetailRatingsRow(
                 Text(
                     text = visuals.format(rating.value),
                     style = ratingTextStyle,
-                    color = visuals.valueColor,
+                    color = visuals.valueColor.readableOnBackground(),
                 )
             }
         }

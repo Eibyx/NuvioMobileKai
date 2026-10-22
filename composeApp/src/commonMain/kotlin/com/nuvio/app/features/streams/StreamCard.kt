@@ -1,5 +1,7 @@
 package com.nuvio.app.features.streams
 
+import com.nuvio.app.core.ui.contentOnSurface
+import com.nuvio.app.core.ui.surfaceOverlay
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.core.tween
@@ -98,7 +100,7 @@ internal fun StreamCard(
                 fallback = if (isCurrent) {
                     MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
                 } else {
-                    Color.White.copy(alpha = 0.05f)
+                    MaterialTheme.surfaceOverlay(0.05f)
                 },
                 blurRadius = 18.dp,
             )
@@ -162,7 +164,7 @@ internal fun StreamCard(
                         lineHeight = 18.sp,
                         shadow = streamGlassTextShadow(),
                     ),
-                    color = Color.White,
+                    color = MaterialTheme.contentOnSurface,
                 )
             }
 
@@ -195,7 +197,7 @@ internal fun StreamCard(
                 Text(
                     text = stream.addonName,
                     style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, shadow = streamGlassTextShadow()),
-                    color = Color.White,
+                    color = MaterialTheme.contentOnSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -211,7 +213,7 @@ internal fun StreamCardSkeleton(modifier: Modifier = Modifier) {
             .fillMaxWidth()
             .heightIn(min = 68.dp)
             .clip(RoundedCornerShape(12.dp))
-            .background(Color.White.copy(alpha = 0.05f))
+            .background(MaterialTheme.surfaceOverlay(0.05f))
             .padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
     ) {
@@ -273,7 +275,7 @@ private fun StreamNameWithInstantService(
             text = stream.streamLabel,
             modifier = Modifier.weight(1f, fill = false),
             style = nameStyle,
-            color = Color.White,
+            color = MaterialTheme.contentOnSurface,
         )
         AnimatedVisibility(
             visibleState = visibleState,
@@ -292,7 +294,7 @@ private fun StreamNameWithInstantService(
             Text(
                 text = " ${instantLabel.orEmpty()}",
                 style = nameStyle,
-                color = Color.White,
+                color = MaterialTheme.contentOnSurface,
             )
         }
         trailingContent()

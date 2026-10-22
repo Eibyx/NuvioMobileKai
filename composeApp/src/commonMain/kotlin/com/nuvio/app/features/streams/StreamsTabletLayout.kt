@@ -1,5 +1,6 @@
 package com.nuvio.app.features.streams
 
+import com.nuvio.app.core.ui.NuvioDarkSurface
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -74,6 +75,58 @@ internal fun TabletStreamsLayout(
     onStreamLongPress: (StreamItem) -> Unit,
     onRefresh: () -> Unit,
     modifier: Modifier = Modifier,
+) {
+    // The whole tablet layout sits on the artwork backdrop, so it stays dark in the light appearance.
+    NuvioDarkSurface(underStatusBar = true) {
+        TabletStreamsLayoutContent(
+            isEpisode = isEpisode,
+            showSearchField = showSearchField,
+            searchQuery = searchQuery,
+            onSearchQueryChange = onSearchQueryChange,
+            title = title,
+            logo = logo,
+            poster = poster,
+            background = background,
+            episodeThumbnail = episodeThumbnail,
+            seasonNumber = seasonNumber,
+            episodeNumber = episodeNumber,
+            episodeTitle = episodeTitle,
+            uiState = uiState,
+            debridEnabled = debridEnabled,
+            appendInstantServiceToDefaultName = appendInstantServiceToDefaultName,
+            resumePositionMs = resumePositionMs,
+            resumeProgressFraction = resumeProgressFraction,
+            onStreamSelected = onStreamSelected,
+            onStreamLongPress = onStreamLongPress,
+            onRefresh = onRefresh,
+            modifier = modifier,
+        )
+    }
+}
+
+@Composable
+private fun TabletStreamsLayoutContent(
+    isEpisode: Boolean,
+    showSearchField: Boolean,
+    searchQuery: String,
+    onSearchQueryChange: (String) -> Unit,
+    title: String,
+    logo: String?,
+    poster: String?,
+    background: String?,
+    episodeThumbnail: String?,
+    seasonNumber: Int?,
+    episodeNumber: Int?,
+    episodeTitle: String?,
+    uiState: StreamsUiState,
+    debridEnabled: Boolean,
+    appendInstantServiceToDefaultName: Boolean,
+    resumePositionMs: Long?,
+    resumeProgressFraction: Float?,
+    onStreamSelected: (stream: StreamItem, resumePositionMs: Long?, resumeProgressFraction: Float?) -> Unit,
+    onStreamLongPress: (StreamItem) -> Unit,
+    onRefresh: () -> Unit,
+    modifier: Modifier,
 ) {
     val streamsPanelBackdrop = rememberNuvioBackdrop()
     val tabletBackdrop = remember(background, poster) {

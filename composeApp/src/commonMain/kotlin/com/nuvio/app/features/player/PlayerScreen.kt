@@ -2,6 +2,7 @@ package com.nuvio.app.features.player
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import com.nuvio.app.core.ui.NuvioDarkSurface
 import com.nuvio.app.features.party.PartyMedia
 
 @Composable
@@ -48,6 +49,8 @@ fun PlayerScreen(
     sourceFilename: String? = null,
     stream: com.nuvio.app.features.streams.StreamItem? = null,
 ) {
+    // The player stays dark in the light appearance.
+    NuvioDarkSurface {
     PlayerScreenContent(
         PlayerScreenArgs(
             profileId = profileId,
@@ -93,4 +96,5 @@ fun PlayerScreen(
             stream = stream,
         )
     )
+    }
 }

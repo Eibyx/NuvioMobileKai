@@ -75,6 +75,7 @@ import coil3.request.ImageRequest
 import com.nuvio.app.core.build.AppFeaturePolicy
 import com.nuvio.app.core.build.TrailerPlaybackMode
 import com.nuvio.app.core.format.formatReleaseDateForDisplay
+import com.nuvio.app.core.ui.NuvioDarkSurface
 import com.nuvio.app.core.ui.LocalDynamicArtworkBackgroundColor
 import com.nuvio.app.core.ui.rememberDynamicArtworkBackgroundEnabled
 import com.nuvio.app.core.ui.PrefetchArtworkDominantColors
@@ -205,6 +206,40 @@ internal fun HomeHeroSection(
     onActiveArtworkChange: ((String?) -> Unit)? = null,
 ) {
     if (items.isEmpty()) return
+    // The artwork hero and its gradients stay dark in the light appearance.
+    NuvioDarkSurface(underStatusBar = true) {
+        HomeHeroSectionContent(
+            items = items,
+            modifier = modifier,
+            viewportHeight = viewportHeight,
+            mobileBelowSectionHeightHint = mobileBelowSectionHeightHint,
+            heroStyle = heroStyle,
+            listState = listState,
+            stretchPx = stretchPx,
+            trailerPlaybackEnabled = trailerPlaybackEnabled,
+            trailerStartDelaySeconds = trailerStartDelaySeconds,
+            trailerStartUnmuted = trailerStartUnmuted,
+            onItemClick = onItemClick,
+            onActiveArtworkChange = onActiveArtworkChange,
+        )
+    }
+}
+
+@Composable
+private fun HomeHeroSectionContent(
+    items: List<MetaPreview>,
+    modifier: Modifier,
+    viewportHeight: Dp?,
+    mobileBelowSectionHeightHint: Dp?,
+    heroStyle: HomeHeroStyle,
+    listState: LazyListState?,
+    stretchPx: () -> Float,
+    trailerPlaybackEnabled: Boolean,
+    trailerStartDelaySeconds: Int,
+    trailerStartUnmuted: Boolean,
+    onItemClick: ((MetaPreview) -> Unit)?,
+    onActiveArtworkChange: ((String?) -> Unit)?,
+) {
 
     val pagerState = key(items.size) {
         rememberPagerState(

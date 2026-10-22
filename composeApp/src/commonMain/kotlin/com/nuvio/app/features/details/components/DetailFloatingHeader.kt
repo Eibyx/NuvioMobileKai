@@ -1,5 +1,6 @@
 package com.nuvio.app.features.details.components
 
+import com.nuvio.app.core.ui.surfaceOverlay
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -176,7 +177,7 @@ fun DetailFloatingHeader(
                         .align(Alignment.BottomCenter)
                         .fillMaxWidth()
                         .height(0.5.dp)
-                        .background(Color.White.copy(alpha = 0.15f)),
+                        .background(MaterialTheme.surfaceOverlay(0.15f)),
                 )
             }
         }

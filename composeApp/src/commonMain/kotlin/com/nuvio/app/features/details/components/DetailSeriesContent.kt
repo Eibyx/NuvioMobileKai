@@ -1,5 +1,7 @@
 package com.nuvio.app.features.details.components
 
+import com.nuvio.app.core.ui.surfaceOverlay
+import com.nuvio.app.core.ui.readableOnBackground
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateContentSize
@@ -595,7 +597,7 @@ private fun SeasonViewModeToggle(
             )
             .border(
                 width = 1.dp,
-                color = Color.White.copy(alpha = 0.2f),
+                color = MaterialTheme.surfaceOverlay(0.2f),
                 shape = RoundedCornerShape(8.dp),
             )
             .clickable(onClick = onClick)
@@ -785,7 +787,7 @@ private fun SeasonPosterButton(
                     color = if (isSelected) {
                         MaterialTheme.colorScheme.primary
                     } else {
-                        Color.White.copy(alpha = 0.1f)
+                        MaterialTheme.surfaceOverlay(0.1f)
                     },
                     shape = RoundedCornerShape(sizing.seasonPosterRadius),
                 ),
@@ -1081,6 +1083,7 @@ private fun EpisodeHorizontalCard(
                         )
                     }
                     EpisodeRatingBadges(
+                        onArtwork = true,
                         imdbRating = imdbRatingLabel,
                         tmdbRating = tmdbRatingLabel,
                         userRating = userRating,
@@ -1275,6 +1278,8 @@ private fun EpisodeCodeBadge(
 
 @Composable
 private fun EpisodeRatingBadges(
+    // Over an episode thumbnail the brand colours stay as they are.
+    onArtwork: Boolean = false,
     imdbRating: String?,
     tmdbRating: String?,
     logoSize: Dp,
@@ -1290,6 +1295,7 @@ private fun EpisodeRatingBadges(
     ) {
         imdbRating?.let { rating ->
             TmdbEpisodeRatingBadge(
+                onArtwork = onArtwork,
                 rating = rating,
                 isImdb = true,
                 logoSize = logoSize,
@@ -1298,6 +1304,7 @@ private fun EpisodeRatingBadges(
         }
         tmdbRating?.let { rating ->
             TmdbEpisodeRatingBadge(
+                onArtwork = onArtwork,
                 rating = rating,
                 isImdb = false,
                 logoSize = logoSize,
@@ -1343,12 +1350,14 @@ private fun UserEpisodeRatingBadge(
 
 @Composable
 private fun TmdbEpisodeRatingBadge(
+    onArtwork: Boolean,
     rating: String,
     isImdb: Boolean,
     logoSize: Dp,
     textSize: androidx.compose.ui.unit.TextUnit,
 ) {
-    val ratingColor = if (isImdb) Color(0xFFF5C518) else Color(0xFF01B4E4)
+    val brandColor = if (isImdb) Color(0xFFF5C518) else Color(0xFF01B4E4)
+    val ratingColor = if (onArtwork) brandColor else brandColor.readableOnBackground()
     Row(
         horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -1432,7 +1441,7 @@ private fun EpisodeListCard(
             )
             .border(
                 width = 1.dp,
-                color = Color.White.copy(alpha = 0.1f),
+                color = MaterialTheme.surfaceOverlay(0.1f),
                 shape = cardShape,
             )
             .combinedClickable(

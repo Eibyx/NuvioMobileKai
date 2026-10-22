@@ -1,5 +1,6 @@
 package com.nuvio.app.features.settings
 
+import com.nuvio.app.core.ui.NuvioDarkSurface
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.graphicsLayer
@@ -454,6 +455,36 @@ private fun ProfileInsightsHero(
     onEditProfile: (() -> Unit)?,
     onSwitchProfile: (() -> Unit)?,
     onBack: (() -> Unit)? = null,
+) {
+    // The profile artwork hero and its pills stay dark in the light appearance.
+    NuvioDarkSurface(underStatusBar = false) {
+        ProfileInsightsHeroContent(
+            profile = profile,
+            avatarItem = avatarItem,
+            profileName = profileName,
+            isTablet = isTablet,
+            stats = stats,
+            isCollectionAvailable = isCollectionAvailable,
+            onCollectionClick = onCollectionClick,
+            onEditProfile = onEditProfile,
+            onSwitchProfile = onSwitchProfile,
+            onBack = onBack,
+        )
+    }
+}
+
+@Composable
+private fun ProfileInsightsHeroContent(
+    profile: NuvioProfile?,
+    avatarItem: AvatarCatalogItem?,
+    profileName: String,
+    isTablet: Boolean,
+    stats: ProfileInsightsStats,
+    isCollectionAvailable: (ProfileInsightCollectionKind) -> Boolean,
+    onCollectionClick: (ProfileInsightCollectionKind) -> Unit,
+    onEditProfile: (() -> Unit)?,
+    onSwitchProfile: (() -> Unit)?,
+    onBack: (() -> Unit)?,
 ) {
     if (isTablet) {
         ProfileInsightsHeroBounded(

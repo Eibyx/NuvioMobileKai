@@ -142,7 +142,8 @@ fun NuvioNavigationBar(
             .padding(contentPadding),
         contentAlignment = Alignment.BottomCenter,
     ) {
-        // The floating pill
+        // The floating pill: dark, or the theme's surface in the light appearance.
+        val navigationPillColor = if (MaterialTheme.isDarkAppearance) Color(0xFF1C1C1E) else MaterialTheme.colorScheme.surface
         val pillModifier = Modifier
             .padding(horizontal = horizontalPadding)
             // On a phone the horizontal padding alone shapes the pill, but on a tablet or in
@@ -153,8 +154,8 @@ fun NuvioNavigationBar(
             .liquidGlassSurface(
                 backdrop = backdrop,
                 shape = RoundedCornerShape(NuvioTokens.Radius.full),
-                tint = Color(0xFF1C1C1E).copy(alpha = 0.55f),
-                fallback = Color(0xFF1C1C1E).copy(alpha = 0.82f),
+                tint = navigationPillColor.copy(alpha = 0.55f),
+                fallback = navigationPillColor.copy(alpha = 0.82f),
                 blurRadius = 24.dp,
                 refractionHeight = 24.dp,
             )

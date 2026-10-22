@@ -1,5 +1,8 @@
 package com.nuvio.app.features.streams
 
+import com.nuvio.app.core.ui.NuvioDarkSurface
+import com.nuvio.app.core.ui.isDarkAppearance
+import com.nuvio.app.core.ui.surfaceOverlay
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -463,6 +466,59 @@ private fun MobileStreamsLayout(
     onRefresh: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val content: @Composable () -> Unit = {
+        MobileStreamsLayoutContent(
+            isEpisode = isEpisode,
+            showSearchField = showSearchField,
+            searchQuery = searchQuery,
+            onSearchQueryChange = onSearchQueryChange,
+            backgroundMode = backgroundMode,
+            title = title,
+            logo = logo,
+            heroArtwork = heroArtwork,
+            seasonNumber = seasonNumber,
+            episodeNumber = episodeNumber,
+            episodeTitle = episodeTitle,
+            blurEpisodeThumbnail = blurEpisodeThumbnail,
+            uiState = uiState,
+            debridEnabled = debridEnabled,
+            appendInstantServiceToDefaultName = appendInstantServiceToDefaultName,
+            resumePositionMs = resumePositionMs,
+            resumeProgressFraction = resumeProgressFraction,
+            onStreamSelected = onStreamSelected,
+            onStreamLongPress = onStreamLongPress,
+            onRefresh = onRefresh,
+            modifier = modifier,
+        )
+    }
+    // Over the blurred artwork the whole list stays dark in the light appearance.
+    if (backgroundMode == StreamBackgroundMode.Cinematic && heroArtwork != null) NuvioDarkSurface(underStatusBar = true, content = content) else content()
+}
+
+@Composable
+private fun MobileStreamsLayoutContent(
+    isEpisode: Boolean,
+    showSearchField: Boolean,
+    searchQuery: String,
+    onSearchQueryChange: (String) -> Unit,
+    backgroundMode: StreamBackgroundMode,
+    title: String,
+    logo: String?,
+    heroArtwork: String?,
+    seasonNumber: Int?,
+    episodeNumber: Int?,
+    episodeTitle: String?,
+    blurEpisodeThumbnail: Boolean,
+    uiState: StreamsUiState,
+    debridEnabled: Boolean,
+    appendInstantServiceToDefaultName: Boolean,
+    resumePositionMs: Long?,
+    resumeProgressFraction: Float?,
+    onStreamSelected: (stream: StreamItem, resumePositionMs: Long?, resumeProgressFraction: Float?) -> Unit,
+    onStreamLongPress: (StreamItem) -> Unit,
+    onRefresh: () -> Unit,
+    modifier: Modifier,
+) {
     val streamsGlassBackdrop = rememberNuvioBackdrop()
     val streamsGlassEnabled = backgroundMode == StreamBackgroundMode.Cinematic && heroArtwork != null
     Box(modifier = modifier.fillMaxSize()) {
@@ -650,7 +706,8 @@ private fun MovieHeroBlock(
             .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top)),
         contentAlignment = Alignment.Center,
     ) {
-        if (logoUrl != null && !logoLoadError) {
+        // Logos are mostly drawn for dark artwork, so the light appearance shows the title.
+        if (logoUrl != null && !logoLoadError && MaterialTheme.isDarkAppearance) {
             AsyncImage(
                 model = logoUrl,
                 contentDescription = title,
@@ -691,6 +748,30 @@ private fun EpisodeHeroBlock(
     blurred: Boolean,
     showTitle: String,
     modifier: Modifier = Modifier,
+) {
+    // The artwork header and its gradient stay dark in the light appearance.
+    NuvioDarkSurface(underStatusBar = true) {
+        EpisodeHeroBlockContent(
+            seasonNumber = seasonNumber,
+            episodeNumber = episodeNumber,
+            episodeTitle = episodeTitle,
+            thumbnail = thumbnail,
+            blurred = blurred,
+            showTitle = showTitle,
+            modifier = modifier,
+        )
+    }
+}
+
+@Composable
+private fun EpisodeHeroBlockContent(
+    seasonNumber: Int,
+    episodeNumber: Int,
+    episodeTitle: String,
+    thumbnail: String?,
+    blurred: Boolean,
+    showTitle: String,
+    modifier: Modifier,
 ) {
     val heroBlendColor = MaterialTheme.colorScheme.background
 
@@ -1547,7 +1628,7 @@ internal fun StreamSearchField(
             trailingIcon = trailingContent,
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = tokens.colors.borderFocus,
-                unfocusedBorderColor = Color.White.copy(alpha = 0.12f),
+                unfocusedBorderColor = MaterialTheme.surfaceOverlay(0.12f),
                 focusedContainerColor = Color.Transparent,
                 unfocusedContainerColor = Color.Transparent,
                 cursorColor = tokens.colors.accent,

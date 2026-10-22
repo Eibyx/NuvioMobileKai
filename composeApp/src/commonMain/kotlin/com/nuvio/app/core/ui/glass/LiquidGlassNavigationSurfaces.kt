@@ -1,5 +1,6 @@
 package com.nuvio.app.core.ui.glass
 
+import com.nuvio.app.core.ui.isDarkAppearance
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -290,12 +291,15 @@ internal val GlassSurfaceColor = Color(0xFF1C1C1E)
  */
 @Composable
 internal fun SolidGlassBar(modifier: Modifier, edgeHighlight: Boolean = true) {
+    // A light pill in the light appearance, so the muted icons keep their contrast.
+    val dark = MaterialTheme.isDarkAppearance
     Box(
         modifier
             .drawWithCache {
-                val fill = GlassSurfaceColor.copy(alpha = 0.82f)
+                val fill = (if (dark) GlassSurfaceColor else Color.White).copy(alpha = 0.82f)
+                val edgeColor = if (dark) Color.White else Color.Black
                 val edge = Brush.verticalGradient(
-                    listOf(Color.White.copy(alpha = 0.27f), Color.White.copy(alpha = 0.02f)),
+                    listOf(edgeColor.copy(alpha = if (dark) 0.27f else 0.10f), edgeColor.copy(alpha = 0.02f)),
                 )
                 val width = 0.75.dp.toPx()
                 onDrawBehind {

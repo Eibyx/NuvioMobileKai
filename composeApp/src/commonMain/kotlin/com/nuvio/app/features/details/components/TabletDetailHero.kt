@@ -1,5 +1,7 @@
 package com.nuvio.app.features.details.components
 
+import com.nuvio.app.core.ui.LocalNuvioAppearance
+import com.nuvio.app.core.ui.NuvioDarkSurface
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -68,6 +70,42 @@ import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun TabletDetailBackdrop(
+    meta: MetaDetails,
+    cinematic: Boolean,
+    scrollOffsetPx: () -> Float,
+    heroHeightPx: () -> Int,
+    heroTrailerSourceUrl: String?,
+    heroTrailerSourceAudioUrl: String?,
+    heroTrailerReady: Boolean,
+    heroTrailerPlayWhenReady: () -> Boolean,
+    heroTrailerMuted: Boolean,
+    heroGradientColor: Color?,
+    onBackdropLoaded: (Painter, ImageBitmap?) -> Unit,
+    onHeroTrailerReady: () -> Unit,
+    onHeroTrailerFinished: () -> Unit,
+) {
+    // The artwork backdrop and its gradients stay dark in the light appearance.
+    NuvioDarkSurface(underStatusBar = true) {
+        TabletDetailBackdropContent(
+            meta = meta,
+            cinematic = cinematic,
+            scrollOffsetPx = scrollOffsetPx,
+            heroHeightPx = heroHeightPx,
+            heroTrailerSourceUrl = heroTrailerSourceUrl,
+            heroTrailerSourceAudioUrl = heroTrailerSourceAudioUrl,
+            heroTrailerReady = heroTrailerReady,
+            heroTrailerPlayWhenReady = heroTrailerPlayWhenReady,
+            heroTrailerMuted = heroTrailerMuted,
+            heroGradientColor = heroGradientColor.takeIf { LocalNuvioAppearance.current.isDark },
+            onBackdropLoaded = onBackdropLoaded,
+            onHeroTrailerReady = onHeroTrailerReady,
+            onHeroTrailerFinished = onHeroTrailerFinished,
+        )
+    }
+}
+
+@Composable
+private fun TabletDetailBackdropContent(
     meta: MetaDetails,
     cinematic: Boolean,
     scrollOffsetPx: () -> Float,
@@ -237,6 +275,40 @@ private fun BackdropArtwork(
 
 @Composable
 fun TabletDetailHero(
+    meta: MetaDetails,
+    showOverview: Boolean,
+    showOverallRatings: Boolean,
+    isMdbListActive: Boolean,
+    horizontalPadding: Dp,
+    viewportHeight: Dp,
+    heroTrailerSourceUrl: String?,
+    heroTrailerReady: Boolean,
+    heroTrailerMuted: Boolean,
+    onHeroTrailerMuteToggle: () -> Unit,
+    onHeightChanged: (Int) -> Unit,
+    actions: (@Composable () -> Unit)?,
+) {
+    // Its text sits on the artwork backdrop, which stays dark in the light appearance.
+    NuvioDarkSurface(underStatusBar = false) {
+        TabletDetailHeroContent(
+            meta = meta,
+            showOverview = showOverview,
+            showOverallRatings = showOverallRatings,
+            isMdbListActive = isMdbListActive,
+            horizontalPadding = horizontalPadding,
+            viewportHeight = viewportHeight,
+            heroTrailerSourceUrl = heroTrailerSourceUrl,
+            heroTrailerReady = heroTrailerReady,
+            heroTrailerMuted = heroTrailerMuted,
+            onHeroTrailerMuteToggle = onHeroTrailerMuteToggle,
+            onHeightChanged = onHeightChanged,
+            actions = actions,
+        )
+    }
+}
+
+@Composable
+private fun TabletDetailHeroContent(
     meta: MetaDetails,
     showOverview: Boolean,
     showOverallRatings: Boolean,
