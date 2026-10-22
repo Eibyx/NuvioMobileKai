@@ -80,7 +80,13 @@ class AniListTrackingWrites internal constructor(
     internal suspend fun enqueueWatched(profileId: Int, media: TrackingMediaReference) {
         val queue = queue ?: return
         if (!sync.isAuthenticatedFor(profileId)) return
-        queue.enqueue(media.toPendingSend())
+        val pending = media.toPendingSend()
+        // A split season queues each part on its own (see AniListPendingSend.partMediaId).
+        val part = queue.linkFor(pending.key)
+            ?.takeIf { !it.absolute && it.parts.size > 1 }
+            ?.parts
+            ?.lastOrNull { it.firstEpisode <= (pending.episode ?: 1) }
+        queue.enqueue(pending.copy(partMediaId = part?.mediaId))
     }
 
     /**
@@ -178,7 +184,11 @@ class AniListTrackingWrites internal constructor(
             reason = if (status == 429) "AniList rate limit" else "AniList answered $status",
             retryAtMs = retryAtEpochMs,
         )
-        is AniListAuthException -> AniListDelivery.Retry("AniList sign-in expired")
+        // AniList tokens cannot be renewed: wait for the user to connect again, which retries at once.
+        is AniListAuthException -> AniListDelivery.Retry(
+            reason = AUTH_EXPIRED_REASON,
+            retryAtMs = kotlin.time.Clock.System.now().toEpochMilliseconds() + AUTH_RETRY_MS,
+        )
         is AniListTransientException -> AniListDelivery.Retry(message ?: "network error")
         else -> AniListDelivery.Retry(InAppLogger.throwableSummary(this))
     }
@@ -346,6 +356,8 @@ class AniListTrackingWrites internal constructor(
     companion object {
         const val COMPLETION_THRESHOLD_PERCENT = 80.0
         private const val TAG = "Sync/AniList"
+        internal const val AUTH_EXPIRED_REASON = "AniList sign-in expired"
+        private const val AUTH_RETRY_MS = 6L * 60L * 60L * 1_000L
     }
 }
 

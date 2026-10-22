@@ -33,4 +33,12 @@
     <string name="anilist_link_manual">elegida a mano</string>
     <string name="anilist_link_auto">automática</string>
     <string name="anilist_link_pending_hint">Se vincula sola al empezar a verla.</string>
+    <string name="anilist_sync_reconnect">La sesión de AniList caducó. Vuelve a conectar AniList y los pendientes se enviarán solos.</string>
+    <string name="anilist_sync_reason_auth">sesión de AniList caducada</string>
+    <string name="anilist_sync_reason_rate_limit">límite de peticiones de AniList</string>
+    <string name="anilist_sync_reason_server">AniList respondió con error %1$s</string>
+    <string name="anilist_sync_reason_mapping">no se pudo consultar el mapeo de anime</string>
+    <string name="anilist_sync_reason_not_found">no hay entrada de AniList para este título y temporada</string>
+    <string name="anilist_sync_reason_profile">se cambió de perfil</string>
+    <string name="anilist_sync_reason_network">error de red</string>
 </resources>

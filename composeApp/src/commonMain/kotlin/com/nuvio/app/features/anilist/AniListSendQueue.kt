@@ -52,7 +52,19 @@ internal data class AniListPendingSend(
     val nextAttemptAtMs: Long = 0L,
     val lastError: String? = null,
     val queuedAtMs: Long = 0L,
+    /**
+     * The AniList part this episode belongs to, when the season is split (AoT S3 = two entries).
+     * Each part keeps its own highest episode, so the end of part 1 is not lost behind part 2.
+     */
+    val partMediaId: Long? = null,
 )
+
+/** One anime as the queue counts it: the title and season, and its AniList part when split. */
+internal val AniListPendingSend.queueKey: String
+    get() = partMediaId?.let { "$key#$it" } ?: key
+
+private fun Map<String, Int>.withoutTitle(key: String): Map<String, Int> =
+    filterKeys { it != key && !it.startsWith("$key#") }
 
 @Serializable
 internal data class AniListSendFailure(
@@ -173,15 +185,15 @@ internal class AniListSendQueue(
         val added = stateLock.withLock {
             val profile = profileId ?: return@withLock false
             val current = mutableState.value
-            if ((current.delivered[item.key] ?: 0) >= episode) return@withLock false
-            val existing = current.pending.firstOrNull { it.key == item.key }
+            if ((current.delivered[item.queueKey] ?: 0) >= episode) return@withLock false
+            val existing = current.pending.firstOrNull { it.queueKey == item.queueKey }
             if (existing != null && (existing.episode ?: 1) >= episode) return@withLock false
             val queued = item.copy(attempts = 0, nextAttemptAtMs = 0L, lastError = null, queuedAtMs = now())
-            update(profile, current.copy(pending = current.pending.filterNot { it.key == item.key } + queued))
+            update(profile, current.copy(pending = current.pending.filterNot { it.queueKey == item.queueKey } + queued))
             true
         }
         if (added) {
-            InAppLogger.info(TAG, "Queued ${item.title} episode $episode (${item.key})")
+            InAppLogger.info(TAG, "Queued ${item.title} episode $episode (${item.queueKey})")
             processSoon()
         }
     }
@@ -190,16 +202,21 @@ internal class AniListSendQueue(
     suspend fun forgetDelivered(key: String): Unit = stateLock.withLock {
         val profile = profileId ?: return@withLock
         val current = mutableState.value
-        if (key in current.delivered) update(profile, current.copy(delivered = current.delivered - key))
+        val remaining = current.delivered.withoutTitle(key)
+        if (remaining.size != current.delivered.size) update(profile, current.copy(delivered = remaining))
     }
 
-    suspend fun retryNow() {
-        stateLock.withLock {
-            val profile = profileId ?: return@withLock
+    /** Sends everything pending now, whatever wait each item had left. */
+    suspend fun retryNow(why: String = "Retry now") {
+        val count = stateLock.withLock {
+            val profile = profileId ?: return@withLock 0
             val current = mutableState.value
-            update(profile, current.copy(pending = current.pending.map { it.copy(nextAttemptAtMs = 0L) }))
+            if (current.pending.isNotEmpty()) {
+                update(profile, current.copy(pending = current.pending.map { it.copy(nextAttemptAtMs = 0L) }))
+            }
+            current.pending.size
         }
-        InAppLogger.info(TAG, "Retry requested for ${mutableState.value.pending.size} pending sends")
+        if (count > 0) InAppLogger.info(TAG, "$why: sending $count pending")
         processSoon()
     }
 
@@ -218,7 +235,7 @@ internal class AniListSendQueue(
             profile,
             current.copy(
                 links = current.links.filterNot { it.key == link.key } + link.copy(linkedAtMs = now()),
-                delivered = if (previous?.parts == link.parts) current.delivered else current.delivered - link.key,
+                delivered = if (previous?.parts == link.parts) current.delivered else current.delivered.withoutTitle(link.key),
             ),
         )
         InAppLogger.info(
@@ -232,7 +249,7 @@ internal class AniListSendQueue(
     suspend fun removeLink(key: String): Unit = stateLock.withLock {
         val profile = profileId ?: return@withLock
         val current = mutableState.value
-        update(profile, current.copy(links = current.links.filterNot { it.key == key }, delivered = current.delivered - key))
+        update(profile, current.copy(links = current.links.filterNot { it.key == key }, delivered = current.delivered.withoutTitle(key)))
         InAppLogger.info(TAG, "Removed the AniList link of $key")
     }
 
@@ -291,8 +308,8 @@ internal class AniListSendQueue(
         val event = stateLock.withLock {
             if (profileId != profile) return
             val current = mutableState.value
-            val rest = current.pending.filterNot { it.key == item.key && it.episode == item.episode }
-            val replacedMeanwhile = current.pending.any { it.key == item.key && it.episode != item.episode }
+            val rest = current.pending.filterNot { it.queueKey == item.queueKey && it.episode == item.episode }
+            val replacedMeanwhile = current.pending.any { it.queueKey == item.queueKey && it.episode != item.episode }
             when (outcome) {
                 is AniListDelivery.Sent, AniListDelivery.AlreadyUpToDate -> {
                     val episode = item.episode ?: 1
@@ -301,7 +318,7 @@ internal class AniListSendQueue(
                         profile,
                         current.copy(
                             pending = rest,
-                            delivered = (current.delivered + (item.key to maxOf(episode, current.delivered[item.key] ?: 0)))
+                            delivered = (current.delivered + (item.queueKey to maxOf(episode, current.delivered[item.queueKey] ?: 0)))
                                 .entries.toList().takeLast(MAX_DELIVERED).associate { it.key to it.value },
                             lastSyncAtMs = now(),
                             lastSyncTitle = synced?.title ?: item.title,

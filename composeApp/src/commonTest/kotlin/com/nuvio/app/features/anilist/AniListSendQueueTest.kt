@@ -241,4 +241,33 @@ class AniListSendQueueTest {
         assertTrue(scheduled.isNotEmpty())
         assertTrue(scheduled.all { it == 30_000L }, "the background retry is due when the next attempt is")
     }
+
+    @Test
+    fun eachPartOfASplitSeasonKeepsItsOwnEpisode() = runTest {
+        answer = { AniListDelivery.Retry("offline") }
+        val queue = queue()
+        queue.open(1)
+        // Offline: S3E12 ends part 1, S3E13 starts part 2; neither hides the other.
+        queue.enqueue(send(episode = 12, season = 3).copy(partMediaId = 99147))
+        queue.enqueue(send(episode = 13, season = 3).copy(partMediaId = 104578))
+        queue.enqueue(send(episode = 11, season = 3).copy(partMediaId = 99147))
+        runCurrent()
+        assertEquals(listOf(12, 13), queue.state.value.pending.map { it.episode }.sortedBy { it })
+    }
+
+    @Test
+    fun retryingSendsEverythingNowEvenDuringALongWait() = runTest {
+        answer = { AniListDelivery.Retry("AniList rate limit", retryAtMs = clock + 3_600_000L) }
+        val queue = queue()
+        queue.open(1)
+        queue.enqueue(send(episode = 2))
+        runCurrent()
+        assertEquals(1, delivered.size)
+
+        answer = { AniListDelivery.Sent("Attack on Titan", 2) }
+        queue.retryNow("Back online")
+        runCurrent()
+        assertEquals(2, delivered.size)
+        assertTrue(queue.state.value.pending.isEmpty())
+    }
 }

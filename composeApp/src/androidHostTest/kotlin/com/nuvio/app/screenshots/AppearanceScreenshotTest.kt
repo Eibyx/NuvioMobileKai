@@ -357,12 +357,22 @@ class AppearanceScreenshotTest(private val appearance: AppearanceMode) {
                 modifier = Modifier
                     .fillMaxSize()
                     .background(MaterialTheme.colorScheme.background)
+                    .verticalScroll(rememberScrollState())
                     .padding(16.dp),
                 verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(16.dp),
             ) {
                 AniListLinkRowContent(links = emptyList(), showSeasons = false, onClick = {})
                 AniListLinkRowContent(links = links, showSeasons = true, onClick = {})
                 AniListSyncStatusContent(state = state, onRetryNow = {}, onNotifyChange = {})
+                AniListSyncStatusContent(
+                    state = state.copy(
+                        pending = state.pending.map { it.copy(lastError = "AniList sign-in expired") },
+                        failures = emptyList(),
+                    ),
+                    signedIn = false,
+                    onRetryNow = {},
+                    onNotifyChange = {},
+                )
             }
         }
         compose.waitForIdle()

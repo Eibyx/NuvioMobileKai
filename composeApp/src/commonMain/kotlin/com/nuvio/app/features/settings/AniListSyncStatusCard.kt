@@ -23,6 +23,7 @@ import com.nuvio.app.core.format.formatLocalDateTime
 import com.nuvio.app.core.ui.nuvio
 import com.nuvio.app.features.anilist.AniListQueueState
 import com.nuvio.app.features.anilist.AniListTracker
+import com.nuvio.app.features.anilist.AniListTrackingWrites
 import nuvio.composeapp.generated.resources.Res
 import nuvio.composeapp.generated.resources.anilist_sync_error_not_found
 import nuvio.composeapp.generated.resources.anilist_sync_error_reason
@@ -34,6 +35,14 @@ import nuvio.composeapp.generated.resources.anilist_sync_pending_count
 import nuvio.composeapp.generated.resources.anilist_sync_pending_item
 import nuvio.composeapp.generated.resources.anilist_sync_pending_none
 import nuvio.composeapp.generated.resources.anilist_sync_pending_retry
+import nuvio.composeapp.generated.resources.anilist_sync_reason_auth
+import nuvio.composeapp.generated.resources.anilist_sync_reason_mapping
+import nuvio.composeapp.generated.resources.anilist_sync_reason_network
+import nuvio.composeapp.generated.resources.anilist_sync_reason_not_found
+import nuvio.composeapp.generated.resources.anilist_sync_reason_profile
+import nuvio.composeapp.generated.resources.anilist_sync_reason_rate_limit
+import nuvio.composeapp.generated.resources.anilist_sync_reason_server
+import nuvio.composeapp.generated.resources.anilist_sync_reconnect
 import nuvio.composeapp.generated.resources.anilist_sync_recent_errors
 import nuvio.composeapp.generated.resources.anilist_sync_retry_now
 import nuvio.composeapp.generated.resources.anilist_sync_status_title
@@ -43,10 +52,12 @@ import org.jetbrains.compose.resources.stringResource
 @Composable
 internal fun AniListSyncStatusCard(modifier: Modifier = Modifier) {
     val auth by AniListTracker.authState.collectAsStateWithLifecycle()
-    if (!auth.isAuthenticated) return
     val state by AniListTracker.queue.state.collectAsStateWithLifecycle()
+    // Kept visible while sends wait for the user to connect AniList again.
+    if (!auth.isAuthenticated && state.pending.isEmpty()) return
     AniListSyncStatusContent(
         state = state,
+        signedIn = auth.isAuthenticated,
         onRetryNow = AniListTracker::retryPendingNow,
         onNotifyChange = AniListTracker::setNotifyOnSync,
         modifier = modifier,
@@ -56,6 +67,7 @@ internal fun AniListSyncStatusCard(modifier: Modifier = Modifier) {
 @Composable
 internal fun AniListSyncStatusContent(
     state: AniListQueueState,
+    signedIn: Boolean = true,
     onRetryNow: () -> Unit,
     onNotifyChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
@@ -99,6 +111,13 @@ internal fun AniListSyncStatusContent(
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
             )
+            if (!signedIn) {
+                Text(
+                    text = stringResource(Res.string.anilist_sync_reconnect),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = colors.error,
+                )
+            }
             state.pending.forEach { pending ->
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(
@@ -110,7 +129,7 @@ internal fun AniListSyncStatusContent(
                             text = stringResource(
                                 Res.string.anilist_sync_pending_retry,
                                 formatLocalDateTime(pending.nextAttemptAtMs),
-                                reason,
+                                aniListReasonText(reason),
                             ),
                             style = MaterialTheme.typography.bodySmall,
                             color = colors.onSurfaceVariant,
@@ -130,14 +149,14 @@ internal fun AniListSyncStatusContent(
                         text = if (failure.notFound) {
                             stringResource(Res.string.anilist_sync_error_not_found, failure.title)
                         } else {
-                            stringResource(Res.string.anilist_sync_error_reason, failure.title, failure.reason)
+                            stringResource(Res.string.anilist_sync_error_reason, failure.title, aniListReasonText(failure.reason))
                         },
                         style = MaterialTheme.typography.bodySmall,
                         color = if (failure.notFound) colors.error else colors.onSurfaceVariant,
                     )
                 }
             }
-            OutlinedButton(onClick = onRetryNow, enabled = state.pending.isNotEmpty()) {
+            OutlinedButton(onClick = onRetryNow, enabled = signedIn && state.pending.isNotEmpty()) {
                 Text(stringResource(Res.string.anilist_sync_retry_now))
             }
             HorizontalDivider(color = colors.outlineVariant)
@@ -162,4 +181,18 @@ internal fun AniListSyncStatusContent(
             }
         }
     }
+}
+
+/** The reasons the queue logs in English, in the user's language. */
+@Composable
+private fun aniListReasonText(reason: String): String = when {
+    reason == AniListTrackingWrites.AUTH_EXPIRED_REASON -> stringResource(Res.string.anilist_sync_reason_auth)
+    reason.startsWith("AniList rate limit") -> stringResource(Res.string.anilist_sync_reason_rate_limit)
+    reason.startsWith("AniList answered") ->
+        stringResource(Res.string.anilist_sync_reason_server, reason.substringAfterLast(' '))
+    reason.startsWith("ARM") || reason.startsWith("AniList media lookup") -> stringResource(Res.string.anilist_sync_reason_mapping)
+    reason.startsWith("no AniList entry") || reason.startsWith("AniList has no entry") || reason.startsWith("not found") ->
+        stringResource(Res.string.anilist_sync_reason_not_found)
+    reason == "profile changed" -> stringResource(Res.string.anilist_sync_reason_profile)
+    else -> stringResource(Res.string.anilist_sync_reason_network)
 }

@@ -33,4 +33,12 @@
     <string name="anilist_link_manual">chosen by hand</string>
     <string name="anilist_link_auto">automatic</string>
     <string name="anilist_link_pending_hint">It links itself when you start watching.</string>
+    <string name="anilist_sync_reconnect">The AniList sign-in expired. Connect AniList again and pending sends go out on their own.</string>
+    <string name="anilist_sync_reason_auth">AniList sign-in expired</string>
+    <string name="anilist_sync_reason_rate_limit">AniList rate limit</string>
+    <string name="anilist_sync_reason_server">AniList answered with error %1$s</string>
+    <string name="anilist_sync_reason_mapping">couldn’t look up the anime mapping</string>
+    <string name="anilist_sync_reason_not_found">no AniList entry for this title and season</string>
+    <string name="anilist_sync_reason_profile">profile changed</string>
+    <string name="anilist_sync_reason_network">network error</string>
 </resources>

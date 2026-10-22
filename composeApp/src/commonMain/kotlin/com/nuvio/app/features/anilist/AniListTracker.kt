@@ -85,7 +85,8 @@ object AniListTracker : TrackingAuthProvider {
                 authenticated.value = state.scope.profileId == activeProfile.value && state.isAuthenticated
                 if (state.isAuthenticated && state.scope.profileId == activeProfile.value) {
                     // Opening the app (or switching profile) sends whatever is still pending.
-                    queue.open(state.scope.profileId)
+                    queue.open(state.scope.profileId, process = false)
+                    queue.retryNow("App opened or AniList connected")
                 }
             }
         }
@@ -95,8 +96,7 @@ object AniListTracker : TrackingAuthProvider {
                 .distinctUntilChanged()
                 .collect { condition ->
                     if (condition == NetworkCondition.Online && queue.state.value.pending.isNotEmpty()) {
-                        InAppLogger.info("Sync/AniList", "Back online; sending ${queue.state.value.pending.size} pending")
-                        queue.processSoon()
+                        queue.retryNow("Back online")
                     }
                 }
         }
@@ -217,7 +217,7 @@ object AniListTracker : TrackingAuthProvider {
     }
 
     fun retryPendingNow() {
-        coroutineScope.launch { queue.retryNow() }
+        coroutineScope.launch { queue.retryNow("Retry now pressed") }
     }
 
     fun setNotifyOnSync(enabled: Boolean) {
