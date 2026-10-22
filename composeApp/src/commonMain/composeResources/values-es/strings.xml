@@ -4,6 +4,11 @@
     <string name="theme_rose_gold">Oro rosa</string>
     <string name="theme_arctic_blue">Azul ártico</string>
     <string name="theme_graphite">Grafito</string>
+    <string name="theme_messenger">Messenger</string>
+    <string name="theme_amethyst">Amatista</string>
+    <string name="theme_blossom">Flor</string>
+    <string name="theme_lagoon">Laguna</string>
+    <string name="theme_sunset">Atardecer</string>
     <string name="profile_choose_background">Elegir fondo de perfil</string>
     <string name="profile_background_member_note">Las URLs de fondo personalizadas se pueden configurar desde el panel web de Nuvio.</string>
     <string name="profile_background_normal">Normal</string>

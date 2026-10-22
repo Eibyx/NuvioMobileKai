@@ -14,6 +14,11 @@ import nuvio.composeapp.generated.resources.theme_rose_gold
 import nuvio.composeapp.generated.resources.theme_arctic_blue
 import nuvio.composeapp.generated.resources.theme_graphite
 import nuvio.composeapp.generated.resources.theme_custom
+import nuvio.composeapp.generated.resources.theme_amethyst
+import nuvio.composeapp.generated.resources.theme_blossom
+import nuvio.composeapp.generated.resources.theme_lagoon
+import nuvio.composeapp.generated.resources.theme_messenger
+import nuvio.composeapp.generated.resources.theme_sunset
 import org.jetbrains.compose.resources.StringResource
 
 enum class AppTheme {
@@ -30,6 +35,12 @@ enum class AppTheme {
     AMBER,
     ROSE,
     WHITE,
+    // Animated gradient themes (yesnt10's Enhanced fork).
+    MESSENGER,
+    AMETHYST,
+    BLOSSOM,
+    LAGOON,
+    SUNSET,
 }
 
 val AppTheme.labelRes: StringResource
@@ -47,4 +58,9 @@ val AppTheme.labelRes: StringResource
         AppTheme.AMBER -> Res.string.theme_amber
         AppTheme.ROSE -> Res.string.theme_rose
         AppTheme.WHITE -> Res.string.theme_white
+        AppTheme.MESSENGER -> Res.string.theme_messenger
+        AppTheme.AMETHYST -> Res.string.theme_amethyst
+        AppTheme.BLOSSOM -> Res.string.theme_blossom
+        AppTheme.LAGOON -> Res.string.theme_lagoon
+        AppTheme.SUNSET -> Res.string.theme_sunset
     }

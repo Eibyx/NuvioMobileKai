@@ -39,6 +39,7 @@ import com.nuvio.app.core.ui.AppTheme
 import com.nuvio.app.core.ui.CustomThemeColors
 import com.nuvio.app.core.ui.NuvioTokens
 import com.nuvio.app.core.ui.ThemeColors
+import com.nuvio.app.core.ui.AccentGradientMotion
 import com.nuvio.app.core.ui.accentBrush
 import com.nuvio.app.core.ui.labelRes
 import com.nuvio.app.core.ui.nuvio
@@ -66,6 +67,8 @@ internal fun AppearanceThemePicker(
     val gradientEnabled = memberAccess.tier != null
     var showEditor by rememberSaveable(profileId, gradientEnabled) { mutableStateOf(false) }
     val themes = availableAppThemes(memberAccess.entitlements)
+    // Animated themes preview their motion even while another theme is selected.
+    AccentGradientMotion.Run()
     val themeSpacing = if (isTablet) NuvioTokens.Space.s16 else NuvioTokens.Space.s12
     BoxWithConstraints(
         modifier = Modifier

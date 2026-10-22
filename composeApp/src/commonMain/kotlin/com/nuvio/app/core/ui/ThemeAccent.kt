@@ -10,12 +10,12 @@ import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.Modifier
 
 fun ThemeColorPalette.accentBrush(): Brush =
-    if (accentGradient.size >= 2) Brush.linearGradient(accentGradient)
+    if (accentGradient.size >= 2) Brush.linearGradient(currentAccentGradient())
     else SolidColor(accentGradient.firstOrNull() ?: secondary)
 
 fun ThemeColorPalette.accentBrush(alpha: Float): Brush =
     if (accentGradient.size >= 2) {
-        Brush.linearGradient(accentGradient.map { color -> color.copy(alpha = alpha) })
+        Brush.linearGradient(currentAccentGradient().map { color -> color.copy(alpha = alpha) })
     } else {
         SolidColor((accentGradient.firstOrNull() ?: secondary).copy(alpha = alpha))
     }

@@ -222,6 +222,7 @@ fun NuvioTheme(
             colorScheme = colorScheme,
             typography = NuvioTypography,
         ) {
+            if (palette.animatedGradient) AccentGradientMotion.Run()
             SkeletonAnimationProvider(content = content)
         }
     }
