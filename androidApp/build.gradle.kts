@@ -69,10 +69,24 @@ val appVersionConfigFile = rootProject.file("iosApp/Configuration/Version.xcconf
 val releaseAppVersionName = providers.gradleProperty("nuvio.app.versionName").orNull
     ?: readXcconfigValue(appVersionConfigFile, "MARKETING_VERSION")
     ?: error("MARKETING_VERSION is missing from ${appVersionConfigFile.path}")
-val releaseAppVersionCode = readXcconfigValue(appVersionConfigFile, "CURRENT_PROJECT_VERSION")
-    ?.toIntOrNull()
-    ?: error("CURRENT_PROJECT_VERSION is missing or invalid in ${appVersionConfigFile.path}")
+// Kai's versionCode comes from its own MARKETING_VERSION (major * 1_000_000 + minor * 1_000 + patch)
+// rather than upstream's CURRENT_PROJECT_VERSION, so merging upstream build numbers never lowers it.
+val releaseAppVersionCode = Regex("""^(\d+)\.(\d+)\.(\d+)""")
+    .find(releaseAppVersionName.trim().removePrefix("v"))
+    ?.destructured
+    ?.let { (major, minor, patch) ->
+        check(minor.toInt() < 1_000 && patch.toInt() < 1_000) {
+            "Minor and patch must stay below 1000 to derive the versionCode from $releaseAppVersionName"
+        }
+        major.toInt() * 1_000_000 + minor.toInt() * 1_000 + patch.toInt()
+    }
+    ?: error("Version name $releaseAppVersionName does not start with major.minor.patch")
 val requestedTaskNames = gradle.startParameter.taskNames.map { it.substringAfterLast(':') }
+// CI passes -Pnuvio.android.signDebugWithRelease=true so every debug APK carries the same key and
+// installs over the previous one; locally the debug keystore is used as usual.
+val signDebugWithRelease = providers.gradleProperty("nuvio.android.signDebugWithRelease")
+    .map(String::toBooleanStrict)
+    .getOrElse(false)
 val buildsReleaseApks = requestedTaskNames.any {
     it.startsWith("assemble", ignoreCase = true) && it.endsWith("Release", ignoreCase = true)
 }
@@ -167,6 +181,14 @@ android {
             signingConfig = signingConfigs.getByName("release")
             ndk {
                 debugSymbolLevel = "FULL"
+            }
+        }
+        getByName("debug") {
+            if (signDebugWithRelease) {
+                check(releaseKeystore != null && releaseStorePassword != null && releaseKeyAlias != null && releaseKeyPassword != null) {
+                    "nuvio.android.signDebugWithRelease needs the NUVIO_RELEASE_* signing properties in local.properties"
+                }
+                signingConfig = signingConfigs.getByName("release")
             }
         }
     }
