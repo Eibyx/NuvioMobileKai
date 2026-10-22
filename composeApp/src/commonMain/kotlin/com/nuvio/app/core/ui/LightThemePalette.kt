@@ -9,8 +9,8 @@ import androidx.compose.ui.graphics.toArgb
 import kotlin.math.max
 import kotlin.math.min
 
-internal val LightBackgroundBase = Color(0xFFF5F6F8)
-internal val LightCardBase = Color(0xFFECEEF1)
+internal val LightBackgroundBase = Color(0xFFF2F3F9)
+internal val LightCardBase = Color(0xFFEBEDF6)
 internal val LightTextPrimary = Color(0xFF15181C)
 internal val LightTextSecondary = Color(0xFF3E454D)
 internal val LightTextMuted = Color(0xFF5D646C)

@@ -1,6 +1,8 @@
 package com.nuvio.app.features.home.components
 
 import com.nuvio.app.core.ui.surfaceOverlay
+import com.nuvio.app.core.ui.contentOnSurface
+import com.nuvio.app.core.ui.isDarkAppearance
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -821,7 +823,7 @@ private fun ContinueWatchingCard(
                     fontSize = cardMetrics.badgeTextSize,
                     fontWeight = FontWeight.SemiBold,
                 ),
-                color = Color.White,
+                color = continueWatchingBadgeContent(item),
                 maxLines = 1,
             )
         }
@@ -836,7 +838,7 @@ private fun ContinueWatchingCard(
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(999.dp))
                     .height(cardMetrics.progressHeight)
-                    .background(Color.Black.copy(alpha = 0.30f)),
+                    .background(Color.Black.copy(alpha = if (MaterialTheme.isDarkAppearance) 0.30f else 0.12f)),
             ) {
                 Box(
                     modifier = Modifier
@@ -1194,6 +1196,13 @@ private fun continueWatchingBadgeBackground(item: ContinueWatchingItem): Color =
     else -> MaterialTheme.colorScheme.background.copy(alpha = 0.80f)
 }
 
+/** White on the coloured release badges; on the page-coloured badge, the theme's strong text colour. */
+@Composable
+private fun continueWatchingBadgeContent(item: ContinueWatchingItem): Color = when {
+    item.isNewSeasonRelease || item.isReleaseAlert -> Color.White
+    else -> MaterialTheme.contentOnSurface
+}
+
 @Composable
 private fun UpNextBadge(
     item: ContinueWatchingItem,
@@ -1216,7 +1225,7 @@ private fun UpNextBadge(
                 fontSize = textSize,
                 fontWeight = FontWeight.Bold,
             ),
-            color = Color.White,
+            color = continueWatchingBadgeContent(item),
             maxLines = 1,
         )
     }

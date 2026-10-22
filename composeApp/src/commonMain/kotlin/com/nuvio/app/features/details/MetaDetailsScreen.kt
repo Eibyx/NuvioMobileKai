@@ -89,6 +89,7 @@ import com.nuvio.app.core.network.NetworkCondition
 import com.nuvio.app.core.network.NetworkStatusRepository
 import com.nuvio.app.core.i18n.localizedSeasonEpisodeCode
 import com.nuvio.app.core.ui.NuvioBackButton
+import com.nuvio.app.core.ui.isDarkAppearance
 import com.nuvio.app.core.ui.NuvioCardDepthSurface
 import com.nuvio.app.core.ui.NuvioPosterZoomActionOverlay
 import com.nuvio.app.core.ui.NuvioToastController
@@ -2058,7 +2059,12 @@ private fun DetailHeaderOverlay(
                     top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 8.dp,
                 )
                 .zIndex(2f),
-            containerColor = Color.Transparent,
+            // Light: a frosted disc keeps the dark arrow readable over dark artwork too.
+            containerColor = if (MaterialTheme.isDarkAppearance) {
+                Color.Transparent
+            } else {
+                MaterialTheme.colorScheme.surface.copy(alpha = 0.72f)
+            },
             contentColor = MaterialTheme.colorScheme.onBackground,
         )
     }

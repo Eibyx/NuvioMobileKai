@@ -39,7 +39,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
-import coil3.compose.AsyncImage
+import com.nuvio.app.core.ui.ArtworkLogoImage
 import com.nuvio.app.core.ui.NuvioBackButton
 import com.nuvio.app.core.ui.platformPhysicalTopInset
 import com.nuvio.app.features.details.MetaDetails
@@ -108,8 +108,10 @@ fun DetailFloatingHeader(
                 .liquidGlassSurface(
                     backdrop = glassBackdrop,
                     shape = RectangleShape,
-                    tint = surfaceColor.copy(alpha = surfaceColor.alpha * 0.7f),
-                    fallback = surfaceColor,
+                    // Light: a denser tint, since dark text behind a pale glass shows through more;
+                    // translucent even without glass, like the floating navigation bar.
+                    tint = surfaceColor.copy(alpha = surfaceColor.alpha * if (MaterialTheme.isDarkAppearance) 0.7f else 0.86f),
+                    fallback = if (MaterialTheme.isDarkAppearance) surfaceColor else surfaceColor.copy(alpha = surfaceColor.alpha * 0.92f),
                     blurRadius = 24.dp,
                     withHighlight = false,
                 ),
@@ -142,9 +144,8 @@ fun DetailFloatingHeader(
                         .padding(horizontal = 10.dp),
                     contentAlignment = Alignment.Center,
                 ) {
-                    // Logos are mostly drawn for dark artwork, so the light appearance shows the title.
-                    if (!meta.logo.isNullOrBlank() && !logoLoadError && MaterialTheme.isDarkAppearance) {
-                        AsyncImage(
+                    if (!meta.logo.isNullOrBlank() && !logoLoadError) {
+                        ArtworkLogoImage(
                             model = meta.logo,
                             contentDescription = stringResource(Res.string.detail_logo_content_description, meta.name),
                             modifier = Modifier

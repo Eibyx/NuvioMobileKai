@@ -1,5 +1,6 @@
 package com.nuvio.app.features.home.components
 
+import com.nuvio.app.core.ui.isDarkAppearance
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -89,13 +90,7 @@ internal fun HomeSkeletonHero(
                     Modifier
                 },
             )
-            .clip(
-                if (isCardStyle) {
-                    RoundedCornerShape(HERO_CARD_CORNER_RADIUS)
-                } else {
-                    RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp)
-                },
-            ),
+            .clip(homeHeroShape(isCardStyle = isCardStyle, isDark = MaterialTheme.isDarkAppearance)),
     ) {
         val layout = homeHeroLayout(
             maxWidthDp = maxWidth.value,

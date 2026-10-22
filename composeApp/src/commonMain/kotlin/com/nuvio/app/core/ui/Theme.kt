@@ -311,8 +311,21 @@ private object DarkSurfaceStatusBar {
 }
 
 /**
- * Draws [content] with the dark theme even while the app is light. The player and the artwork
- * heroes use it: their text and gradients are made for dark artwork.
+ * Keeps the status bar icons light while the caller is composed, for artwork that runs up under
+ * the status bar in the light appearance (the Home and detail heroes). Does nothing when dark.
+ */
+@Composable
+fun ArtworkUnderStatusBar() {
+    if (LocalNuvioAppearance.current.isDark) return
+    DisposableEffect(Unit) {
+        DarkSurfaceStatusBar.add()
+        onDispose { DarkSurfaceStatusBar.remove() }
+    }
+}
+
+/**
+ * Draws [content] with the dark theme even while the app is light. The player and the streams
+ * backdrop use it: their text and gradients are made for dark artwork.
  * [underStatusBar] keeps the status bar icons light while the surface is composed.
  */
 @Composable
@@ -325,12 +338,7 @@ fun NuvioDarkSurface(
         content()
         return
     }
-    if (underStatusBar) {
-        DisposableEffect(Unit) {
-            DarkSurfaceStatusBar.add()
-            onDispose { DarkSurfaceStatusBar.remove() }
-        }
-    }
+    if (underStatusBar) ArtworkUnderStatusBar()
     val palette = appearance.darkPalette
     val colorScheme = remember(palette, appearance.amoled) { buildColorScheme(palette, amoled = appearance.amoled) }
     val tokens = remember(palette, appearance.amoled, colorScheme) {

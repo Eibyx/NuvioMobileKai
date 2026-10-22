@@ -1,7 +1,9 @@
 package com.nuvio.app.features.details.components
 
-import com.nuvio.app.core.ui.LocalNuvioAppearance
-import com.nuvio.app.core.ui.NuvioDarkSurface
+import com.nuvio.app.core.ui.ArtworkLogoImage
+import com.nuvio.app.core.ui.ArtworkUnderStatusBar
+import com.nuvio.app.core.ui.isDarkAppearance
+import com.nuvio.app.features.home.components.lightHeroFadeStops
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -79,52 +81,8 @@ fun DetailHero(
     onHeroTrailerError: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
-    // The artwork hero and its gradients stay dark in the light appearance.
-    NuvioDarkSurface(underStatusBar = true) {
-        DetailHeroContent(
-            meta = meta,
-            isTablet = isTablet,
-            scrollOffset = scrollOffset,
-            stretchPx = stretchPx,
-            contentMaxWidth = contentMaxWidth,
-            onHeightChanged = onHeightChanged,
-            heroTrailerSourceUrl = heroTrailerSourceUrl,
-            heroTrailerSourceAudioUrl = heroTrailerSourceAudioUrl,
-            heroTrailerReady = heroTrailerReady,
-            heroTrailerPlayWhenReady = heroTrailerPlayWhenReady,
-            heroTrailerMuted = heroTrailerMuted,
-            heroGradientColor = heroGradientColor.takeIf { LocalNuvioAppearance.current.isDark },
-            onBackdropLoaded = onBackdropLoaded,
-            onHeroTrailerMuteToggle = onHeroTrailerMuteToggle,
-            onHeroTrailerReady = onHeroTrailerReady,
-            onHeroTrailerEnded = onHeroTrailerEnded,
-            onHeroTrailerError = onHeroTrailerError,
-            modifier = modifier,
-        )
-    }
-}
-
-@Composable
-private fun DetailHeroContent(
-    meta: MetaDetails,
-    isTablet: Boolean,
-    scrollOffset: () -> Int,
-    stretchPx: () -> Float,
-    contentMaxWidth: Dp,
-    onHeightChanged: (Int) -> Unit,
-    heroTrailerSourceUrl: String?,
-    heroTrailerSourceAudioUrl: String?,
-    heroTrailerReady: Boolean,
-    heroTrailerPlayWhenReady: () -> Boolean,
-    heroTrailerMuted: Boolean,
-    heroGradientColor: Color?,
-    onBackdropLoaded: (Painter, ImageBitmap?) -> Unit,
-    onHeroTrailerMuteToggle: () -> Unit,
-    onHeroTrailerReady: () -> Unit,
-    onHeroTrailerEnded: () -> Unit,
-    onHeroTrailerError: () -> Unit,
-    modifier: Modifier,
-) {
+    val isDark = MaterialTheme.isDarkAppearance
+    ArtworkUnderStatusBar()
     BoxWithConstraints(
         modifier = modifier.fillMaxWidth(),
     ) {
@@ -253,7 +211,15 @@ private fun DetailHeroContent(
                     }
                 }
 
-                Box(
+                if (!isDark) {
+                    // Light: a long fade over the lower part of the artwork into the page, so the
+                    // logo and the dark text sit on the page colour whatever the image.
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Brush.verticalGradient(colorStops = lightHeroFadeStops(bottomGradientColor))),
+                    )
+                } else Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(if (isTablet) 360.dp else 320.dp)
@@ -281,7 +247,7 @@ private fun DetailHeroContent(
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     if (logoUrl != null && !logoLoadError) {
-                        AsyncImage(
+                        ArtworkLogoImage(
                             model = logoUrl,
                             contentDescription = stringResource(Res.string.detail_logo_content_description, meta.name),
                             modifier = Modifier

@@ -49,6 +49,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.background
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.foundation.BorderStroke
+import com.nuvio.app.core.ui.isDarkAppearance
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material.icons.rounded.Download
 import com.nuvio.app.core.ui.AppIconResource
@@ -257,9 +260,12 @@ fun DetailActionButtons(
                         MaterialTheme.colorScheme.onBackground
                     } else if (moreGlassActive) {
                         Color.Transparent
+                    } else if (!MaterialTheme.isDarkAppearance) {
+                        lightSecondaryActionFill()
                     } else {
                         MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.82f)
                     },
+                    border = if (actionsExpanded) null else lightSecondaryActionBorder(),
                     contentColor = if (actionsExpanded) {
                         MaterialTheme.colorScheme.background
                     } else {
@@ -308,8 +314,13 @@ fun DetailActionButtons(
                         },
                     ),
                 shape = playShape,
-                color = if (downloadGlassActive) Color.Transparent else MaterialTheme.colorScheme.surfaceVariant,
+                color = when {
+                    downloadGlassActive -> Color.Transparent
+                    !MaterialTheme.isDarkAppearance -> lightSecondaryActionFill()
+                    else -> MaterialTheme.colorScheme.surfaceVariant
+                },
                 contentColor = MaterialTheme.colorScheme.onSurface,
+                border = lightSecondaryActionBorder(),
             ) {
                 Row(
                     modifier = Modifier
@@ -674,9 +685,12 @@ internal fun DetailIconAction(
             MaterialTheme.colorScheme.onBackground
         } else if (glassActive) {
             Color.Transparent
+        } else if (!MaterialTheme.isDarkAppearance) {
+            lightSecondaryActionFill()
         } else {
             MaterialTheme.colorScheme.surfaceVariant
         },
+        border = if (active) null else lightSecondaryActionBorder(),
         contentColor = if (active) {
             MaterialTheme.colorScheme.background
         } else {
@@ -778,6 +792,16 @@ private fun PlayButton(
             }
         }
 }
+
+/** Light: the round and secondary actions get a soft accent fill. */
+@Composable
+private fun lightSecondaryActionFill(): Color =
+    lerp(MaterialTheme.colorScheme.surface, MaterialTheme.nuvio.colors.accent, 0.10f)
+
+/** Light: an accent rim around the round and secondary actions; none on dark. */
+@Composable
+private fun lightSecondaryActionBorder(): BorderStroke? =
+    if (MaterialTheme.isDarkAppearance) null else BorderStroke(1.dp, MaterialTheme.nuvio.colors.accent.copy(alpha = 0.45f))
 
 private data class IconActionRowLayout(val size: Dp, val spacing: Dp, val fits: Boolean)
 

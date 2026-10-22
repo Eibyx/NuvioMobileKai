@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.graphics.GraphicsLayerScope
@@ -124,6 +125,15 @@ internal fun LiquidGlassFrostedBar(
     // Nuvio owns its palette independently from Android/iOS system appearance.
     // Tint the glass with the active Nuvio surface, not the device's light/dark setting.
     val containerColor = MaterialTheme.nuvio.colors.surface.copy(alpha = safeSettings.tintOpacity)
+    // A white rim disappears on the light glass, so the light appearance draws it in the text colour.
+    val lightEdgeColor = MaterialTheme.colorScheme.onSurface
+    val edgeBrush = if (MaterialTheme.isDarkAppearance) {
+        LiquidGlassBarEdgeBrush
+    } else {
+        remember(lightEdgeColor) {
+            Brush.verticalGradient(listOf(lightEdgeColor.copy(alpha = 0.10f), lightEdgeColor.copy(alpha = 0.02f)))
+        }
+    }
     val cornerRadiusPercent = effectiveLiquidGlassCornerRadiusPercent(safeSettings.cornerRadiusPercent)
     val cornerShape = RoundedCornerShape(cornerRadiusPercent)
 
@@ -166,7 +176,7 @@ internal fun LiquidGlassFrostedBar(
                     val width = 0.75.dp.toPx()
                     val cornerRadius = size.minDimension * (cornerRadiusPercent / 100f)
                     drawRoundRect(
-                        brush = LiquidGlassBarEdgeBrush,
+                        brush = edgeBrush,
                         topLeft = Offset(width / 2, width / 2),
                         size = Size(size.width - width, size.height - width),
                         cornerRadius = CornerRadius((cornerRadius - width / 2).coerceAtLeast(0f)),
@@ -293,11 +303,13 @@ internal val GlassSurfaceColor = Color(0xFF1C1C1E)
 internal fun SolidGlassBar(modifier: Modifier, edgeHighlight: Boolean = true) {
     // A light pill in the light appearance, so the muted icons keep their contrast.
     val dark = MaterialTheme.isDarkAppearance
+    val lightFill = MaterialTheme.colorScheme.surface
+    val lightEdge = MaterialTheme.colorScheme.onSurface
     Box(
         modifier
             .drawWithCache {
-                val fill = (if (dark) GlassSurfaceColor else Color.White).copy(alpha = 0.82f)
-                val edgeColor = if (dark) Color.White else Color.Black
+                val fill = (if (dark) GlassSurfaceColor else lightFill).copy(alpha = 0.82f)
+                val edgeColor = if (dark) Color.White else lightEdge
                 val edge = Brush.verticalGradient(
                     listOf(edgeColor.copy(alpha = if (dark) 0.27f else 0.10f), edgeColor.copy(alpha = 0.02f)),
                 )
