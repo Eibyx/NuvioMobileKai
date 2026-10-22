@@ -548,6 +548,10 @@
     <string name="settings_advanced_section_startup">PUESTA EN MARCHA</string>
     <string name="settings_advanced_section_diagnostics">DIAGNÓSTICO</string>
     <string name="settings_advanced_section_cache">CACHE</string>
+    <string name="settings_advanced_section_network">RED</string>
+    <string name="settings_advanced_doh">DNS sobre HTTPS</string>
+    <string name="settings_advanced_doh_description">Resuelve las direcciones de los servidores con un proveedor de DNS cifrado en las peticiones de la app, los addons, las descargas y ExoPlayer. El motor mpv sigue usando el DNS del sistema.</string>
+    <string name="settings_advanced_doh_off">Desactivado</string>
     <string name="settings_advanced_remember_last_profile">Recordar último perfil</string>
     <string name="settings_advanced_remember_last_profile_description">Recordar el último perfil seleccionado al inicio</string>
     <string name="settings_advanced_sentry_reports">Informes de fallos de Sentry</string>

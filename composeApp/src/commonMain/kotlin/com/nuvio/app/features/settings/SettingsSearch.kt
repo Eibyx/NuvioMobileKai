@@ -45,6 +45,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.nuvio.app.core.network.DnsOverHttpsSettingsStorage
 import com.nuvio.app.core.ui.NuvioTokens
 import com.nuvio.app.core.ui.nuvio
 import com.nuvio.app.isIos
@@ -440,6 +441,18 @@ internal fun settingsSearchEntries(
         category = advancedCategory,
         icon = Icons.Rounded.Tune,
     )
+    if (DnsOverHttpsSettingsStorage.isSupported) {
+        addRow(
+            page = SettingsPage.Advanced,
+            key = "dns-over-https",
+            title = stringResource(Res.string.settings_advanced_doh),
+            description = stringResource(Res.string.settings_advanced_doh_description),
+            pageLabel = advancedPage,
+            section = stringResource(Res.string.settings_advanced_section_network),
+            category = advancedCategory,
+            icon = Icons.Rounded.Tune,
+        )
+    }
     if (SentrySettingsRepository.isSupported) {
         addRow(
             page = SettingsPage.Advanced,

@@ -15,6 +15,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.text.font.FontWeight
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.nuvio.app.core.network.DnsOverHttpsProvider
+import com.nuvio.app.core.network.DnsOverHttpsSettingsRepository
+import com.nuvio.app.core.network.DnsOverHttpsSettingsStorage
+import com.nuvio.app.core.ui.Chip
 import com.nuvio.app.core.ui.DialogButton
 import com.nuvio.app.core.ui.DialogButtons
 import com.nuvio.app.core.ui.DialogButtonStyle
@@ -41,11 +45,15 @@ import nuvio.composeapp.generated.resources.settings_advanced_clear_metadata_cac
 import nuvio.composeapp.generated.resources.settings_advanced_clear_metadata_cache_subtitle
 import nuvio.composeapp.generated.resources.settings_advanced_debug_logs
 import nuvio.composeapp.generated.resources.settings_advanced_debug_logs_description
+import nuvio.composeapp.generated.resources.settings_advanced_doh
+import nuvio.composeapp.generated.resources.settings_advanced_doh_description
+import nuvio.composeapp.generated.resources.settings_advanced_doh_off
 import nuvio.composeapp.generated.resources.settings_advanced_remember_last_profile
 import nuvio.composeapp.generated.resources.settings_advanced_remember_last_profile_description
 import nuvio.composeapp.generated.resources.settings_advanced_section_cache
 import nuvio.composeapp.generated.resources.settings_advanced_section_debugging
 import nuvio.composeapp.generated.resources.settings_advanced_section_diagnostics
+import nuvio.composeapp.generated.resources.settings_advanced_section_network
 import nuvio.composeapp.generated.resources.settings_advanced_section_startup
 import nuvio.composeapp.generated.resources.settings_advanced_sentry_reports
 import nuvio.composeapp.generated.resources.settings_advanced_sentry_reports_subtitle
@@ -82,6 +90,38 @@ internal fun LazyListScope.advancedSettingsContent(
                     isTablet = isTablet,
                     onCheckedChange = ProfileRepository::setRememberLastProfileEnabled,
                 )
+            }
+        }
+    }
+    if (DnsOverHttpsSettingsStorage.isSupported) {
+        item {
+            val dnsOverHttpsSettings by remember {
+                DnsOverHttpsSettingsRepository.ensureLoaded()
+                DnsOverHttpsSettingsRepository.uiState
+            }.collectAsStateWithLifecycle()
+            SettingsSection(
+                title = stringResource(Res.string.settings_advanced_section_network),
+                isTablet = isTablet,
+            ) {
+                SettingsGroup(isTablet = isTablet) {
+                    SettingsChipRow(
+                        title = stringResource(Res.string.settings_advanced_doh),
+                        description = stringResource(Res.string.settings_advanced_doh_description),
+                        isTablet = isTablet,
+                    ) {
+                        DnsOverHttpsProvider.entries.forEach { provider ->
+                            Chip(
+                                label = if (provider == DnsOverHttpsProvider.None) {
+                                    stringResource(Res.string.settings_advanced_doh_off)
+                                } else {
+                                    provider.label
+                                },
+                                selected = dnsOverHttpsSettings.provider == provider,
+                                onClick = { DnsOverHttpsSettingsRepository.setProvider(provider) },
+                            )
+                        }
+                    }
+                }
             }
         }
     }

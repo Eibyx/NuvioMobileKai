@@ -3,6 +3,7 @@ package com.nuvio.app.features.addons
 import android.content.Context
 import android.content.SharedPreferences
 import com.nuvio.app.core.diagnostics.SentryNetworkBreadcrumbInterceptor
+import com.nuvio.app.core.network.DnsOverHttpsDns
 import com.nuvio.app.core.network.IPv4FirstDns
 import com.nuvio.app.core.network.SharedOkHttpClient
 import kotlinx.coroutines.CancellationException
@@ -114,7 +115,7 @@ private val addonDispatcher = Dispatcher().apply {
 private fun buildAddonHttpClient(cache: Cache? = null): OkHttpClient =
     SharedOkHttpClient.base.newBuilder()
         .dispatcher(addonDispatcher)
-        .dns(IPv4FirstDns())
+        .dns(IPv4FirstDns(DnsOverHttpsDns))
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(60, TimeUnit.SECONDS)
         .writeTimeout(30, TimeUnit.SECONDS)

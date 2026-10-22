@@ -11,6 +11,7 @@ import coil3.network.ktor3.KtorNetworkFetcherFactory
 import coil3.request.CachePolicy
 import coil3.request.crossfade
 import coil3.svg.SvgDecoder
+import com.nuvio.app.core.network.DnsOverHttpsSettingsStorage
 import com.nuvio.app.core.poster.CustomPosterFallbackInterceptor
 
 /**
@@ -20,6 +21,12 @@ import com.nuvio.app.core.poster.CustomPosterFallbackInterceptor
  * before MainActivity.onCreate, and interceptors registered later are ignored.
  */
 class NuvioApplication : Application(), SingletonImageLoader.Factory {
+
+    override fun onCreate() {
+        super.onCreate()
+        // Before any request, in every process, so lookups never resolve before the DNS setting loads.
+        DnsOverHttpsSettingsStorage.initialize(this)
+    }
 
     override fun newImageLoader(context: android.content.Context): ImageLoader {
         return ImageLoader.Builder(context)

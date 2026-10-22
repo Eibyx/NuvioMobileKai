@@ -1,6 +1,7 @@
 package com.nuvio.app.features.trailer
 
 import android.net.Uri
+import com.nuvio.app.core.network.DnsOverHttpsDns
 import com.nuvio.app.core.network.IPv4FirstDns
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -26,7 +27,7 @@ internal object TrailerExtractionPlatform {
     )
 
     private val httpClient = OkHttpClient.Builder()
-        .dns(IPv4FirstDns())
+        .dns(IPv4FirstDns(DnsOverHttpsDns))
         .callTimeout(TRAILER_REQUEST_TIMEOUT_MS, TimeUnit.MILLISECONDS)
         .connectTimeout(TRAILER_REQUEST_TIMEOUT_MS, TimeUnit.MILLISECONDS)
         .readTimeout(TRAILER_REQUEST_TIMEOUT_MS, TimeUnit.MILLISECONDS)
@@ -36,7 +37,7 @@ internal object TrailerExtractionPlatform {
         .build()
 
     private val probeClient = OkHttpClient.Builder()
-        .dns(IPv4FirstDns())
+        .dns(IPv4FirstDns(DnsOverHttpsDns))
         .callTimeout(PROBE_TIMEOUT_MS, TimeUnit.MILLISECONDS)
         .connectTimeout(PROBE_TIMEOUT_MS, TimeUnit.MILLISECONDS)
         .readTimeout(PROBE_TIMEOUT_MS, TimeUnit.MILLISECONDS)

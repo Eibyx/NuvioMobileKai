@@ -580,6 +580,10 @@
     <string name="settings_advanced_section_diagnostics">DIAGNOSTICS</string>
     <string name="settings_advanced_section_cache">CACHE</string>
     <string name="settings_advanced_section_debugging">DEBUGGING</string>
+    <string name="settings_advanced_section_network">NETWORK</string>
+    <string name="settings_advanced_doh">DNS over HTTPS</string>
+    <string name="settings_advanced_doh_description">Look up server addresses through an encrypted DNS provider for app, addon, download and ExoPlayer requests. The mpv engine keeps using the system DNS.</string>
+    <string name="settings_advanced_doh_off">Off</string>
     <string name="settings_advanced_debug_logs">Debug Logs</string>
     <string name="settings_advanced_debug_logs_description">View, copy, or clear in-app debug logs</string>
     <string name="settings_advanced_debugging_copy_logs">Copy Logs to Clipboard</string>
