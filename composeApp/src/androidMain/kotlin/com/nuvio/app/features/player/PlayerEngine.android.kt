@@ -93,7 +93,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.asCoroutineDispatcher
+import kotlinx.coroutines.cancel
 import kotlin.math.abs
 import kotlin.math.exp
 import kotlin.math.pow
@@ -109,7 +109,6 @@ import java.net.URI
 import java.net.URL
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
-import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 
 private const val TAG = "NuvioPlayer"
@@ -1689,6 +1688,7 @@ private fun LibmpvPlayerSurface(
                 keepScreenOn = false
                 runCatching {
                     Utils.copyAssets(viewContext)
+                    MpvSession.acquire(this)
                     initialize(viewContext.filesDir.path, viewContext.cacheDir.path)
                 }.onFailure { error ->
                     Log.e(TAG, "Failed to initialize libmpv", error)
@@ -1722,10 +1722,9 @@ private class NuvioLibmpvView(
     private val hardwareDecodingEnabled: Boolean,
     private val yuv420pEnabled: Boolean,
     attrs: AttributeSet? = null,
-) : BaseMPVView(context, attrs) {
-    private val mpvDispatcher = Executors.newSingleThreadExecutor { runnable ->
-        Thread(runnable, "NuvioLibmpv").apply { isDaemon = true }
-    }.asCoroutineDispatcher()
+) : BaseMPVView(context, attrs), MpvSession.Owner {
+    // libmpv is a process-wide singleton, so every view shares the session's libmpv thread.
+    private val mpvDispatcher = MpvSession.dispatcher
     private val mpvScope = CoroutineScope(SupervisorJob() + mpvDispatcher)
     private val released = AtomicBoolean(false)
     private var currentSourceUrl: String? = null
@@ -2390,12 +2389,14 @@ private class NuvioLibmpvView(
     }
 
     fun releaseMpv() {
-        if (!released.compareAndSet(false, true)) return
+        onPreempted()
+        mpvScope.cancel()
+        MpvSession.release(this)
+    }
+
+    override fun onPreempted() {
+        released.set(true)
         holder.removeCallback(this)
-        mpvScope.launch {
-            runCatching { mpv.destroy() }
-            mpvDispatcher.close()
-        }
     }
 
     private fun setPausedNow(paused: Boolean) {
