@@ -66,7 +66,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.nuvio.app"
+        applicationId = "com.nuvio.media"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = releaseAppVersionCode
@@ -107,6 +107,13 @@ android {
 
     androidResources {
         noCompress += "cvr"
+    }
+
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+            version = "3.22.1"
+        }
     }
 
     splits {

@@ -25,6 +25,7 @@ import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Link
 import androidx.compose.material.icons.rounded.Notifications
+import androidx.compose.material.icons.rounded.NewReleases
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.People
 import androidx.compose.material.icons.rounded.PlayArrow
@@ -105,15 +106,18 @@ internal fun settingsSearchEntries(
     val notificationsPage = stringResource(Res.string.compose_settings_page_notifications)
     val supportersPage = stringResource(Res.string.compose_settings_page_supporters_contributors)
     val licensesPage = stringResource(Res.string.compose_settings_page_licenses_attributions)
+    val whatsNewPage = stringResource(Res.string.compose_settings_page_whats_new)
     val homeLayoutPage = stringResource(Res.string.compose_settings_page_homescreen)
     val detailPage = stringResource(Res.string.compose_settings_page_meta_screen)
     val continueWatchingPage = stringResource(Res.string.compose_settings_page_continue_watching)
     val posterStylePage = stringResource(Res.string.compose_settings_page_poster_customization)
+    val downloadsPage = stringResource(Res.string.compose_settings_root_downloads_title)
     val addonsPage = stringResource(Res.string.compose_settings_page_addons)
     val pluginsPage = stringResource(Res.string.compose_settings_page_plugins)
     val collectionsPage = stringResource(Res.string.collections_header)
     val tmdbPage = stringResource(Res.string.compose_settings_page_tmdb_enrichment)
     val mdbListPage = stringResource(Res.string.compose_settings_page_mdblist_ratings)
+    val omdbPage = stringResource(Res.string.compose_settings_page_omdb)
 
     val entries = mutableListOf<SettingsSearchEntry>()
 
@@ -239,6 +243,15 @@ internal fun settingsSearchEntries(
         section = stringResource(Res.string.settings_content_discovery_section_search),
         icon = Icons.Rounded.Search,
     )
+    addRow(
+        page = SettingsPage.Downloads,
+        key = "download-location",
+        title = stringResource(Res.string.settings_downloads_location_title),
+        description = stringResource(Res.string.compose_settings_root_downloads_description),
+        pageLabel = downloadsPage,
+        section = downloadsPage,
+        icon = Icons.Rounded.CloudDownload,
+    )
     addPage(
         page = SettingsPage.Playback,
         key = "playback",
@@ -284,6 +297,14 @@ internal fun settingsSearchEntries(
         description = stringResource(Res.string.about_licenses_attributions_subtitle),
         category = aboutCategory,
         icon = Icons.Rounded.Info,
+    )
+    addPage(
+        page = SettingsPage.WhatsNew,
+        key = "whats-new",
+        title = whatsNewPage,
+        description = stringResource(Res.string.whats_new_root_description),
+        category = aboutCategory,
+        icon = Icons.Rounded.NewReleases,
     )
     listOf(
         PlaybackSearchRow("nuvio-license", stringResource(Res.string.settings_licenses_attributions_nuvio_title), stringResource(Res.string.settings_licenses_attributions_nuvio_license)),
@@ -381,12 +402,21 @@ internal fun settingsSearchEntries(
         section = stringResource(Res.string.settings_appearance_section_display),
         icon = Icons.Rounded.Palette,
     )
+    addRow(
+        page = SettingsPage.Appearance,
+        key = "dynamic-artwork-background",
+        title = stringResource(Res.string.settings_appearance_dynamic_artwork_background),
+        description = stringResource(Res.string.settings_appearance_dynamic_artwork_background_description),
+        pageLabel = layoutPage,
+        section = stringResource(Res.string.settings_appearance_section_display),
+        icon = Icons.Rounded.Palette,
+    )
     if (liquidGlassNativeTabBarSupported) {
         addRow(
             page = SettingsPage.Appearance,
             key = "liquid-glass",
-            title = stringResource(Res.string.settings_appearance_liquid_glass),
-            description = stringResource(Res.string.settings_appearance_liquid_glass_description),
+            title = stringResource(Res.string.settings_appearance_tab_bar_behavior),
+            description = stringResource(NuvioTabBarBehavior.Default.descriptionRes),
             pageLabel = layoutPage,
             section = stringResource(Res.string.settings_appearance_section_display),
             icon = Icons.Rounded.Palette,
@@ -427,6 +457,16 @@ internal fun settingsSearchEntries(
         key = "clear-cw-cache",
         title = stringResource(Res.string.settings_advanced_clear_cw_cache),
         description = stringResource(Res.string.settings_advanced_clear_cw_cache_subtitle),
+        pageLabel = advancedPage,
+        section = stringResource(Res.string.settings_advanced_section_cache),
+        category = advancedCategory,
+        icon = Icons.Rounded.Tune,
+    )
+    addRow(
+        page = SettingsPage.Advanced,
+        key = "clear-metadata-cache",
+        title = stringResource(Res.string.settings_advanced_clear_metadata_cache),
+        description = stringResource(Res.string.settings_advanced_clear_metadata_cache_subtitle),
         pageLabel = advancedPage,
         section = stringResource(Res.string.settings_advanced_section_cache),
         category = advancedCategory,
@@ -592,9 +632,24 @@ internal fun settingsSearchEntries(
                 stringResource(Res.string.settings_playback_hold_to_speed_description),
             ),
             PlaybackSearchRow(
+                "seek-preview",
+                stringResource(Res.string.settings_playback_seek_preview),
+                stringResource(Res.string.settings_playback_seek_preview_description),
+            ),
+            PlaybackSearchRow(
                 "touch-gestures",
                 stringResource(Res.string.settings_playback_touch_gestures),
                 stringResource(Res.string.settings_playback_touch_gestures_description),
+            ),
+            PlaybackSearchRow(
+                "swipe-to-seek",
+                stringResource(Res.string.settings_playback_swipe_to_seek),
+                stringResource(Res.string.settings_playback_swipe_to_seek_description),
+            ),
+            PlaybackSearchRow(
+                "movie-recommendations",
+                stringResource(Res.string.settings_playback_movie_recommendations),
+                stringResource(Res.string.settings_playback_movie_recommendations_description),
             ),
             PlaybackSearchRow("hold-speed", stringResource(Res.string.settings_playback_hold_speed)),
         ),
@@ -649,9 +704,7 @@ internal fun settingsSearchEntries(
                 PlaybackSearchRow("decoder-priority", stringResource(Res.string.settings_playback_decoder_priority)),
                 PlaybackSearchRow("dv7-hevc", stringResource(Res.string.settings_playback_map_dv7_to_hevc), stringResource(Res.string.settings_playback_map_dv7_to_hevc_description)),
                 PlaybackSearchRow("tunneled-playback", stringResource(Res.string.settings_playback_tunneled_playback), stringResource(Res.string.settings_playback_tunneled_playback_description)),
-                PlaybackSearchRow("exo-native-memory", stringResource(Res.string.settings_playback_exo_native_memory), stringResource(Res.string.settings_playback_exo_native_memory_description)),
-                PlaybackSearchRow("custom-buffers", stringResource(Res.string.settings_playback_buffer_custom), stringResource(Res.string.settings_playback_buffer_custom_description)),
-                PlaybackSearchRow("vod-cache", stringResource(Res.string.settings_playback_vod_cache), stringResource(Res.string.settings_playback_vod_cache_description)),
+                PlaybackSearchRow("audio-passthrough", stringResource(Res.string.settings_playback_audio_passthrough), stringResource(Res.string.settings_playback_audio_passthrough_description)),
             ),
         )
         addPlaybackRows(
@@ -662,6 +715,7 @@ internal fun settingsSearchEntries(
             rows = listOf(
                 PlaybackSearchRow("libass", stringResource(Res.string.settings_playback_enable_libass), stringResource(Res.string.settings_playback_enable_libass_description)),
                 PlaybackSearchRow("libass-render", stringResource(Res.string.settings_playback_render_type)),
+                PlaybackSearchRow("libmpv-ass", stringResource(Res.string.settings_playback_enable_libmpv_ass), stringResource(Res.string.settings_playback_enable_libmpv_ass_description)),
             ),
         )
     }
@@ -864,6 +918,13 @@ internal fun settingsSearchEntries(
         description = stringResource(Res.string.settings_integrations_mdblist_description),
         icon = Icons.Rounded.Link,
     )
+    addPage(
+        page = SettingsPage.Omdb,
+        key = "omdb",
+        title = omdbPage,
+        description = stringResource(Res.string.settings_integrations_omdb_description),
+        icon = Icons.Rounded.Link,
+    )
     val tmdbModulesSection = stringResource(Res.string.settings_tmdb_section_modules)
     listOf(
         PlaybackSearchRow("tmdb-enable", stringResource(Res.string.settings_tmdb_enable_enrichment), stringResource(Res.string.settings_tmdb_enable_enrichment_description), stringResource(Res.string.settings_tmdb_section_title)),
@@ -910,6 +971,20 @@ internal fun settingsSearchEntries(
             description = row.description,
             pageLabel = mdbListPage,
             section = row.sectionOverride ?: stringResource(Res.string.settings_mdb_section_title),
+            icon = Icons.Rounded.Link,
+        )
+    }
+
+    listOf(
+        PlaybackSearchRow("omdb-api-key", stringResource(Res.string.settings_omdb_personal_api_key), stringResource(Res.string.settings_omdb_enter_api_key), stringResource(Res.string.settings_omdb_section_title)),
+    ).forEach { row ->
+        addRow(
+            page = SettingsPage.Omdb,
+            key = row.key,
+            title = row.title,
+            description = row.description,
+            pageLabel = omdbPage,
+            section = row.sectionOverride ?: stringResource(Res.string.settings_omdb_section_title),
             icon = Icons.Rounded.Link,
         )
     }

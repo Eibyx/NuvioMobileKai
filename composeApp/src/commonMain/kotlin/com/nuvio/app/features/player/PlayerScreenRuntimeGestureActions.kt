@@ -2,6 +2,8 @@ package com.nuvio.app.features.player
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -26,6 +28,7 @@ internal data class PlayerSurfaceGestureCallbacks(
     val revealLockedOverlay: State<() -> Unit>,
     val isHoldToSpeedGestureActive: State<Boolean>,
     val touchGesturesEnabled: State<Boolean>,
+    val swipeToSeekEnabled: State<Boolean>,
     val playerControlsLocked: State<Boolean>,
     val currentPositionMs: State<Long>,
     val currentDurationMs: State<Long>,
@@ -68,9 +71,12 @@ internal fun PlayerScreenRuntime.lockPlayerControls() {
     showAudioModal = false
     showSubtitleModal = false
     showVideoSettingsModal = false
+    showStreamInfoModal = false
+    showUserRatingSheet = false
     showStreamInfo = false
     showSourcesPanel = false
     showEpisodesPanel = false
+    showChaptersPanel = false
     episodeStreamsPanelState = EpisodeStreamsPanelState()
     PlayerStreamsRepository.clearEpisodeStreams()
 }
@@ -138,7 +144,10 @@ internal fun PlayerScreenRuntime.showBrightnessFeedback(level: Float) {
 }
 
 internal fun PlayerScreenRuntime.showVolumeFeedback(level: PlayerAudioLevel) {
-    val percentage = (level.fraction.coerceIn(0f, 1f) * 100f).roundToInt()
+    notifyVolumeLevelForAutoSubtitle(level)
+    val normalized = level.fraction.coerceIn(0f, PlayerMaxVolumeBoost)
+    val percentage = (normalized * 100f).roundToInt()
+    val isBoosted = normalized > PlayerNormalVolumeCeiling
     showGestureFeedback(
         GestureFeedbackState(
             messageRes = if (level.isMuted) {
@@ -148,7 +157,8 @@ internal fun PlayerScreenRuntime.showVolumeFeedback(level: PlayerAudioLevel) {
             },
             messageArgs = if (level.isMuted) emptyList() else listOf("$percentage%"),
             icon = if (level.isMuted) GestureFeedbackIcon.VolumeMuted else GestureFeedbackIcon.Volume,
-            isDanger = level.isMuted,
+            // Reuse the existing alternate feedback color path to distinguish boosted volume.
+            isDanger = level.isMuted || isBoosted,
             level = if (level.isMuted) 0f else level.fraction.coerceIn(0f, 1f),
         ),
     )
@@ -197,6 +207,7 @@ internal fun PlayerScreenRuntime.seekBy(offsetMs: Long) {
         ?.takeIf { (_, mark) -> mark.elapsedNow() < PendingSeekWindow }
         ?.first
         ?: currentPlaybackPositionMs()
+    val fromPositionMs = fromMs.coerceAtLeast(0L)
     val requestedMs = (fromMs + offsetMs).coerceAtLeast(0L)
         .let { if (playbackSnapshot.durationMs > 0L) it.coerceAtMost(playbackSnapshot.durationMs) else it }
     val targetMs = if (isPartyControlLocked) ownSeekTarget(requestedMs) ?: return else requestedMs
@@ -208,7 +219,28 @@ internal fun PlayerScreenRuntime.seekBy(offsetMs: Long) {
     controlsVisible = true
     when {
         offsetMs > 0L -> showSeekFeedback(PlayerSeekDirection.Forward, offsetMs)
-        offsetMs < 0L -> showSeekFeedback(PlayerSeekDirection.Backward, abs(offsetMs))
+        offsetMs < 0L -> {
+            showSeekFeedback(PlayerSeekDirection.Backward, abs(offsetMs))
+            notifyRewindOccurred(fromPositionMs)
+        }
+    }
+}
+
+/**
+ * Single entry point for hardware-keyboard shortcuts, whichever layer recognised the key. Routing
+ * through the ordinary runtime actions is what keeps a key press equivalent to the same action
+ * from a tap: seek feedback, control reveal and the debounced watch-progress sync all still run.
+ */
+internal fun PlayerScreenRuntime.handleKeyboardShortcut(shortcut: PlayerKeyboardShortcut) {
+    if (playerControlsLocked || isAnyOverlayVisible) return
+    when (shortcut) {
+        PlayerKeyboardShortcut.TogglePlayback -> togglePlayback()
+        PlayerKeyboardShortcut.SeekBackward -> seekBy(-PlayerDoubleTapSeekStepMs)
+        PlayerKeyboardShortcut.SeekForward -> seekBy(PlayerDoubleTapSeekStepMs)
+        PlayerKeyboardShortcut.Exit -> {
+            flushWatchProgress()
+            args.onBack()
+        }
     }
 }
 
@@ -241,6 +273,9 @@ internal fun PlayerScreenRuntime.handleDoubleTapSeek(direction: PlayerSeekDirect
     scheduleProgressSyncAfterSeek()
     publishPartyPlayback(positionMs = targetPositionMs)
     showSeekFeedback(direction, nextState.amountMs)
+    if (direction == PlayerSeekDirection.Backward) {
+        notifyRewindOccurred(nextState.baselinePositionMs)
+    }
 
     accumulatedSeekResetJob?.cancel()
     accumulatedSeekResetJob = scope.launch {
@@ -254,6 +289,11 @@ internal fun PlayerScreenRuntime.cycleResizeMode() {
     resizeMode = nextMode
     lastSyncedSettingsResizeMode = nextMode
     PlayerSettingsRepository.setResizeMode(nextMode)
+    rawVideoZoom = 1f
+    if (videoZoom != 1f) {
+        videoZoom = 1f
+        playerController?.setVideoZoom(1f)
+    }
     showGestureMessage(
         when (nextMode) {
             PlayerResizeMode.Fit -> resizeModeFitLabel
@@ -262,6 +302,28 @@ internal fun PlayerScreenRuntime.cycleResizeMode() {
         },
     )
     controlsVisible = true
+}
+
+internal const val PlayerMinVideoZoom = 0.8f
+internal const val PlayerMaxVideoZoom = 2.0f
+private const val PlayerVideoZoomSnapRange = 0.04f
+
+internal fun PlayerScreenRuntime.pinchVideoZoom(zoomFactor: Float) {
+    if (zoomFactor <= 0f || zoomFactor == 1f) return
+    rawVideoZoom = (rawVideoZoom * zoomFactor).coerceIn(PlayerMinVideoZoom, PlayerMaxVideoZoom)
+    val next = if (abs(rawVideoZoom - 1f) < PlayerVideoZoomSnapRange) 1f else rawVideoZoom
+    if (next == videoZoom) return
+    videoZoom = next
+    playerController?.setVideoZoom(next)
+    showGestureMessage("${(next * 100f).roundToInt()}%")
+}
+
+internal fun PlayerScreenRuntime.setPlaybackSpeedFromPicker(speed: Float) {
+    if (partyBlocksControl()) return
+    partyRateNudge = null
+    playerController?.setPlaybackSpeed(speed)
+    publishPartyPlayback(rate = speed)
+    showGestureMessage(formatPlaybackSpeedLabel(speed))
 }
 
 internal fun PlayerScreenRuntime.cyclePlaybackSpeed() {
@@ -350,19 +412,24 @@ internal fun PlayerScreenRuntime.rememberSurfaceGestureCallbacks(): PlayerSurfac
         revealLockedOverlay = rememberUpdatedState(::revealLockedOverlay),
         isHoldToSpeedGestureActive = rememberUpdatedState(isHoldToSpeedGestureActive),
         touchGesturesEnabled = rememberUpdatedState(playerSettingsUiState.touchGesturesEnabled),
+        swipeToSeekEnabled = rememberUpdatedState(playerSettingsUiState.swipeToSeekEnabled),
         playerControlsLocked = rememberUpdatedState(playerControlsLocked),
-        currentPositionMs = rememberUpdatedState(playbackSnapshot.positionMs.coerceAtLeast(0L)),
-        currentDurationMs = rememberUpdatedState(playbackSnapshot.durationMs),
+        currentPositionMs = remember(this) { derivedStateOf { playbackSnapshot.positionMs.coerceAtLeast(0L) } },
+        currentDurationMs = remember(this) { derivedStateOf { playbackSnapshot.durationMs } },
         commitHorizontalSeek = rememberUpdatedState { requestedPositionMs: Long ->
             val targetPositionMs = if (isPartyControlLocked) {
                 ownSeekTarget(requestedPositionMs) ?: return@rememberUpdatedState
             } else {
                 requestedPositionMs
             }
+            val fromPositionMs = playbackSnapshot.positionMs.coerceAtLeast(0L)
             lastManualSkipSeekPositions = playbackSnapshot.positionMs to targetPositionMs
             playerController?.seekTo(targetPositionMs)
             scheduleProgressSyncAfterSeek()
             publishPartyPlayback(positionMs = targetPositionMs)
+            if (targetPositionMs < fromPositionMs) {
+                notifyRewindOccurred(fromPositionMs)
+            }
         },
     )
 }
