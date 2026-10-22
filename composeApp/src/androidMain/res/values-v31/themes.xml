@@ -29,4 +29,42 @@
     <style name="Theme.Nuvio.Splash.Graphite" parent="@style/Theme.Nuvio.Splash">
         <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_logo_graphite</item>
     </style>
+
+    <!-- The splash on Android 13+ follows the appearance: MainActivity picks these with setSplashScreenTheme. -->
+    <style name="Theme.Nuvio.Splash.Light" parent="@style/Theme.Nuvio.Splash">
+        <item name="windowSplashScreenBackground">@color/nuvio_background_light</item>
+    </style>
+    <style name="Theme.Nuvio.Splash.System" parent="@style/Theme.Nuvio.Splash">
+        <item name="windowSplashScreenBackground">@color/nuvio_background_system</item>
+    </style>
+    <style name="Theme.Nuvio.Splash.ArcticBlue.Light" parent="@style/Theme.Nuvio.Splash.ArcticBlue">
+        <item name="windowSplashScreenBackground">@color/nuvio_background_light</item>
+    </style>
+    <style name="Theme.Nuvio.Splash.ArcticBlue.System" parent="@style/Theme.Nuvio.Splash.ArcticBlue">
+        <item name="windowSplashScreenBackground">@color/nuvio_background_system</item>
+    </style>
+    <style name="Theme.Nuvio.Splash.Emerald.Light" parent="@style/Theme.Nuvio.Splash.Emerald">
+        <item name="windowSplashScreenBackground">@color/nuvio_background_light</item>
+    </style>
+    <style name="Theme.Nuvio.Splash.Emerald.System" parent="@style/Theme.Nuvio.Splash.Emerald">
+        <item name="windowSplashScreenBackground">@color/nuvio_background_system</item>
+    </style>
+    <style name="Theme.Nuvio.Splash.RoseGold.Light" parent="@style/Theme.Nuvio.Splash.RoseGold">
+        <item name="windowSplashScreenBackground">@color/nuvio_background_light</item>
+    </style>
+    <style name="Theme.Nuvio.Splash.RoseGold.System" parent="@style/Theme.Nuvio.Splash.RoseGold">
+        <item name="windowSplashScreenBackground">@color/nuvio_background_system</item>
+    </style>
+    <style name="Theme.Nuvio.Splash.Copper.Light" parent="@style/Theme.Nuvio.Splash.Copper">
+        <item name="windowSplashScreenBackground">@color/nuvio_background_light</item>
+    </style>
+    <style name="Theme.Nuvio.Splash.Copper.System" parent="@style/Theme.Nuvio.Splash.Copper">
+        <item name="windowSplashScreenBackground">@color/nuvio_background_system</item>
+    </style>
+    <style name="Theme.Nuvio.Splash.Graphite.Light" parent="@style/Theme.Nuvio.Splash.Graphite">
+        <item name="windowSplashScreenBackground">@color/nuvio_background_light</item>
+    </style>
+    <style name="Theme.Nuvio.Splash.Graphite.System" parent="@style/Theme.Nuvio.Splash.Graphite">
+        <item name="windowSplashScreenBackground">@color/nuvio_background_system</item>
+    </style>
 </resources>

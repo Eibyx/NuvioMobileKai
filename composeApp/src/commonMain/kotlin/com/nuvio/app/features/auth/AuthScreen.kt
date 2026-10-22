@@ -75,6 +75,12 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import com.nuvio.app.core.ui.nuvio
+import com.nuvio.app.core.ui.surfaceOverlay
+import com.nuvio.app.core.ui.isDarkAppearance
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.PointerEventPass
@@ -122,19 +128,41 @@ import nuvio.composeapp.generated.resources.compose_auth_terms_prefix
 import nuvio.composeapp.generated.resources.compose_auth_welcome_back
 import org.jetbrains.compose.resources.stringResource
 
-internal val AuthTextPrimary = Color(0xFFF5F7F8)
-internal val AuthTextSecondary = Color(0xFF969CA3)
-private val AuthTextMuted = Color(0xFF6E7178)
-private val AuthPrimaryButtonBackground = Color(0xFFF5F5F5)
-private val AuthPrimaryButtonText = Color(0xFF111111)
-internal val AuthFieldBackground = Color.White.copy(alpha = 0.04f)
-private val AuthFieldBackgroundMobile = Color.White.copy(alpha = 0.035f)
-internal val AuthFieldBorder = Color.White.copy(alpha = 0.08f)
-private val AuthPaneBackground = Color.White.copy(alpha = 0.022f)
-private val AuthPaneBorder = Color.White.copy(alpha = 0.07f)
-private val AuthDividerColor = Color.White.copy(alpha = 0.10f)
-private val AuthSecondaryButtonBackground = Color.White.copy(alpha = 0.05f)
-private val AuthSecondaryButtonBorder = Color.White.copy(alpha = 0.09f)
+/*
+ * The sign-in colours follow the theme. On dark they are the values the screen was drawn with
+ * (the dark scheme's text colours, and white tints through surfaceOverlay); on light they are the
+ * light scheme's text colours and black tints, with the primary button inverted.
+ */
+internal val AuthTextPrimary: Color
+    @Composable @ReadOnlyComposable get() = MaterialTheme.colorScheme.onBackground
+internal val AuthTextSecondary: Color
+    @Composable @ReadOnlyComposable get() = MaterialTheme.colorScheme.onSurfaceVariant
+private val AuthTextMuted: Color
+    @Composable @ReadOnlyComposable get() = if (MaterialTheme.isDarkAppearance) {
+        Color(0xFF6E7178)
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+    }
+private val AuthPrimaryButtonBackground: Color
+    @Composable @ReadOnlyComposable get() = if (MaterialTheme.isDarkAppearance) Color(0xFFF5F5F5) else MaterialTheme.colorScheme.onSurface
+private val AuthPrimaryButtonText: Color
+    @Composable @ReadOnlyComposable get() = if (MaterialTheme.isDarkAppearance) Color(0xFF111111) else MaterialTheme.colorScheme.surface
+private const val AuthFieldBackgroundAlpha = 0.04f
+private const val AuthFieldBackgroundMobileAlpha = 0.035f
+internal val AuthFieldBackground: Color
+    @Composable @ReadOnlyComposable get() = MaterialTheme.surfaceOverlay(AuthFieldBackgroundAlpha)
+internal val AuthFieldBorder: Color
+    @Composable @ReadOnlyComposable get() = MaterialTheme.surfaceOverlay(0.08f)
+private val AuthPaneBackground: Color
+    @Composable @ReadOnlyComposable get() = MaterialTheme.surfaceOverlay(0.022f)
+private val AuthPaneBorder: Color
+    @Composable @ReadOnlyComposable get() = MaterialTheme.surfaceOverlay(0.07f)
+private val AuthDividerColor: Color
+    @Composable @ReadOnlyComposable get() = MaterialTheme.surfaceOverlay(0.10f)
+private val AuthSecondaryButtonBackground: Color
+    @Composable @ReadOnlyComposable get() = MaterialTheme.surfaceOverlay(0.05f)
+private val AuthSecondaryButtonBorder: Color
+    @Composable @ReadOnlyComposable get() = MaterialTheme.surfaceOverlay(0.09f)
 
 private data class AuthFormMetrics(
     val fieldHeight: Dp,
@@ -147,7 +175,7 @@ private data class AuthFormMetrics(
     val dividerTop: Dp,
     val secondaryTop: Dp,
     val secondaryHeight: Dp,
-    val fieldBackground: Color,
+    val fieldBackgroundAlpha: Float,
 )
 
 private val MobileAuthFormMetrics = AuthFormMetrics(
@@ -161,7 +189,7 @@ private val MobileAuthFormMetrics = AuthFormMetrics(
     dividerTop = 28.dp,
     secondaryTop = 24.dp,
     secondaryHeight = 54.dp,
-    fieldBackground = AuthFieldBackgroundMobile,
+    fieldBackgroundAlpha = AuthFieldBackgroundMobileAlpha,
 )
 
 private val LargeAuthFormMetrics = AuthFormMetrics(
@@ -175,7 +203,7 @@ private val LargeAuthFormMetrics = AuthFormMetrics(
     dividerTop = 30.dp,
     secondaryTop = 26.dp,
     secondaryHeight = 56.dp,
-    fieldBackground = AuthFieldBackground,
+    fieldBackgroundAlpha = AuthFieldBackgroundAlpha,
 )
 
 private fun largeAuthScale(screenWidth: Dp): Float =
@@ -254,7 +282,7 @@ fun AuthScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(Color.Black)
+            .background(if (MaterialTheme.isDarkAppearance) Color.Black else MaterialTheme.colorScheme.background)
             .pointerInput(emailFieldBounds, passwordFieldBounds) {
                 awaitEachGesture {
                     val down = awaitFirstDown(
@@ -279,7 +307,14 @@ fun AuthScreen(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .authGradientBackground(largeScreen = largeScreen),
+                    .authGradientBackground(
+                        largeScreen = largeScreen,
+                        light = if (MaterialTheme.isDarkAppearance) {
+                            null
+                        } else {
+                            AuthLightGradient(MaterialTheme.colorScheme.background, MaterialTheme.nuvio.colors.accent)
+                        },
+                    ),
             ) {
                 if (largeScreen) {
                     val largeScale = largeAuthScale(screenWidth)
@@ -574,6 +609,7 @@ private fun AuthLargeLayout(
             )
         }
 
+        val paneBorder = AuthPaneBorder
         Box(
             modifier = Modifier
                 .width(formPaneWidth)
@@ -581,7 +617,7 @@ private fun AuthLargeLayout(
                 .background(AuthPaneBackground)
                 .drawBehind {
                     drawLine(
-                        color = AuthPaneBorder,
+                        color = paneBorder,
                         start = Offset(0f, 0f),
                         end = Offset(0f, size.height),
                         strokeWidth = 1.dp.toPx(),
@@ -949,7 +985,7 @@ private fun AuthTextField(
         modifier = modifier
             .fillMaxWidth()
             .height(metrics.fieldHeight)
-            .background(metrics.fieldBackground, shape)
+            .background(MaterialTheme.surfaceOverlay(metrics.fieldBackgroundAlpha), shape)
             .border(1.dp, AuthFieldBorder, shape)
             .padding(horizontal = metrics.fieldHorizontalPadding),
         verticalAlignment = Alignment.CenterVertically,
@@ -1173,7 +1209,10 @@ internal fun AuthSecondaryButton(
     }
 }
 
-private fun Modifier.authGradientBackground(largeScreen: Boolean): Modifier = drawWithCache {
+/** The light appearance's wash: the accent fading into the page colour, in place of purple into black. */
+private class AuthLightGradient(val background: Color, val accent: Color)
+
+private fun Modifier.authGradientBackground(largeScreen: Boolean, light: AuthLightGradient?): Modifier = drawWithCache {
     val angleDegrees = if (largeScreen) 122.0 else 148.0
     val angleRadians = angleDegrees * PI / 180.0
     val directionX = sin(angleRadians).toFloat()
@@ -1212,7 +1251,14 @@ private fun Modifier.authGradientBackground(largeScreen: Boolean): Modifier = dr
         )
     }
     val brush = Brush.linearGradient(
-        colorStops = colorStops,
+        colorStops = if (light == null) {
+            colorStops
+        } else {
+            // The same stops, with the dark colours' share of the purple turned into accent tint.
+            colorStops.map { (position, color) ->
+                position to lerp(light.background, light.accent, 0.18f * color.luminance() / AuthGradientTopLuminance)
+            }.toTypedArray()
+        },
         start = start,
         end = end,
     )
@@ -1220,6 +1266,8 @@ private fun Modifier.authGradientBackground(largeScreen: Boolean): Modifier = dr
         drawRect(brush = brush)
     }
 }
+
+private val AuthGradientTopLuminance = Color(0xFF21113B).luminance()
 
 private fun LayoutCoordinates.boundsInRoot(): Rect {
     val position = positionInRoot()

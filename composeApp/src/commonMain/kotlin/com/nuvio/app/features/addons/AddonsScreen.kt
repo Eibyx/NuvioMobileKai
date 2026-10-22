@@ -1,5 +1,6 @@
 package com.nuvio.app.features.addons
 
+import com.nuvio.app.core.ui.readableOnBackground
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -427,7 +428,7 @@ private fun InstalledAddonCard(
             AddonIconBadge(
                 imageUrl = manifest?.logoUrl,
                 icon = Icons.Rounded.Extension,
-                tint = if (manifest != null) Color(0xFF71BDE8) else MaterialTheme.colorScheme.onSurfaceVariant,
+                tint = if (manifest != null) Color(0xFF71BDE8).readableOnBackground() else MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {

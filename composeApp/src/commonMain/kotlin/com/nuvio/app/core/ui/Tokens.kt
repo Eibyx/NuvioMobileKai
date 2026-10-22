@@ -222,6 +222,8 @@ data class NuvioColorTokens(
     val shimmer: Color,
     val skeleton: Color,
     val playerControlsBackground: Color,
+    /** Behind video and its letterboxing: black in both appearances. */
+    val playerVideoBackground: Color,
     val playerControlsForeground: Color,
     val playerTimelineTrack: Color,
     val playerTimelineFill: Color,
@@ -424,6 +426,7 @@ internal fun defaultNuvioThemeTokens(
             shimmer = overlayBase.copy(alpha = if (dark) 0.10f else 0.07f),
             skeleton = overlayBase.copy(alpha = if (dark) 0.06f else 0.05f),
             playerControlsBackground = Color.Black.copy(alpha = 0.72f),
+            playerVideoBackground = Color.Black,
             playerControlsForeground = Color.White,
             playerTimelineTrack = Color.White.copy(alpha = 0.30f),
             playerTimelineFill = accent,

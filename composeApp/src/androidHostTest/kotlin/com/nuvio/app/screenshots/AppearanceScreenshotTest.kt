@@ -45,7 +45,11 @@ import com.nuvio.app.core.ui.AppearanceMode
 import com.nuvio.app.core.ui.FloatingNavigationBar
 import com.nuvio.app.core.ui.FloatingNavigationItem
 import com.nuvio.app.core.ui.NuvioTheme
+import com.nuvio.app.features.auth.AuthScreen
+import com.nuvio.app.features.details.MetaCompany
 import com.nuvio.app.features.details.MetaDetails
+import com.nuvio.app.features.profiles.NuvioProfile
+import com.nuvio.app.features.profiles.ProfileBackgroundBackdrop
 import com.nuvio.app.features.details.MetaDetailsRepository
 import com.nuvio.app.features.details.MetaDetailsScreen
 import com.nuvio.app.features.details.MetaDetailsUiState
@@ -117,6 +121,39 @@ class AppearanceScreenshotTest(private val appearance: AppearanceMode) {
         showDetail(MetaEpisodeCardStyle.Horizontal)
         scrollToEpisodes()
         capture("detail_episodes_cards")
+    }
+
+    @Test
+    fun detailProductionChips() {
+        showDetail(MetaEpisodeCardStyle.List)
+        compose.onNode(hasScrollAction() and SemanticsMatcher.keyIsDefined(SemanticsProperties.VerticalScrollAxisRange))
+            .performScrollToNode(hasText("Sample Studio"))
+        compose.mainClock.advanceTimeBy(1_000L)
+        compose.waitForIdle()
+        capture("detail_production")
+    }
+
+    @Test
+    fun signIn() {
+        setScreen { AuthScreen() }
+        compose.mainClock.advanceTimeBy(1_500L)
+        compose.waitForIdle()
+        capture("sign_in")
+    }
+
+    @Test
+    fun profileBackdrop() {
+        setScreen {
+            Box(Modifier.fillMaxSize()) {
+                ProfileBackgroundBackdrop(
+                    profile = NuvioProfile(name = "Kai", avatarColorHex = "#E5338F"),
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
+        }
+        compose.mainClock.advanceTimeBy(1_000L)
+        compose.waitForIdle()
+        capture("profile_backdrop")
     }
 
     private fun showDetail(episodeCardStyle: MetaEpisodeCardStyle) {
@@ -269,6 +306,11 @@ class AppearanceScreenshotTest(private val appearance: AppearanceMode) {
             MetaExternalRating(source = "tmdb", value = 81.0),
         ),
         cast = List(6) { MetaPerson(name = "Actor Name $it", role = "Role $it") },
+        productionCompanies = listOf(
+            MetaCompany(name = "Sample Studio"),
+            MetaCompany(name = "Second Pictures"),
+            MetaCompany(name = "Third Animation"),
+        ),
         videos = (1..4).flatMap { season ->
             (1..6).map { episode ->
                 MetaVideo(

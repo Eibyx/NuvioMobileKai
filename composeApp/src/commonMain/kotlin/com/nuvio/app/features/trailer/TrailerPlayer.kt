@@ -1,5 +1,7 @@
 package com.nuvio.app.features.trailer
 
+import com.nuvio.app.core.ui.nuvio
+import com.nuvio.app.core.ui.NuvioDarkSurface
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,7 +20,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.nuvio.app.core.ui.NuvioLoadingIndicator
@@ -45,46 +46,49 @@ internal fun TrailerPlayer(
 ) {
     val error = errorMessage ?: state.error
     EnterImmersivePlayerMode(keepScreenAwake = error == null && state.playWhenReady && !state.snapshot.isEnded)
-    Box(modifier = modifier.background(Color.Black), contentAlignment = Alignment.Center) {
-        if (source != null && !isLoading && error == null) {
-            TrailerPlaybackSurface(
-                source = source,
-                state = state,
-                resizeMode = PlayerResizeMode.Fit,
-            )
-        }
-        when {
-            error == null && (isLoading || source != null && state.snapshot.isLoading) -> {
-                NuvioLoadingIndicator()
+    // A video surface, so it stays dark in the light appearance like the main player.
+    NuvioDarkSurface {
+        Box(modifier = modifier.background(MaterialTheme.nuvio.colors.playerVideoBackground), contentAlignment = Alignment.Center) {
+            if (source != null && !isLoading && error == null) {
+                TrailerPlaybackSurface(
+                    source = source,
+                    state = state,
+                    resizeMode = PlayerResizeMode.Fit,
+                )
             }
-            error != null -> Column(
-                modifier = Modifier.padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Text(
-                    text = stringResource(Res.string.trailer_unable_to_play),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = Color.White,
-                )
-                Text(
-                    text = error,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color.White.copy(alpha = 0.7f),
-                    maxLines = 3,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                if (onRetry != null) {
-                    TextButton(onClick = onRetry) { Text(stringResource(Res.string.action_retry)) }
+            when {
+                error == null && (isLoading || source != null && state.snapshot.isLoading) -> {
+                    NuvioLoadingIndicator()
+                }
+                error != null -> Column(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text(
+                        text = stringResource(Res.string.trailer_unable_to_play),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.nuvio.colors.playerControlsForeground,
+                    )
+                    Text(
+                        text = error,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.nuvio.colors.playerControlsForeground.copy(alpha = 0.7f),
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    if (onRetry != null) {
+                        TextButton(onClick = onRetry) { Text(stringResource(Res.string.action_retry)) }
+                    }
                 }
             }
+            TrailerPlayerControls(
+                state = state,
+                canControlPlayback = source != null && !isLoading && error == null,
+                title = title,
+                onExitFullscreen = onExitFullscreen,
+            )
         }
-        TrailerPlayerControls(
-            state = state,
-            canControlPlayback = source != null && !isLoading && error == null,
-            title = title,
-            onExitFullscreen = onExitFullscreen,
-        )
     }
 }
 
@@ -134,6 +138,6 @@ private fun TrailerPlaybackSurface(
         onError = { if (presentationId == state.presentationId) state.error = it },
     )
     if (restoringPosition) {
-        Box(Modifier.fillMaxSize().background(Color.Black))
+        Box(Modifier.fillMaxSize().background(MaterialTheme.nuvio.colors.playerVideoBackground))
     }
 }

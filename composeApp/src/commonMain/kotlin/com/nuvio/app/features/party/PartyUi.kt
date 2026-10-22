@@ -1,5 +1,6 @@
 package com.nuvio.app.features.party
 
+import com.nuvio.app.core.ui.contentOnSurface
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
@@ -122,7 +123,8 @@ internal fun PartyAvatar(
         ) {
             Text(
                 text = name.trim().take(1).uppercase(),
-                color = Color.White,
+                // White on the member's colour; the theme's text colour on the plain card fallback.
+                color = if (color != null) Color.White else MaterialTheme.contentOnSurface,
                 style = MaterialTheme.typography.titleMedium.copy(fontSize = (size.value * 0.4f).sp),
                 fontWeight = FontWeight.SemiBold,
             )

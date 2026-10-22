@@ -1,5 +1,7 @@
 package com.nuvio.app.features.shuffle
 
+import com.nuvio.app.core.ui.contentOnSurface
+import com.nuvio.app.core.ui.artworkBadgeFill
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -34,7 +36,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -163,9 +164,9 @@ internal fun EpisodeShuffleSheet(
                     }
                     Text(
                         stringResource(if (watched) Res.string.episodes_cd_watched else Res.string.shuffle_unwatched),
-                        style = MaterialTheme.typography.labelMedium, color = Color.White,
+                        style = MaterialTheme.typography.labelMedium, color = MaterialTheme.contentOnSurface,
                         modifier = Modifier.align(Alignment.BottomStart).padding(12.dp)
-                            .background(Color.Black.copy(alpha = 0.8f), RoundedCornerShape(6.dp))
+                            .background(MaterialTheme.artworkBadgeFill(0.8f), RoundedCornerShape(6.dp))
                             .padding(horizontal = 10.dp, vertical = 5.dp),
                     )
                 }

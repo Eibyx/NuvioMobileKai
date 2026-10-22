@@ -259,6 +259,7 @@ fun NuvioTheme(
         ) {
             if (palette.animatedGradient) AccentGradientMotion.Run()
             StatusBarIcons(appDark = dark)
+            PlatformWindowAppearance(mode = appearance, dark = dark, background = colorScheme.background)
             SkeletonAnimationProvider(content = content)
         }
     }
@@ -294,6 +295,15 @@ val MaterialTheme.contentOnSurface: Color
 @ReadOnlyComposable
 fun MaterialTheme.surfaceOverlay(alpha: Float): Color =
     (if (isDarkAppearance) Color.White else Color.Black).copy(alpha = alpha)
+
+/**
+ * The fill of a small badge laid over artwork: translucent black with white content on dark, as
+ * drawn, and the theme's surface with dark content on light. Pair it with [contentOnSurface].
+ */
+@Composable
+@ReadOnlyComposable
+fun MaterialTheme.artworkBadgeFill(darkAlpha: Float): Color =
+    if (isDarkAppearance) Color.Black.copy(alpha = darkAlpha) else colorScheme.surface.copy(alpha = 0.9f)
 
 // Its own composable, so a dark surface coming and going recomposes only this.
 @Composable

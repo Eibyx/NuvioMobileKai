@@ -1,6 +1,7 @@
 package com.nuvio.app.features.details.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,11 +19,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
+import com.nuvio.app.core.ui.isDarkAppearance
+import com.nuvio.app.core.ui.surfaceOverlay
 import com.nuvio.app.features.details.MetaCompany
 import com.nuvio.app.features.details.MetaDetails
 import nuvio.composeapp.generated.resources.*
@@ -109,10 +113,16 @@ private fun ProductionChip(
     logoHeight: androidx.compose.ui.unit.Dp,
     onClick: (() -> Unit)? = null,
 ) {
+    // Company logos are drawn for a light ground, so the chip stays light. On the light page it is
+    // the theme's surface with a rim and a soft shadow, so it still stands out.
+    val isDark = MaterialTheme.isDarkAppearance
+    val chipShape = RoundedCornerShape(12.dp)
     Box(
         modifier = Modifier
-            .clip(RoundedCornerShape(12.dp))
-            .background(color = ProductionChipBackground)
+            .then(if (isDark) Modifier else Modifier.shadow(3.dp, chipShape))
+            .clip(chipShape)
+            .background(color = if (isDark) ProductionChipBackground else MaterialTheme.colorScheme.surface)
+            .then(if (isDark) Modifier else Modifier.border(1.dp, MaterialTheme.surfaceOverlay(0.14f), chipShape))
             .then(
                 if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier
             )
@@ -136,11 +146,12 @@ private fun ProductionChip(
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
                 ),
-                color = ProductionTextColor,
+                color = if (isDark) ProductionTextColor else MaterialTheme.colorScheme.onSurface,
             )
         }
     }
 }
 
+// The dark appearance's chip, as drawn.
 private val ProductionChipBackground = androidx.compose.ui.graphics.Color(0xE6F5F5F5)
 private val ProductionTextColor = androidx.compose.ui.graphics.Color(0xFF333333)

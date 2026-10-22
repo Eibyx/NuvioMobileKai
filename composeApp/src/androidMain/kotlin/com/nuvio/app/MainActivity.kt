@@ -1,5 +1,9 @@
 package com.nuvio.app
 
+import com.nuvio.app.core.ui.DarkNavigationBarScrim
+import androidx.core.graphics.ColorUtils
+import androidx.core.content.ContextCompat
+import android.graphics.drawable.ColorDrawable
 import com.nuvio.app.features.details.FavoritePeopleStorage
 import android.content.Intent
 import android.content.res.Configuration
@@ -104,17 +108,23 @@ open class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen().setKeepOnScreenCondition { !contentReady }
+        AppearanceSettingsStorage.initialize(applicationContext)
+        // Start on the window colour the app last drew (light or dark) until Compose takes over.
+        val launchWindowBackground = AppearanceSettingsStorage.loadWindowBackground()
+            ?: ContextCompat.getColor(this, R.color.nuvio_background)
+        val launchesLight = ColorUtils.calculateLuminance(launchWindowBackground) > 0.5
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.dark(
                 scrim = android.graphics.Color.TRANSPARENT,
             ),
-            navigationBarStyle = SystemBarStyle.dark(
-                scrim = 0xFF020404.toInt(),
-            ),
+            navigationBarStyle = if (launchesLight) {
+                SystemBarStyle.light(scrim = launchWindowBackground, darkScrim = DarkNavigationBarScrim)
+            } else {
+                SystemBarStyle.dark(scrim = DarkNavigationBarScrim)
+            },
         )
         ThemeSettingsStorage.initialize(applicationContext)
         AppFontSettingsStorage.initialize(applicationContext)
-        AppearanceSettingsStorage.initialize(applicationContext)
         FavoritePeopleStorage.initialize(applicationContext)
         com.nuvio.app.features.player.PlayerDeviceStatusSettingsStorage.initialize(applicationContext)
         AppIconPlatform.initialize(applicationContext)
@@ -123,7 +133,7 @@ open class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         ProfileBiometricAuth.initialize(this)
         AutoSyncPreferencesAndroid.initialize(applicationContext) // AutoSync hook
-        window.setBackgroundDrawableResource(R.color.nuvio_background)
+        window.setBackgroundDrawable(ColorDrawable(launchWindowBackground))
         SyncClientIdentityStorage.initialize(applicationContext)
         AddonHttpClientProvider.initialize(applicationContext)
         AddonStorage.initialize(applicationContext)

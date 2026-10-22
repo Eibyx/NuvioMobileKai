@@ -1,5 +1,6 @@
 package com.nuvio.app.features.profiles
 
+import com.nuvio.app.core.ui.isDarkAppearance
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -93,6 +94,8 @@ internal fun ProfilePopupContent(
         val width = (24.dp + 80.dp * columns).coerceAtMost(availableWidth)
         val panelWidth = if (profiles.any { it.pinEnabled }) 264.dp.coerceAtMost(availableWidth) else width
         val popupHeight = (maxHeight * 0.65f).coerceAtMost(420.dp).coerceAtMost(availableHeight ?: maxHeight)
+        // The dark glass of the dark appearance; the theme's surface on the light one.
+        val popupGlassColor = if (MaterialTheme.isDarkAppearance) Color(0xFF1C1C1E) else MaterialTheme.colorScheme.surface
         Box(
             Modifier.width(panelWidth).height(popupHeight).pointerInput(Unit) {
                 detectTapGestures { position ->
@@ -110,8 +113,8 @@ internal fun ProfilePopupContent(
                     .liquidGlassSurface(
                         backdrop = backdrop,
                         shape = shape,
-                        tint = Color(0xFF1C1C1E).copy(alpha = 0.55f),
-                        fallback = if (backdrop != null) Color(0xFF1C1C1E).copy(alpha = 0.94f) else tokens.colors.background,
+                        tint = popupGlassColor.copy(alpha = 0.55f),
+                        fallback = if (backdrop != null) popupGlassColor.copy(alpha = 0.94f) else tokens.colors.background,
                         blurRadius = 24.dp,
                         refractionHeight = 12.dp,
                         refractionAmount = 24.dp,

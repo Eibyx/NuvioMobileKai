@@ -1,5 +1,7 @@
 package com.nuvio.app.features.profiles
 
+import com.nuvio.app.core.ui.isDarkAppearance
+import com.nuvio.app.core.ui.contentOnSurface
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -456,27 +458,29 @@ fun ProfileEditScreen(
         } else {
             stringResource(Res.string.collections_editor_save_changes)
         }
+        // An inverted disc: white with a black icon on dark, the text colour with a light icon on light.
+        val saveButtonContent = if (MaterialTheme.isDarkAppearance) Color.Black else MaterialTheme.colorScheme.surface
         Box(
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .padding(top = platformPhysicalTopInset() + 4.dp, end = 18.dp)
                 .size(40.dp)
                 .clip(CircleShape)
-                .background(Color.White.copy(alpha = if (saveEnabled) 1f else 0.35f))
+                .background(MaterialTheme.contentOnSurface.copy(alpha = if (saveEnabled) 1f else 0.35f))
                 .then(if (saveEnabled) Modifier.clickable(onClick = handleSave) else Modifier),
             contentAlignment = Alignment.Center,
         ) {
             if (isSaving) {
                 CircularProgressIndicator(
                     modifier = Modifier.size(18.dp),
-                    color = Color.Black,
+                    color = saveButtonContent,
                     strokeWidth = 2.dp,
                 )
             } else {
                 Icon(
                     imageVector = Icons.Rounded.Save,
                     contentDescription = saveContentDescription,
-                    tint = Color.Black,
+                    tint = saveButtonContent,
                     modifier = Modifier.size(20.dp),
                 )
             }

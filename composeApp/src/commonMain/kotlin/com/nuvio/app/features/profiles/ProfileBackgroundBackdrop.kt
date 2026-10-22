@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -14,6 +15,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.nuvio.app.core.ui.ProfileMeshBackground
+import com.nuvio.app.core.ui.isDarkAppearance
 import com.nuvio.app.features.membership.MemberAccessRepository
 import com.nuvio.app.features.membership.ProfileBackgroundRepository
 import com.nuvio.app.features.membership.ProfileBackgroundSelection
@@ -77,7 +79,14 @@ fun ProfileBackgroundBackdrop(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.28f)),
+                    // A veil in the page colour, so the screen's text reads over the picture.
+                    .background(
+                        if (MaterialTheme.isDarkAppearance) {
+                            Color.Black.copy(alpha = 0.28f)
+                        } else {
+                            MaterialTheme.colorScheme.background.copy(alpha = 0.55f)
+                        },
+                    ),
             )
         }
     }

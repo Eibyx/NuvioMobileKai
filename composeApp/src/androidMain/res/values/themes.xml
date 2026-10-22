@@ -10,4 +10,18 @@
     <style name="Theme.Nuvio.Splash.RoseGold" parent="@style/Theme.Nuvio.Splash" />
     <style name="Theme.Nuvio.Splash.Copper" parent="@style/Theme.Nuvio.Splash" />
     <style name="Theme.Nuvio.Splash.Graphite" parent="@style/Theme.Nuvio.Splash" />
+
+    <!-- Splash variants used on Android 13+ (values-v31); plain here so the names resolve. -->
+    <style name="Theme.Nuvio.Splash.Light" parent="@style/Theme.Nuvio.Splash" />
+    <style name="Theme.Nuvio.Splash.System" parent="@style/Theme.Nuvio.Splash" />
+    <style name="Theme.Nuvio.Splash.ArcticBlue.Light" parent="@style/Theme.Nuvio.Splash.ArcticBlue" />
+    <style name="Theme.Nuvio.Splash.ArcticBlue.System" parent="@style/Theme.Nuvio.Splash.ArcticBlue" />
+    <style name="Theme.Nuvio.Splash.Emerald.Light" parent="@style/Theme.Nuvio.Splash.Emerald" />
+    <style name="Theme.Nuvio.Splash.Emerald.System" parent="@style/Theme.Nuvio.Splash.Emerald" />
+    <style name="Theme.Nuvio.Splash.RoseGold.Light" parent="@style/Theme.Nuvio.Splash.RoseGold" />
+    <style name="Theme.Nuvio.Splash.RoseGold.System" parent="@style/Theme.Nuvio.Splash.RoseGold" />
+    <style name="Theme.Nuvio.Splash.Copper.Light" parent="@style/Theme.Nuvio.Splash.Copper" />
+    <style name="Theme.Nuvio.Splash.Copper.System" parent="@style/Theme.Nuvio.Splash.Copper" />
+    <style name="Theme.Nuvio.Splash.Graphite.Light" parent="@style/Theme.Nuvio.Splash.Graphite" />
+    <style name="Theme.Nuvio.Splash.Graphite.System" parent="@style/Theme.Nuvio.Splash.Graphite" />
 </resources>

@@ -1,5 +1,6 @@
 package com.nuvio.app.features.trailer
 
+import com.nuvio.app.core.ui.nuvio
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -86,7 +87,7 @@ internal fun TrailerPlayerControls(
                 if (fullscreen) {
                     Row(
                         modifier = Modifier.align(Alignment.TopCenter).fillMaxWidth()
-                            .background(Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.7f), Color.Transparent)))
+                            .background(Brush.verticalGradient(listOf(MaterialTheme.nuvio.colors.playerVideoBackground.copy(alpha = 0.7f), Color.Transparent)))
                             .windowInsetsPadding(WindowInsets.safeContent.only(WindowInsetsSides.Top))
                             .padding(horizontal = horizontalPadding)
                             .padding(top = metrics.verticalPadding / 4),
@@ -100,7 +101,7 @@ internal fun TrailerPlayerControls(
                                 lineHeight = metrics.titleSize * 1.16f,
                                 fontWeight = FontWeight.Bold,
                             ),
-                            color = Color.White,
+                            color = MaterialTheme.nuvio.colors.playerControlsForeground,
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -133,7 +134,7 @@ internal fun TrailerPlayerControls(
                     }
                     Box(
                         modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth()
-                            .background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.8f))))
+                            .background(Brush.verticalGradient(listOf(Color.Transparent, MaterialTheme.nuvio.colors.playerVideoBackground.copy(alpha = 0.8f))))
                             .then(
                                 if (fullscreen) Modifier.windowInsetsPadding(
                                     WindowInsets.safeContent.only(WindowInsetsSides.Bottom),
