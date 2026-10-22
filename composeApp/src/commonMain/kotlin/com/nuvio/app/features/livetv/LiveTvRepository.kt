@@ -16,6 +16,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.random.Random
 import kotlin.time.Clock
+import nuvio.composeapp.generated.resources.Res
+import nuvio.composeapp.generated.resources.live_tv_error_no_channels
+import nuvio.composeapp.generated.resources.live_tv_error_some_failed
+import nuvio.composeapp.generated.resources.live_tv_load_failed
+import org.jetbrains.compose.resources.getString
 
 object LiveTvRepository {
     private val log = Logger.withTag("LiveTvRepository")
@@ -394,9 +399,9 @@ object LiveTvRepository {
                 channels = channels,
                 isLoading = false,
                 errorMessage = when {
-                    channels.isEmpty() && failedPlaylistNames.isNotEmpty() -> "Playlist could not be loaded."
-                    channels.isEmpty() -> "No channels found in these playlists."
-                    failedPlaylistNames.isNotEmpty() -> "Some playlists could not be loaded: ${failedPlaylistNames.joinToString()}"
+                    channels.isEmpty() && failedPlaylistNames.isNotEmpty() -> getString(Res.string.live_tv_load_failed)
+                    channels.isEmpty() -> getString(Res.string.live_tv_error_no_channels)
+                    failedPlaylistNames.isNotEmpty() -> getString(Res.string.live_tv_error_some_failed, failedPlaylistNames.joinToString())
                     else -> null
                 },
             )

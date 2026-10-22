@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Text that Nuvio Enhanced's playback info and quality panels and Live TV loading wrote inline. -->
+<resources>
+    <string name="playback_info_empty">No playback information available yet.</string>
+    <string name="playback_info_section_selected_quality">Selected Quality</string>
+    <string name="playback_info_quality_auto">Auto (%1$s)</string>
+    <string name="playback_info_requested_quality">Requested Quality</string>
+    <string name="playback_info_declared_resolution">Declared Resolution</string>
+    <string name="playback_info_declared_bitrate">Declared Bitrate</string>
+    <string name="playback_info_declared_codecs">Declared Codecs</string>
+    <string name="playback_info_section_engine">Playback Engine</string>
+    <string name="playback_info_engine">Engine</string>
+    <string name="playback_info_section_video">Video Stream</string>
+    <string name="playback_info_codec">Codec</string>
+    <string name="playback_info_resolution">Resolution</string>
+    <string name="playback_info_frame_rate">Frame Rate</string>
+    <string name="playback_info_decoder">Decoder</string>
+    <string name="playback_info_hardware_decoder">Hardware Decoder</string>
+    <string name="playback_info_unknown">Unknown</string>
+    <string name="playback_info_dynamic_range">Dynamic Range</string>
+    <string name="playback_info_dolby_vision_profile">Dolby Vision Profile</string>
+    <string name="playback_info_color_primaries">Color Primaries</string>
+    <string name="playback_info_transfer_function">Transfer Function</string>
+    <string name="playback_info_pixel_format">Pixel Format</string>
+    <string name="playback_info_bitrate">Bitrate</string>
+    <string name="playback_info_section_audio">Audio Stream</string>
+    <string name="playback_info_channels">Channels</string>
+    <string name="playback_info_channels_mono">Mono (1ch)</string>
+    <string name="playback_info_channels_stereo">Stereo (2ch)</string>
+    <string name="playback_info_channels_surround_51">Surround (5.1ch)</string>
+    <string name="playback_info_channels_surround_71">Surround (7.1ch)</string>
+    <string name="playback_info_channels_count">%1$s channels</string>
+    <string name="playback_info_sample_rate">Sample Rate</string>
+    <string name="playback_info_language">Language</string>
+    <string name="player_quality_title">Quality</string>
+    <string name="player_quality_selected">Selected</string>
+    <string name="player_quality_current_fallback">Current quality</string>
+    <string name="player_quality_currently_playing">Currently playing</string>
+    <string name="player_quality_recommended">Recommended compatible quality</string>
+    <string name="player_quality_no_variants">This stream does not expose selectable quality variants.</string>
+    <string name="player_quality_error_inspect">Unable to inspect HLS quality variants.</string>
+    <string name="player_quality_error_prepare">Unable to prepare HLS quality variants.</string>
+    <string name="live_tv_error_no_channels">No channels found in these playlists.</string>
+    <string name="live_tv_error_some_failed">Some playlists could not be loaded: %1$s</string>
+</resources>

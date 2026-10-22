@@ -117,6 +117,14 @@ class AppearanceScreenshotTest(private val appearance: AppearanceMode) {
     }
 
     @Test
+    @Config(qualifiers = "es-w412dp-h915dp-xhdpi")
+    fun detailEpisodeListInSpanish() {
+        showDetail(MetaEpisodeCardStyle.List)
+        scrollToEpisodes(seasonsHeader = "Temporadas")
+        capture("detail_episodes_list_es")
+    }
+
+    @Test
     fun detailEpisodeCards() {
         showDetail(MetaEpisodeCardStyle.Horizontal)
         scrollToEpisodes()
@@ -167,9 +175,9 @@ class AppearanceScreenshotTest(private val appearance: AppearanceMode) {
         compose.waitForIdle()
     }
 
-    private fun scrollToEpisodes() {
+    private fun scrollToEpisodes(seasonsHeader: String = "Seasons") {
         compose.onNode(hasScrollAction() and SemanticsMatcher.keyIsDefined(SemanticsProperties.VerticalScrollAxisRange))
-            .performScrollToNode(hasText("Seasons"))
+            .performScrollToNode(hasText(seasonsHeader))
         compose.mainClock.advanceTimeBy(1_000L)
         compose.waitForIdle()
     }

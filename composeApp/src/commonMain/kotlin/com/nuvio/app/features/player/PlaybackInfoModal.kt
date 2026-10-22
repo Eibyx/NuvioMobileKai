@@ -49,6 +49,38 @@ import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import nuvio.composeapp.generated.resources.Res
+import nuvio.composeapp.generated.resources.action_close
+import nuvio.composeapp.generated.resources.playback_info_bitrate
+import nuvio.composeapp.generated.resources.playback_info_channels
+import nuvio.composeapp.generated.resources.playback_info_channels_count
+import nuvio.composeapp.generated.resources.playback_info_channels_mono
+import nuvio.composeapp.generated.resources.playback_info_channels_stereo
+import nuvio.composeapp.generated.resources.playback_info_channels_surround_51
+import nuvio.composeapp.generated.resources.playback_info_channels_surround_71
+import nuvio.composeapp.generated.resources.playback_info_codec
+import nuvio.composeapp.generated.resources.playback_info_color_primaries
+import nuvio.composeapp.generated.resources.playback_info_declared_bitrate
+import nuvio.composeapp.generated.resources.playback_info_declared_codecs
+import nuvio.composeapp.generated.resources.playback_info_declared_resolution
+import nuvio.composeapp.generated.resources.playback_info_decoder
+import nuvio.composeapp.generated.resources.playback_info_dolby_vision_profile
+import nuvio.composeapp.generated.resources.playback_info_dynamic_range
+import nuvio.composeapp.generated.resources.playback_info_empty
+import nuvio.composeapp.generated.resources.playback_info_engine
+import nuvio.composeapp.generated.resources.playback_info_frame_rate
+import nuvio.composeapp.generated.resources.playback_info_hardware_decoder
+import nuvio.composeapp.generated.resources.playback_info_language
+import nuvio.composeapp.generated.resources.playback_info_pixel_format
+import nuvio.composeapp.generated.resources.playback_info_quality_auto
+import nuvio.composeapp.generated.resources.playback_info_requested_quality
+import nuvio.composeapp.generated.resources.playback_info_resolution
+import nuvio.composeapp.generated.resources.playback_info_sample_rate
+import nuvio.composeapp.generated.resources.playback_info_section_audio
+import nuvio.composeapp.generated.resources.playback_info_section_engine
+import nuvio.composeapp.generated.resources.playback_info_section_selected_quality
+import nuvio.composeapp.generated.resources.playback_info_section_video
+import nuvio.composeapp.generated.resources.playback_info_transfer_function
+import nuvio.composeapp.generated.resources.playback_info_unknown
 import nuvio.composeapp.generated.resources.compose_player_playback_info
 import org.jetbrains.compose.resources.stringResource
 import com.nuvio.app.core.ui.glass.ambientLiquidGlass
@@ -139,7 +171,7 @@ internal fun PlaybackInfoModal(
                             ) {
                                 Icon(
                                     imageVector = Icons.Rounded.Close,
-                                    contentDescription = "Close",
+                                    contentDescription = stringResource(Res.string.action_close),
                                     tint = Color.White,
                                     modifier = Modifier.size(18.dp),
                                 )
@@ -156,7 +188,7 @@ internal fun PlaybackInfoModal(
                                 contentAlignment = Alignment.Center,
                             ) {
                                 Text(
-                                    text = "No playback information available yet.",
+                                    text = stringResource(Res.string.playback_info_empty),
                                     color = Color.White.copy(alpha = 0.55f),
                                     fontSize = 15.sp,
                                     textAlign = TextAlign.Center,
@@ -188,14 +220,14 @@ private fun PlaybackInfoContent(
 ) {
     Column(modifier = modifier) {
         selectedQualityVariant?.let { variant ->
-            SectionHeader(title = "Selected Quality")
+            SectionHeader(title = stringResource(Res.string.playback_info_section_selected_quality))
 
             val qualityLabel = if (selectedQualityIsAuto) {
-                "Auto (${variant.qualityName})"
+                stringResource(Res.string.playback_info_quality_auto, variant.qualityName)
             } else {
                 variant.qualityName
             }
-            InfoRow(label = "Requested Quality", value = qualityLabel)
+            InfoRow(label = stringResource(Res.string.playback_info_requested_quality), value = qualityLabel)
 
             val declaredResolution = playerQualityNameForResolution(
                 width = variant.width,
@@ -203,53 +235,53 @@ private fun PlaybackInfoContent(
                 forButton = false,
             )
             if (!declaredResolution.isNullOrBlank()) {
-                InfoRow(label = "Declared Resolution", value = declaredResolution)
+                InfoRow(label = stringResource(Res.string.playback_info_declared_resolution), value = declaredResolution)
             }
 
             val declaredBitrate = variant.bandwidth?.takeIf { it > 0L }?.formatPlaybackBitrate()
             if (!declaredBitrate.isNullOrBlank()) {
-                InfoRow(label = "Declared Bitrate", value = declaredBitrate)
+                InfoRow(label = stringResource(Res.string.playback_info_declared_bitrate), value = declaredBitrate)
             }
 
             if (variant.codecs.isNotBlank()) {
-                InfoRow(label = "Declared Codecs", value = variant.codecs)
+                InfoRow(label = stringResource(Res.string.playback_info_declared_codecs), value = variant.codecs)
             }
         }
 
         val playbackInfo = parsed ?: return@Column
         val engine = playbackInfo.stringValue("engine")
         if (engine.isNotBlank()) {
-            SectionHeader(title = "Playback Engine")
-            InfoRow(label = "Engine", value = engine)
+            SectionHeader(title = stringResource(Res.string.playback_info_section_engine))
+            InfoRow(label = stringResource(Res.string.playback_info_engine), value = engine)
         }
 
         val videoCodec = playbackInfo.stringValue("videoCodec")
         if (videoCodec.isNotBlank()) {
-            SectionHeader(title = "Video Stream")
+            SectionHeader(title = stringResource(Res.string.playback_info_section_video))
 
             val codecProfile = playbackInfo.stringValue("codecProfile")
             val videoFormat = if (codecProfile.isNotBlank()) "$videoCodec ($codecProfile)" else videoCodec
-            InfoRow(label = "Codec", value = videoFormat)
+            InfoRow(label = stringResource(Res.string.playback_info_codec), value = videoFormat)
 
             val width = playbackInfo.intValue("videoWidth")
             val height = playbackInfo.intValue("videoHeight")
             if (width > 0 && height > 0) {
-                InfoRow(label = "Resolution", value = "${width}x${height}")
+                InfoRow(label = stringResource(Res.string.playback_info_resolution), value = "${width}x${height}")
             }
 
             val fps = playbackInfo.doubleValue("fps")
             if (fps > 0.0) {
-                InfoRow(label = "Frame Rate", value = "${fps.formatPlaybackNumber()} fps")
+                InfoRow(label = stringResource(Res.string.playback_info_frame_rate), value = "${fps.formatPlaybackNumber()} fps")
             }
 
             val videoDecoder = playbackInfo.stringValue("videoDecoder")
             if (videoDecoder.isNotBlank()) {
-                InfoRow(label = "Decoder", value = videoDecoder)
+                InfoRow(label = stringResource(Res.string.playback_info_decoder), value = videoDecoder)
             }
 
             val hwdecCurrent = playbackInfo.stringValue("hwdecCurrent")
             if (hwdecCurrent.isNotBlank()) {
-                InfoRow(label = "Hardware Decoder", value = hwdecCurrent)
+                InfoRow(label = stringResource(Res.string.playback_info_hardware_decoder), value = hwdecCurrent)
             }
 
             val hdrFormat = playbackInfo.stringValue("hdrFormat")
@@ -259,9 +291,9 @@ private fun PlaybackInfoContent(
                 "hdr" -> "HDR10 / PQ"
                 "hlg" -> "HLG"
                 "sdr" -> "SDR"
-                else -> "Unknown"
+                else -> stringResource(Res.string.playback_info_unknown)
             }
-            InfoRow(label = "Dynamic Range", value = hdrLabel)
+            InfoRow(label = stringResource(Res.string.playback_info_dynamic_range), value = hdrLabel)
 
             if (hdrFormat == "dolby_vision") {
                 val dvProfile = playbackInfo.stringValue("dvProfile")
@@ -273,51 +305,51 @@ private fun PlaybackInfoContent(
                     dvLower != "0" &&
                     dvLower != "false"
                 ) {
-                    InfoRow(label = "Dolby Vision Profile", value = dvProfile)
+                    InfoRow(label = stringResource(Res.string.playback_info_dolby_vision_profile), value = dvProfile)
                 }
             }
 
             val primaries = playbackInfo.stringValue("primaries")
             if (primaries.isNotBlank()) {
-                InfoRow(label = "Color Primaries", value = primaries)
+                InfoRow(label = stringResource(Res.string.playback_info_color_primaries), value = primaries)
             }
 
             val gamma = playbackInfo.stringValue("gamma")
             if (gamma.isNotBlank()) {
-                InfoRow(label = "Transfer Function", value = gamma)
+                InfoRow(label = stringResource(Res.string.playback_info_transfer_function), value = gamma)
             }
 
             val pixelFormat = playbackInfo.stringValue("pixelFormat")
             if (pixelFormat.isNotBlank()) {
-                InfoRow(label = "Pixel Format", value = pixelFormat)
+                InfoRow(label = stringResource(Res.string.playback_info_pixel_format), value = pixelFormat)
             }
 
             val videoBitrateKbps = playbackInfo.intValue("videoBitrateKbps")
             if (videoBitrateKbps > 0) {
-                InfoRow(label = "Bitrate", value = "$videoBitrateKbps kbps")
+                InfoRow(label = stringResource(Res.string.playback_info_bitrate), value = "$videoBitrateKbps kbps")
             }
         }
 
         val audioCodec = playbackInfo.stringValue("audioCodec")
         if (audioCodec.isNotBlank()) {
-            SectionHeader(title = "Audio Stream")
-            InfoRow(label = "Codec", value = audioCodec)
+            SectionHeader(title = stringResource(Res.string.playback_info_section_audio))
+            InfoRow(label = stringResource(Res.string.playback_info_codec), value = audioCodec)
 
             val audioDecoder = playbackInfo.stringValue("audioDecoder")
             if (audioDecoder.isNotBlank()) {
-                InfoRow(label = "Decoder", value = audioDecoder)
+                InfoRow(label = stringResource(Res.string.playback_info_decoder), value = audioDecoder)
             }
 
             val audioChannels = playbackInfo.stringValue("audioChannels")
             if (audioChannels.isNotBlank() && audioChannels != "0") {
                 val channelsLabel = when (audioChannels) {
-                    "1" -> "Mono (1ch)"
-                    "2" -> "Stereo (2ch)"
-                    "6" -> "Surround (5.1ch)"
-                    "8" -> "Surround (7.1ch)"
-                    else -> "$audioChannels channels"
+                    "1" -> stringResource(Res.string.playback_info_channels_mono)
+                    "2" -> stringResource(Res.string.playback_info_channels_stereo)
+                    "6" -> stringResource(Res.string.playback_info_channels_surround_51)
+                    "8" -> stringResource(Res.string.playback_info_channels_surround_71)
+                    else -> stringResource(Res.string.playback_info_channels_count, audioChannels)
                 }
-                InfoRow(label = "Channels", value = channelsLabel)
+                InfoRow(label = stringResource(Res.string.playback_info_channels), value = channelsLabel)
             }
 
             val audioSampleRate = playbackInfo.stringValue("audioSampleRate")
@@ -326,17 +358,17 @@ private fun PlaybackInfoContent(
                     val rate = audioSampleRate.toIntOrNull() ?: audioSampleRate.toDouble().toInt()
                     if (rate >= 1000) "${rate / 1000} kHz" else "$rate Hz"
                 }.getOrDefault("$audioSampleRate Hz")
-                InfoRow(label = "Sample Rate", value = rateLabel)
+                InfoRow(label = stringResource(Res.string.playback_info_sample_rate), value = rateLabel)
             }
 
             val audioLang = playbackInfo.stringValue("audioLang")
             if (audioLang.isNotBlank()) {
-                InfoRow(label = "Language", value = audioLang)
+                InfoRow(label = stringResource(Res.string.playback_info_language), value = audioLang)
             }
 
             val audioBitrateKbps = playbackInfo.intValue("audioBitrateKbps")
             if (audioBitrateKbps > 0) {
-                InfoRow(label = "Bitrate", value = "$audioBitrateKbps kbps")
+                InfoRow(label = stringResource(Res.string.playback_info_bitrate), value = "$audioBitrateKbps kbps")
             }
         }
     }

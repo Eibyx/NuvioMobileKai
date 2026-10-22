@@ -55,6 +55,7 @@ import com.nuvio.app.features.livetv.currentProgram
 import com.nuvio.app.features.livetv.rememberLiveTvEpgNowMillis
 import nuvio.composeapp.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
+import org.jetbrains.compose.resources.getString
 
 @Composable
 internal fun PlayerScreenRuntime.RenderPlayerRuntimeUi() {
@@ -186,7 +187,7 @@ internal fun PlayerScreenRuntime.RenderPlayerRuntimeUi() {
                 )
                 PlayerQualitySelectionState(
                     sourceUrl = resolvingSourceUrl,
-                    errorMessage = error.message ?: "Unable to inspect HLS quality variants.",
+                    errorMessage = error.message ?: getString(Res.string.player_quality_error_inspect),
                 )
             }
 

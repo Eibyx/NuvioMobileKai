@@ -4,6 +4,10 @@ import co.touchlab.kermit.Logger
 import com.nuvio.app.core.logging.InAppLogger
 import com.nuvio.app.features.addons.httpGetText
 import com.nuvio.app.features.addons.httpGetTextWithHeaders
+import nuvio.composeapp.generated.resources.Res
+import nuvio.composeapp.generated.resources.player_quality_error_inspect
+import nuvio.composeapp.generated.resources.player_quality_error_prepare
+import org.jetbrains.compose.resources.getString
 
 internal const val PlayerQualityAutoId = "auto"
 
@@ -136,7 +140,7 @@ internal object PlayerQualityResolver {
             )
         }.getOrNull() ?: return PlayerQualitySelectionState(
             sourceUrl = normalizedUrl,
-            errorMessage = "Unable to inspect HLS quality variants.",
+            errorMessage = getString(Res.string.player_quality_error_inspect),
         )
 
         if (!playlistText.contains("#EXT-X-STREAM-INF", ignoreCase = true)) {
@@ -181,7 +185,7 @@ internal object PlayerQualityResolver {
             )
             return PlayerQualitySelectionState(
                 sourceUrl = normalizedUrl,
-                errorMessage = "Unable to prepare HLS quality variants.",
+                errorMessage = getString(Res.string.player_quality_error_prepare),
             )
         }
 

@@ -36,6 +36,12 @@ import androidx.compose.ui.text.font.FontWeight
 import com.nuvio.app.core.ui.NuvioTokens
 import com.nuvio.app.core.ui.nuvio
 import nuvio.composeapp.generated.resources.Res
+import nuvio.composeapp.generated.resources.player_quality_current_fallback
+import nuvio.composeapp.generated.resources.player_quality_currently_playing
+import nuvio.composeapp.generated.resources.player_quality_no_variants
+import nuvio.composeapp.generated.resources.player_quality_recommended
+import nuvio.composeapp.generated.resources.player_quality_selected
+import nuvio.composeapp.generated.resources.player_quality_title
 import nuvio.composeapp.generated.resources.action_close
 import org.jetbrains.compose.resources.stringResource
 import com.nuvio.app.core.ui.glass.ambientLiquidGlass
@@ -106,7 +112,7 @@ internal fun PlayerQualityPanel(
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Text(
-                                text = "Quality",
+                                text = stringResource(Res.string.player_quality_title),
                                 color = tokens.colors.textPrimary,
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold,
@@ -143,10 +149,10 @@ internal fun PlayerQualityPanel(
                                 ) {
                                     val currentQualityTitle = currentResolutionLabel
                                         ?.takeIf { it.isNotBlank() }
-                                        ?: "Current quality"
+                                        ?: stringResource(Res.string.player_quality_current_fallback)
                                     QualityOptionRow(
                                         title = currentQualityTitle,
-                                        subtitle = "Currently playing",
+                                        subtitle = stringResource(Res.string.player_quality_currently_playing),
                                         isSelected = true,
                                         hasWarning = false,
                                         enabled = false,
@@ -154,7 +160,7 @@ internal fun PlayerQualityPanel(
                                     )
                                     Text(
                                         text = state.errorMessage
-                                            ?: "This stream does not expose selectable quality variants.",
+                                            ?: stringResource(Res.string.player_quality_no_variants),
                                         color = tokens.colors.textMuted,
                                         style = MaterialTheme.typography.bodyMedium,
                                     )
@@ -172,7 +178,7 @@ internal fun PlayerQualityPanel(
                                     item(key = "auto") {
                                         QualityOptionRow(
                                             title = state.labelFor(null)?.let { "Auto ($it)" } ?: "Auto",
-                                            subtitle = "Recommended compatible quality",
+                                            subtitle = stringResource(Res.string.player_quality_recommended),
                                             isSelected = selectedQualityId == null,
                                             hasWarning = false,
                                             onClick = { onQualitySelected(null) },
@@ -243,7 +249,7 @@ private fun QualityOptionRow(
         if (isSelected) {
             Spacer(modifier = Modifier.width(NuvioTokens.Space.s10))
             Text(
-                text = "Selected",
+                text = stringResource(Res.string.player_quality_selected),
                 color = tokens.colors.accent,
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.SemiBold,

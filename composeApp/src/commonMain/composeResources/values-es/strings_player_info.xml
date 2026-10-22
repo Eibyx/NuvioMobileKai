@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="playback_info_empty">Aún no hay información de reproducción.</string>
+    <string name="playback_info_section_selected_quality">Calidad elegida</string>
+    <string name="playback_info_quality_auto">Automática (%1$s)</string>
+    <string name="playback_info_requested_quality">Calidad solicitada</string>
+    <string name="playback_info_declared_resolution">Resolución declarada</string>
+    <string name="playback_info_declared_bitrate">Tasa de bits declarada</string>
+    <string name="playback_info_declared_codecs">Códecs declarados</string>
+    <string name="playback_info_section_engine">Motor de reproducción</string>
+    <string name="playback_info_engine">Motor</string>
+    <string name="playback_info_section_video">Pista de vídeo</string>
+    <string name="playback_info_codec">Códec</string>
+    <string name="playback_info_resolution">Resolución</string>
+    <string name="playback_info_frame_rate">Fotogramas por segundo</string>
+    <string name="playback_info_decoder">Decodificador</string>
+    <string name="playback_info_hardware_decoder">Decodificador por hardware</string>
+    <string name="playback_info_unknown">Desconocido</string>
+    <string name="playback_info_dynamic_range">Rango dinámico</string>
+    <string name="playback_info_dolby_vision_profile">Perfil de Dolby Vision</string>
+    <string name="playback_info_color_primaries">Primarios de color</string>
+    <string name="playback_info_transfer_function">Función de transferencia</string>
+    <string name="playback_info_pixel_format">Formato de píxel</string>
+    <string name="playback_info_bitrate">Tasa de bits</string>
+    <string name="playback_info_section_audio">Pista de audio</string>
+    <string name="playback_info_channels">Canales</string>
+    <string name="playback_info_channels_mono">Mono (1 canal)</string>
+    <string name="playback_info_channels_stereo">Estéreo (2 canales)</string>
+    <string name="playback_info_channels_surround_51">Envolvente (5.1)</string>
+    <string name="playback_info_channels_surround_71">Envolvente (7.1)</string>
+    <string name="playback_info_channels_count">%1$s canales</string>
+    <string name="playback_info_sample_rate">Frecuencia de muestreo</string>
+    <string name="playback_info_language">Idioma</string>
+    <string name="player_quality_title">Calidad</string>
+    <string name="player_quality_selected">Elegida</string>
+    <string name="player_quality_current_fallback">Calidad actual</string>
+    <string name="player_quality_currently_playing">En reproducción</string>
+    <string name="player_quality_recommended">Calidad compatible recomendada</string>
+    <string name="player_quality_no_variants">Esta fuente no ofrece calidades seleccionables.</string>
+    <string name="player_quality_error_inspect">No se pudieron analizar las calidades HLS.</string>
+    <string name="player_quality_error_prepare">No se pudieron preparar las calidades HLS.</string>
+    <string name="live_tv_error_no_channels">No se encontraron canales en estas listas.</string>
+    <string name="live_tv_error_some_failed">No se pudieron cargar algunas listas: %1$s</string>
+</resources>
