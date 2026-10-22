@@ -1121,12 +1121,14 @@ private fun PlayerProgressTrack(
         SliderDefaults.Track(
             sliderState = sliderState,
             colors = inactiveTrackColors,
+            thumbTrackGapSize = 0.dp,
         )
         PlayerBufferedTrack(bufferedFraction = bufferedFraction)
         SliderDefaults.Track(
             sliderState = sliderState,
             modifier = Modifier.gradientMask(palette.accentBrush()),
             colors = activeTrackColors,
+            thumbTrackGapSize = 0.dp,
         )
         if (chapterMarks.isNotEmpty()) {
             Box(
@@ -1244,6 +1246,7 @@ internal fun LockedPlayerOverlay(
                                     disabledActiveTrackColor = Color.Transparent,
                                     disabledInactiveTrackColor = PlayerBaseTrackColor,
                                 ),
+                                thumbTrackGapSize = 0.dp,
                             )
                             PlayerBufferedTrack(
                                 bufferedFraction = playerBufferedFraction(
@@ -1259,6 +1262,7 @@ internal fun LockedPlayerOverlay(
                                     disabledActiveTrackColor = Color.White,
                                     disabledInactiveTrackColor = Color.Transparent,
                                 ),
+                                thumbTrackGapSize = 0.dp,
                             )
                         }
                     },
