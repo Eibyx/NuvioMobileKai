@@ -405,6 +405,24 @@ internal fun settingsSearchEntries(
     )
     addRow(
         page = SettingsPage.Appearance,
+        key = "app-font",
+        title = stringResource(Res.string.settings_appearance_app_font),
+        description = stringResource(Res.string.settings_appearance_app_font_description),
+        pageLabel = layoutPage,
+        section = stringResource(Res.string.settings_appearance_section_text),
+        icon = Icons.Rounded.Palette,
+    )
+    addRow(
+        page = SettingsPage.Appearance,
+        key = "system-font-scale",
+        title = stringResource(Res.string.settings_appearance_system_font_scale),
+        description = stringResource(Res.string.settings_appearance_system_font_scale_description),
+        pageLabel = layoutPage,
+        section = stringResource(Res.string.settings_appearance_section_text),
+        icon = Icons.Rounded.Palette,
+    )
+    addRow(
+        page = SettingsPage.Appearance,
         key = "dynamic-artwork-background",
         title = stringResource(Res.string.settings_appearance_dynamic_artwork_background),
         description = stringResource(Res.string.settings_appearance_dynamic_artwork_background_description),

@@ -67,126 +67,125 @@ private val JetBrainsSans: FontFamily
         Font(Res.font.jetbrains_sans_regular, FontWeight.Normal, FontStyle.Normal),
     )
 
-private val NuvioTypography: Typography
-    @Composable
-    get() = Typography(
-        displayLarge = TextStyle(
-            fontFamily = JetBrainsSans,
-            fontSize = NuvioTokens.Type.pageDisplay,
-            lineHeight = NuvioTokens.LineHeight.pageDisplay,
-            fontWeight = FontWeight.Bold,
-            letterSpacing = NuvioTokens.LetterSpacing.pageDisplay,
-        ),
-        headlineLarge = TextStyle(
-            fontFamily = JetBrainsSans,
-            fontSize = NuvioTokens.Type.headline,
-            lineHeight = NuvioTokens.LineHeight.headline,
-            fontWeight = FontWeight.SemiBold,
-            letterSpacing = NuvioTokens.LetterSpacing.headline,
-        ),
-        titleLarge = TextStyle(
-            fontFamily = JetBrainsSans,
-            fontSize = NuvioTokens.Type.titleSm,
-            lineHeight = NuvioTokens.LineHeight.materialTitleLarge,
-            fontWeight = FontWeight.SemiBold,
-        ),
-        titleMedium = TextStyle(
-            fontFamily = JetBrainsSans,
-            fontSize = NuvioTokens.Type.bodyLg,
-            lineHeight = NuvioTokens.LineHeight.bodyMd,
-            fontWeight = FontWeight.SemiBold,
-        ),
-        bodyLarge = TextStyle(
-            fontFamily = JetBrainsSans,
-            fontSize = NuvioTokens.Type.bodyApp,
-            lineHeight = NuvioTokens.LineHeight.bodyApp,
-            fontWeight = FontWeight.Normal,
-        ),
-        bodyMedium = TextStyle(
-            fontFamily = JetBrainsSans,
-            fontSize = NuvioTokens.Type.bodyMd,
-            lineHeight = NuvioTokens.LineHeight.bodyMd,
-            fontWeight = FontWeight.Normal,
-        ),
-        labelLarge = TextStyle(
-            fontFamily = JetBrainsSans,
-            fontSize = NuvioTokens.Type.bodyMd,
-            lineHeight = NuvioTokens.LineHeight.bodySm,
-            fontWeight = FontWeight.SemiBold,
-        ),
-        labelMedium = TextStyle(
-            fontFamily = JetBrainsSans,
-            fontSize = NuvioTokens.Type.labelSm,
-            lineHeight = NuvioTokens.LineHeight.labelXs,
-            fontWeight = FontWeight.SemiBold,
-            letterSpacing = NuvioTokens.LetterSpacing.label,
-        ),
-    )
+private fun nuvioTypography(fontFamily: FontFamily): Typography = Typography(
+    displayLarge = TextStyle(
+        fontFamily = fontFamily,
+        fontSize = NuvioTokens.Type.pageDisplay,
+        lineHeight = NuvioTokens.LineHeight.pageDisplay,
+        fontWeight = FontWeight.Bold,
+        letterSpacing = NuvioTokens.LetterSpacing.pageDisplay,
+    ),
+    headlineLarge = TextStyle(
+        fontFamily = fontFamily,
+        fontSize = NuvioTokens.Type.headline,
+        lineHeight = NuvioTokens.LineHeight.headline,
+        fontWeight = FontWeight.SemiBold,
+        letterSpacing = NuvioTokens.LetterSpacing.headline,
+    ),
+    titleLarge = TextStyle(
+        fontFamily = fontFamily,
+        fontSize = NuvioTokens.Type.titleSm,
+        lineHeight = NuvioTokens.LineHeight.materialTitleLarge,
+        fontWeight = FontWeight.SemiBold,
+    ),
+    titleMedium = TextStyle(
+        fontFamily = fontFamily,
+        fontSize = NuvioTokens.Type.bodyLg,
+        lineHeight = NuvioTokens.LineHeight.bodyMd,
+        fontWeight = FontWeight.SemiBold,
+    ),
+    bodyLarge = TextStyle(
+        fontFamily = fontFamily,
+        fontSize = NuvioTokens.Type.bodyApp,
+        lineHeight = NuvioTokens.LineHeight.bodyApp,
+        fontWeight = FontWeight.Normal,
+    ),
+    bodyMedium = TextStyle(
+        fontFamily = fontFamily,
+        fontSize = NuvioTokens.Type.bodyMd,
+        lineHeight = NuvioTokens.LineHeight.bodyMd,
+        fontWeight = FontWeight.Normal,
+    ),
+    labelLarge = TextStyle(
+        fontFamily = fontFamily,
+        fontSize = NuvioTokens.Type.bodyMd,
+        lineHeight = NuvioTokens.LineHeight.bodySm,
+        fontWeight = FontWeight.SemiBold,
+    ),
+    labelMedium = TextStyle(
+        fontFamily = fontFamily,
+        fontSize = NuvioTokens.Type.labelSm,
+        lineHeight = NuvioTokens.LineHeight.labelXs,
+        fontWeight = FontWeight.SemiBold,
+        letterSpacing = NuvioTokens.LetterSpacing.label,
+    ),
+)
 
-private val NuvioTypeTokens: NuvioTypeScale
-    @Composable
-    get() = NuvioTypeScale(
-        labelXs = TextStyle(
-            fontFamily = JetBrainsSans,
-            fontSize = NuvioTokens.Type.labelXs,
-            lineHeight = NuvioTokens.LineHeight.labelXs,
-            fontWeight = FontWeight.SemiBold,
-        ),
-        labelSm = TextStyle(
-            fontFamily = JetBrainsSans,
-            fontSize = NuvioTokens.Type.labelSm,
-            lineHeight = NuvioTokens.LineHeight.labelSm,
-            fontWeight = FontWeight.SemiBold,
-        ),
-        bodySm = TextStyle(
-            fontFamily = JetBrainsSans,
-            fontSize = NuvioTokens.Type.bodySm,
-            lineHeight = NuvioTokens.LineHeight.bodySm,
-            fontWeight = FontWeight.Normal,
-        ),
-        bodyMd = TextStyle(
-            fontFamily = JetBrainsSans,
-            fontSize = NuvioTokens.Type.bodyMd,
-            lineHeight = NuvioTokens.LineHeight.bodyMd,
-            fontWeight = FontWeight.Normal,
-        ),
-        bodyLg = TextStyle(
-            fontFamily = JetBrainsSans,
-            fontSize = NuvioTokens.Type.bodyLg,
-            lineHeight = NuvioTokens.LineHeight.bodyLg,
-            fontWeight = FontWeight.Normal,
-        ),
-        titleSm = TextStyle(
-            fontFamily = JetBrainsSans,
-            fontSize = NuvioTokens.Type.titleSm,
-            lineHeight = NuvioTokens.LineHeight.titleSm,
-            fontWeight = FontWeight.SemiBold,
-        ),
-        titleMd = TextStyle(
-            fontFamily = JetBrainsSans,
-            fontSize = NuvioTokens.Type.titleMd,
-            lineHeight = NuvioTokens.LineHeight.titleMd,
-            fontWeight = FontWeight.SemiBold,
-        ),
-        titleLg = TextStyle(
-            fontFamily = JetBrainsSans,
-            fontSize = NuvioTokens.Type.titleLg,
-            lineHeight = NuvioTokens.LineHeight.titleLg,
-            fontWeight = FontWeight.SemiBold,
-        ),
-        displaySm = TextStyle(
-            fontFamily = JetBrainsSans,
-            fontSize = NuvioTokens.Type.displaySm,
-            lineHeight = NuvioTokens.LineHeight.displaySm,
-            fontWeight = FontWeight.Bold,
-        ),
-        displayMd = TextStyle(
-            fontFamily = JetBrainsSans,
-            fontSize = NuvioTokens.Type.displayMd,
-            lineHeight = NuvioTokens.LineHeight.displayMd,
-            fontWeight = FontWeight.Bold,
-        ),
-    )
+private fun nuvioTypeTokens(fontFamily: FontFamily): NuvioTypeScale = NuvioTypeScale(
+    labelXs = TextStyle(
+        fontFamily = fontFamily,
+        fontSize = NuvioTokens.Type.labelXs,
+        lineHeight = NuvioTokens.LineHeight.labelXs,
+        fontWeight = FontWeight.SemiBold,
+    ),
+    labelSm = TextStyle(
+        fontFamily = fontFamily,
+        fontSize = NuvioTokens.Type.labelSm,
+        lineHeight = NuvioTokens.LineHeight.labelSm,
+        fontWeight = FontWeight.SemiBold,
+    ),
+    bodySm = TextStyle(
+        fontFamily = fontFamily,
+        fontSize = NuvioTokens.Type.bodySm,
+        lineHeight = NuvioTokens.LineHeight.bodySm,
+        fontWeight = FontWeight.Normal,
+    ),
+    bodyMd = TextStyle(
+        fontFamily = fontFamily,
+        fontSize = NuvioTokens.Type.bodyMd,
+        lineHeight = NuvioTokens.LineHeight.bodyMd,
+        fontWeight = FontWeight.Normal,
+    ),
+    bodyLg = TextStyle(
+        fontFamily = fontFamily,
+        fontSize = NuvioTokens.Type.bodyLg,
+        lineHeight = NuvioTokens.LineHeight.bodyLg,
+        fontWeight = FontWeight.Normal,
+    ),
+    titleSm = TextStyle(
+        fontFamily = fontFamily,
+        fontSize = NuvioTokens.Type.titleSm,
+        lineHeight = NuvioTokens.LineHeight.titleSm,
+        fontWeight = FontWeight.SemiBold,
+    ),
+    titleMd = TextStyle(
+        fontFamily = fontFamily,
+        fontSize = NuvioTokens.Type.titleMd,
+        lineHeight = NuvioTokens.LineHeight.titleMd,
+        fontWeight = FontWeight.SemiBold,
+    ),
+    titleLg = TextStyle(
+        fontFamily = fontFamily,
+        fontSize = NuvioTokens.Type.titleLg,
+        lineHeight = NuvioTokens.LineHeight.titleLg,
+        fontWeight = FontWeight.SemiBold,
+    ),
+    displaySm = TextStyle(
+        fontFamily = fontFamily,
+        fontSize = NuvioTokens.Type.displaySm,
+        lineHeight = NuvioTokens.LineHeight.displaySm,
+        fontWeight = FontWeight.Bold,
+    ),
+    displayMd = TextStyle(
+        fontFamily = fontFamily,
+        fontSize = NuvioTokens.Type.displayMd,
+        lineHeight = NuvioTokens.LineHeight.displayMd,
+        fontWeight = FontWeight.Bold,
+    ),
+)
+
+// The system can scale text up to 200%; past this, fixed-height cards and the player chrome clip.
+private const val MAX_SYSTEM_FONT_SCALE = 1.3f
 
 private val NuvioRippleConfiguration = RippleConfiguration(
     color = Color.Black,
@@ -198,6 +197,8 @@ fun NuvioTheme(
     appTheme: AppTheme = AppTheme.WHITE,
     amoled: Boolean = false,
     customThemeColors: CustomThemeColors = CustomThemeColors.Default,
+    appFont: AppFont = AppFont.NUVIO,
+    useSystemFontScale: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     val palette = remember(appTheme, customThemeColors) {
@@ -206,21 +207,26 @@ fun NuvioTheme(
     val colorScheme = buildColorScheme(palette, amoled = amoled)
     val tokens = defaultNuvioThemeTokens(palette, amoled = amoled, colorScheme = colorScheme)
 
+    val fontFamily = when (appFont) {
+        AppFont.NUVIO -> JetBrainsSans
+        AppFont.SYSTEM -> FontFamily.Default
+    }
+
     val density = LocalDensity.current
     CompositionLocalProvider(
         LocalDensity provides Density(
             density = density.density,
-            fontScale = 1f,
+            fontScale = if (useSystemFontScale) density.fontScale.coerceAtMost(MAX_SYSTEM_FONT_SCALE) else 1f,
         ),
         LocalNuvioThemeTokens provides tokens,
-        LocalNuvioTypeScale provides NuvioTypeTokens,
+        LocalNuvioTypeScale provides nuvioTypeTokens(fontFamily),
         LocalRippleConfiguration provides NuvioRippleConfiguration,
         LocalAppTheme provides appTheme,
         LocalThemePalette provides palette,
     ) {
         MaterialTheme(
             colorScheme = colorScheme,
-            typography = NuvioTypography,
+            typography = nuvioTypography(fontFamily),
         ) {
             if (palette.animatedGradient) AccentGradientMotion.Run()
             SkeletonAnimationProvider(content = content)

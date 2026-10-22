@@ -26,7 +26,10 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nuvio.app.core.ui.floatingNavigationGlowSupported
 import com.nuvio.app.isIos
+import com.nuvio.app.core.ui.AppFont
+import com.nuvio.app.core.ui.AppFontSettingsRepository
 import com.nuvio.app.core.ui.AppTheme
+import com.nuvio.app.core.ui.Chip
 import com.nuvio.app.core.ui.NuvioBottomSheetActionRow
 import com.nuvio.app.core.ui.NuvioModalBottomSheet
 import com.nuvio.app.core.ui.NuvioStatusModal
@@ -54,6 +57,13 @@ import nuvio.composeapp.generated.resources.settings_nav_bar_glow_off
 import nuvio.composeapp.generated.resources.settings_nav_bar_summary
 import nuvio.composeapp.generated.resources.settings_appearance_amoled_black
 import nuvio.composeapp.generated.resources.settings_appearance_amoled_description
+import nuvio.composeapp.generated.resources.settings_appearance_app_font
+import nuvio.composeapp.generated.resources.settings_appearance_app_font_description
+import nuvio.composeapp.generated.resources.settings_appearance_app_font_nuvio
+import nuvio.composeapp.generated.resources.settings_appearance_app_font_system
+import nuvio.composeapp.generated.resources.settings_appearance_section_text
+import nuvio.composeapp.generated.resources.settings_appearance_system_font_scale
+import nuvio.composeapp.generated.resources.settings_appearance_system_font_scale_description
 import nuvio.composeapp.generated.resources.settings_appearance_dynamic_artwork_background
 import nuvio.composeapp.generated.resources.settings_appearance_dynamic_artwork_background_description
 import nuvio.composeapp.generated.resources.settings_appearance_catalog_accent
@@ -299,6 +309,46 @@ internal fun LazyListScope.appearanceSettingsContent(
                     onSelectionLensEffectsChanged = ThemeSettingsRepository::updateNavBarLiquidGlassSelectionEffects,
                     onSaveLiquidGlassEffectSettings = ThemeSettingsRepository::saveNavBarLiquidGlassEffectSettings,
                     onDismiss = { showNavBarStyleSheet = false },
+                )
+            }
+        }
+    }
+
+    item {
+        val fontSettings by remember {
+            AppFontSettingsRepository.ensureLoaded()
+            AppFontSettingsRepository.settings
+        }.collectAsStateWithLifecycle()
+        SettingsSection(
+            title = stringResource(Res.string.settings_appearance_section_text),
+            isTablet = isTablet,
+        ) {
+            SettingsGroup(isTablet = isTablet) {
+                SettingsChipRow(
+                    title = stringResource(Res.string.settings_appearance_app_font),
+                    description = stringResource(Res.string.settings_appearance_app_font_description),
+                    isTablet = isTablet,
+                ) {
+                    AppFont.entries.forEach { font ->
+                        Chip(
+                            label = stringResource(
+                                when (font) {
+                                    AppFont.NUVIO -> Res.string.settings_appearance_app_font_nuvio
+                                    AppFont.SYSTEM -> Res.string.settings_appearance_app_font_system
+                                },
+                            ),
+                            selected = fontSettings.font == font,
+                            onClick = { AppFontSettingsRepository.setFont(font) },
+                        )
+                    }
+                }
+                SettingsGroupDivider(isTablet = isTablet)
+                SettingsSwitchRow(
+                    title = stringResource(Res.string.settings_appearance_system_font_scale),
+                    description = stringResource(Res.string.settings_appearance_system_font_scale_description),
+                    checked = fontSettings.useSystemFontScale,
+                    isTablet = isTablet,
+                    onCheckedChange = AppFontSettingsRepository::setUseSystemFontScale,
                 )
             }
         }

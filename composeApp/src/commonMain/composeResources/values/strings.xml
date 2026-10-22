@@ -780,6 +780,13 @@
     <string name="settings_appearance_liquid_glass_description">Use the native iPhone tab bar on iOS 26 and later.</string>
     <string name="settings_appearance_poster_customization_description">Tune card width and corner radius.</string>
     <string name="settings_appearance_section_display">DISPLAY</string>
+    <string name="settings_appearance_section_text">TEXT</string>
+    <string name="settings_appearance_app_font">App Font</string>
+    <string name="settings_appearance_app_font_description">The typeface used for all text in the app.</string>
+    <string name="settings_appearance_app_font_nuvio">Nuvio (JetBrains Sans)</string>
+    <string name="settings_appearance_app_font_system">System</string>
+    <string name="settings_appearance_system_font_scale">Use System Text Size</string>
+    <string name="settings_appearance_system_font_scale_description">Follow the text size set in your device settings, up to 130%.</string>
     <string name="settings_appearance_section_home">HOME</string>
     <string name="settings_appearance_section_theme">THEME</string>
     <string name="settings_homescreen_collection_with_addon">Collection • %1$s</string>

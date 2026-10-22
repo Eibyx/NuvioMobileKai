@@ -12,6 +12,7 @@ import coil3.request.CachePolicy
 import coil3.request.crossfade
 import coil3.svg.SvgDecoder
 import com.nuvio.app.core.poster.CustomPosterFallbackInterceptor
+import com.nuvio.app.core.ui.AppFontSettingsRepository
 import com.nuvio.app.core.ui.NativeProfileSwitcherController
 import com.nuvio.app.core.ui.NuvioTheme
 import com.nuvio.app.core.ui.configurePlatformImageLoader
@@ -98,8 +99,18 @@ internal fun AppEnvironment(content: @Composable () -> Unit) {
     }.collectAsStateWithLifecycle()
 
     val customThemeColors by ThemeSettingsRepository.customThemeColors.collectAsStateWithLifecycle()
+    val fontSettings by remember {
+        AppFontSettingsRepository.ensureLoaded()
+        AppFontSettingsRepository.settings
+    }.collectAsStateWithLifecycle()
 
-    NuvioTheme(appTheme = selectedTheme, amoled = amoledEnabled, customThemeColors = customThemeColors) {
+    NuvioTheme(
+        appTheme = selectedTheme,
+        amoled = amoledEnabled,
+        customThemeColors = customThemeColors,
+        appFont = fontSettings.font,
+        useSystemFontScale = fontSettings.useSystemFontScale,
+    ) {
         content()
     }
 }
