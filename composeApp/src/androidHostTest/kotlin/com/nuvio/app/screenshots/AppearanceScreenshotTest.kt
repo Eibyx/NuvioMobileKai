@@ -47,6 +47,15 @@ import coil3.compose.LocalAsyncImagePreviewHandler
 import com.nuvio.app.core.diagnostics.UnexpectedExitKind
 import com.nuvio.app.core.diagnostics.UnexpectedExitNoticeCard
 import com.nuvio.app.core.ui.AppTheme
+import com.nuvio.app.features.addons.AddonRepository
+import com.nuvio.app.features.addons.AddonStorage
+import com.nuvio.app.features.player.PlayerPlaybackSnapshot
+import com.nuvio.app.features.profiles.ProfileRepository
+import com.nuvio.app.features.tracking.AnimeIdFallback
+import com.nuvio.app.features.watchprogress.WatchProgressPlaybackSession
+import com.nuvio.app.features.watchprogress.WatchProgressRepository
+import com.nuvio.app.features.watchprogress.WatchProgressStorage
+import org.robolectric.RuntimeEnvironment
 import com.nuvio.app.core.ui.AppearanceMode
 import com.nuvio.app.core.ui.FloatingNavigationBar
 import com.nuvio.app.core.ui.FloatingNavigationItem
@@ -297,6 +306,43 @@ class AppearanceScreenshotTest(private val appearance: AppearanceMode) {
         compose.mainClock.advanceTimeBy(1_500L)
         compose.waitForIdle()
         capture("streams_cinematic_episode")
+    }
+
+    @Test
+    fun detailAnimeWithoutMetadata() {
+        val context = RuntimeEnvironment.getApplication()
+        AddonStorage.initialize(context)
+        WatchProgressStorage.initialize(context)
+        AddonRepository.clearLocalState()
+        WatchProgressRepository.clearLocalState()
+        MetaDetailsRepository.clear()
+        val originalLookup = AnimeIdFallback.lookupExternalIds
+        AnimeIdFallback.lookupExternalIds = { null }
+        try {
+            WatchProgressRepository.upsertPlaybackProgress(
+                session = WatchProgressPlaybackSession(
+                    profileId = ProfileRepository.activeProfileId,
+                    contentType = "series",
+                    parentMetaId = "mal:22",
+                    parentMetaType = "series",
+                    videoId = "mal:22:5",
+                    title = "mal:22",
+                    seasonNumber = 1,
+                    episodeNumber = 5,
+                ),
+                snapshot = PlayerPlaybackSnapshot(isLoading = false, positionMs = 300_000L, durationMs = 1_380_000L),
+                syncRemote = false,
+            )
+            setScreen { MetaDetailsScreen(type = "series", id = "mal:22", onBack = {}) }
+            compose.waitUntil(timeoutMillis = 10_000) { MetaDetailsRepository.uiState.value.errorMessage != null }
+            compose.mainClock.advanceTimeBy(500L)
+            compose.waitForIdle()
+            capture("detail_anime_without_metadata")
+        } finally {
+            AnimeIdFallback.lookupExternalIds = originalLookup
+            WatchProgressRepository.clearLocalState()
+            MetaDetailsRepository.clear()
+        }
     }
 
     private fun scrollToText(text: String, substring: Boolean = false) {

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="continue_watching_unknown_title">Untitled</string>
+    <string name="details_anime_no_meta_title">No details for this anime</string>
+    <string name="details_anime_no_meta">None of your addons recognises %1$s, and no matching IMDb or TMDB entry was found for it.</string>
+    <string name="details_remove_from_continue_watching">Remove from Continue Watching</string>
+</resources>

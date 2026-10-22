@@ -1,5 +1,12 @@
 package com.nuvio.app.features.details
 
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.runtime.collectAsState
+import androidx.compose.ui.text.style.TextAlign
+import com.nuvio.app.core.logging.InAppLogger
+import com.nuvio.app.features.anilist.AniListTracker
+import com.nuvio.app.features.tracking.TrackerMediaLookup
+import com.nuvio.app.features.tracking.parseAnimeIdRef
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.ExperimentalSharedTransitionApi
@@ -452,6 +459,16 @@ fun MetaDetailsScreen(
             }
 
             displayedMeta == null && uiState.errorMessage != null -> {
+                // A tracker's anime id (mal:22...) that neither an addon nor its IMDb/TMDB equivalent
+                // could load: say so plainly, and offer to drop it from Continue Watching.
+                val animeId = remember(id) { parseAnimeIdRef(id) }
+                val online = networkStatusUiState.condition != NetworkCondition.NoInternet &&
+                    networkStatusUiState.condition != NetworkCondition.ServersUnreachable
+                val aniListProjection by AniListTracker.sync.projectionState.collectAsState()
+                val trackerTitle = remember(id, aniListProjection) {
+                    TrackerMediaLookup.find(id, aniListProjection.projection)?.title
+                }
+                val inContinueWatching = watchProgressUiState.entries.any { it.parentMetaId.equals(id, ignoreCase = true) }
                 Column(
                     modifier = Modifier
                         .align(Alignment.Center)
@@ -460,18 +477,28 @@ fun MetaDetailsScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Text(
-                        text = stringResource(Res.string.details_failed_to_load),
+                        text = if (animeId != null && online) {
+                            stringResource(Res.string.details_anime_no_meta_title)
+                        } else {
+                            stringResource(Res.string.details_failed_to_load)
+                        },
                         style = MaterialTheme.typography.titleLarge,
                         color = MaterialTheme.colorScheme.onBackground,
+                        textAlign = TextAlign.Center,
                     )
                     Text(
                         text = when (networkStatusUiState.condition) {
                             NetworkCondition.NoInternet -> stringResource(Res.string.details_check_connection)
                             NetworkCondition.ServersUnreachable -> stringResource(Res.string.details_servers_unreachable)
-                            else -> uiState.errorMessage.orEmpty()
+                            else -> if (animeId != null) {
+                                stringResource(Res.string.details_anime_no_meta, trackerTitle ?: id)
+                            } else {
+                                uiState.errorMessage.orEmpty()
+                            }
                         },
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Button(
@@ -481,6 +508,17 @@ fun MetaDetailsScreen(
                         },
                     ) {
                         Text(stringResource(Res.string.action_retry))
+                    }
+                    if (inContinueWatching) {
+                        OutlinedButton(
+                            onClick = {
+                                InAppLogger.info("Metadata/MetaDetailsScreen", "Removed $id from Continue Watching after no metadata")
+                                WatchProgressRepository.removeProgress(contentId = id)
+                                onBack()
+                            },
+                        ) {
+                            Text(stringResource(Res.string.details_remove_from_continue_watching))
+                        }
                     }
                 }
             }

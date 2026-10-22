@@ -10,6 +10,8 @@ import com.nuvio.app.features.addons.fetchAddonResponseText
 import com.nuvio.app.features.addons.httpRequestRaw
 import com.nuvio.app.core.poster.withCustomPosterUrls
 import com.nuvio.app.features.addons.supportsResource
+import com.nuvio.app.features.tracking.AnimeIdFallback
+import com.nuvio.app.features.tracking.parseAnimeIdRef
 import com.nuvio.app.features.home.HomeCatalogSettingsRepository
 import com.nuvio.app.features.home.filterReleasedItems
 import com.nuvio.app.features.mdblist.MdbListMetadataService
@@ -135,12 +137,13 @@ object MetaDetailsRepository {
         _uiState.value = MetaDetailsUiState(isLoading = true)
 
         scope.launch {
-            val metaLookupId = resolveMetaLookupId(itemId = id, itemType = type)
-            val manifests = findReadyMetaManifests(type = type, id = metaLookupId)
+            val target = resolveMetaTarget(type = type, id = id)
+            val metaLookupId = target.lookupId
+            val manifests = target.manifests
             InAppLogger.info("Metadata/MetaDetailsRepository", "Resolved meta lookup id=$metaLookupId manifests=${manifests.size} originalId=$id")
 
             if (manifests.isEmpty()) {
-                val tmdbMeta = tryFetchTmdbFallbackMeta(type = type, id = id)
+                val tmdbMeta = tryFetchTmdbFallbackMeta(type = type, id = target.fallbackId)
                 if (tmdbMeta != null) {
                     publishLoadedMeta(
                         requestKey = requestKey,
@@ -179,7 +182,7 @@ object MetaDetailsRepository {
                 }
             }
 
-            val tmdbMeta = tryFetchTmdbFallbackMeta(type = type, id = id)
+            val tmdbMeta = tryFetchTmdbFallbackMeta(type = type, id = target.fallbackId)
             if (tmdbMeta != null) {
                 publishLoadedMeta(
                     requestKey = requestKey,
@@ -242,8 +245,9 @@ object MetaDetailsRepository {
                 ?.also { if (cacheResult) cachedMetaByRequestKey[requestKey] = CachedMetaEntry(baseMeta = it) }
         }
 
-        val metaLookupId = resolveMetaLookupId(itemId = id, itemType = type)
-        val manifests = findReadyMetaManifests(type = type, id = metaLookupId)
+        val target = resolveMetaTarget(type = type, id = id)
+        val metaLookupId = target.lookupId
+        val manifests = target.manifests
 
         for (manifest in manifests) {
             val result = withTimeoutOrNull(FETCH_TIMEOUT_MS) {
@@ -257,7 +261,7 @@ object MetaDetailsRepository {
             }
         }
 
-        return tryFetchTmdbFallbackMeta(type = type, id = id)?.also { result ->
+        return tryFetchTmdbFallbackMeta(type = type, id = target.fallbackId)?.also { result ->
             if (cacheResult) {
                 cachedMetaByRequestKey[requestKey] = CachedMetaEntry(baseMeta = result)
             }
@@ -267,10 +271,11 @@ object MetaDetailsRepository {
     private val backgroundBackoffUntilByHost = mutableMapOf<String, Long>()
 
     internal suspend fun fetchLightweight(type: String, id: String): MetaLookupOutcome {
-        val metaLookupId = resolveMetaLookupId(itemId = id, itemType = type)
-        val manifests = findReadyMetaManifests(type = type, id = metaLookupId)
+        val target = resolveMetaTarget(type = type, id = id)
+        val metaLookupId = target.lookupId
+        val manifests = target.manifests
         if (manifests.isEmpty()) {
-            return tryFetchTmdbFallbackMeta(type = type, id = id)
+            return tryFetchTmdbFallbackMeta(type = type, id = target.fallbackId)
                 ?.let { meta -> MetaLookupOutcome.Loaded(meta) }
                 ?: MetaLookupOutcome.Unavailable
         }
@@ -470,6 +475,32 @@ object MetaDetailsRepository {
 
     private fun com.nuvio.app.features.addons.AddonsUiState.hasPendingEnabledAddonManifests(): Boolean =
         addons.enabledAddons().any { addon -> addon.manifest == null && addon.isRefreshing }
+
+    /** Where to load metadata from: [lookupId] for addons, [fallbackId] for the TMDB fallback. */
+    private data class MetaTarget(
+        val lookupId: String,
+        val fallbackId: String,
+        val manifests: List<AddonManifest>,
+    )
+
+    /**
+     * Anime ids from trackers (mal:, kitsu:, anilist:, anidb:) that no installed addon accepts are
+     * looked up by their IMDb or TMDB equivalent instead, so the page still loads.
+     */
+    private suspend fun resolveMetaTarget(type: String, id: String): MetaTarget {
+        val lookupId = resolveMetaLookupId(itemId = id, itemType = type)
+        val manifests = findReadyMetaManifests(type = type, id = lookupId)
+        if (manifests.isNotEmpty()) return MetaTarget(lookupId, id, manifests)
+        val anime = parseAnimeIdRef(id) ?: return MetaTarget(lookupId, id, manifests)
+        val mapped = AnimeIdFallback.metaId(anime) ?: return MetaTarget(lookupId, id, manifests)
+        val mappedLookupId = resolveMetaLookupId(itemId = mapped, itemType = type)
+        val mappedManifests = findReadyMetaManifests(type = type, id = mappedLookupId)
+        InAppLogger.info(
+            "Metadata/MetaDetailsRepository",
+            "No addon accepts $id; using $mappedLookupId (manifests=${mappedManifests.size})",
+        )
+        return MetaTarget(mappedLookupId, mapped, mappedManifests)
+    }
 
     private suspend fun resolveMetaLookupId(itemId: String, itemType: String): String {
         val tmdbId = itemId

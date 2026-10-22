@@ -1,5 +1,8 @@
 package com.nuvio.app.features.home
 
+import com.nuvio.app.features.anilist.AniListTracker
+import com.nuvio.app.features.tracking.TrackerMediaInfo
+import com.nuvio.app.features.tracking.TrackerMediaLookup
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.MutatePriority
@@ -12,6 +15,7 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
@@ -522,6 +526,8 @@ fun HomeScreen(
         }
     }.collectAsStateWithLifecycle(initialValue = com.nuvio.app.core.poster.CustomPosterUrlRepository.patternForScreen(com.nuvio.app.core.poster.CustomPosterScreen.CONTINUE_WATCHING))
 
+    val aniListProjection by AniListTracker.sync.projectionState.collectAsState()
+    val unknownContinueWatchingTitle = stringResource(Res.string.continue_watching_unknown_title)
     val allContinueWatchingItems = remember(
         visibleContinueWatchingEntries,
         cachedInProgressItems,
@@ -530,6 +536,8 @@ fun HomeScreen(
         continueWatchingPreferences.sortMode,
         cloudLibraryUiState,
         cwPosterPattern,
+        aniListProjection,
+        unknownContinueWatchingTitle,
     ) {
         buildHomeContinueWatchingItems(
             visibleEntries = visibleContinueWatchingEntries,
@@ -539,6 +547,8 @@ fun HomeScreen(
             sortMode = continueWatchingPreferences.sortMode,
             todayIsoDate = CurrentDateProvider.todayIsoDate(),
             cloudLibraryUiState = cloudLibraryUiState,
+            trackerMedia = { contentId -> TrackerMediaLookup.find(contentId, aniListProjection.projection) },
+            unknownTitle = unknownContinueWatchingTitle,
         ).let { items ->
             items.withCustomPosterUrls(cwPosterPattern)
         }
@@ -1632,6 +1642,8 @@ internal fun buildHomeContinueWatchingItems(
     sortMode: ContinueWatchingSortMode = ContinueWatchingSortMode.DEFAULT,
     todayIsoDate: String = "",
     cloudLibraryUiState: CloudLibraryUiState? = null,
+    trackerMedia: (String) -> TrackerMediaInfo? = { null },
+    unknownTitle: String = "",
 ): List<ContinueWatchingItem> {
     val suppressedSeriesIds = nextUpSuppressedSeriesIds
         ?: visibleEntries
@@ -1652,7 +1664,8 @@ internal fun buildHomeContinueWatchingItems(
                             fallback = cachedInProgressByProgressKey[entry.resolvedProgressKey()],
                             preserveFallbackPlaybackIdentity = true,
                         )
-                        .withCloudLibraryMetadata(cloudLibraryUiState),
+                        .withCloudLibraryMetadata(cloudLibraryUiState)
+                        .withTrackerMetadata(trackerMedia, unknownTitle),
                     isProgressEntry = true,
                 )
             },
@@ -1662,7 +1675,7 @@ internal fun buildHomeContinueWatchingItems(
                 if (item.parentMetaId in suppressedSeriesIds) return@mapNotNull null
                 HomeContinueWatchingCandidate(
                     lastUpdatedEpochMs = lastUpdatedEpochMs,
-                    item = item,
+                    item = item.withTrackerMetadata(trackerMedia, unknownTitle),
                     isProgressEntry = false,
                 )
             },
@@ -2058,6 +2071,31 @@ private fun ContinueWatchingItem.withCloudLibraryMetadata(
         title = fileName,
         pauseDescription = pauseDescription
             ?: target.item.name.takeIf { itemName -> itemName.isNotBlank() && itemName != fileName },
+    )
+}
+
+/**
+ * An entry whose title is only its id (metadata never loaded, e.g. a mal: id no addon knows) takes
+ * the title and artwork its tracker holds, else [unknownTitle]: never the raw id.
+ */
+private fun ContinueWatchingItem.withTrackerMetadata(
+    trackerMedia: (String) -> TrackerMediaInfo?,
+    unknownTitle: String,
+): ContinueWatchingItem {
+    val placeholderTitle = title.isBlank() || hasPlaceholderHomeTitle()
+    val missingArtwork = imageUrl.isNullOrBlank() && poster.isNullOrBlank() && background.isNullOrBlank()
+    if (!placeholderTitle && !missingArtwork) return this
+    val media = trackerMedia(parentMetaId)
+    return copy(
+        title = when {
+            !placeholderTitle -> title
+            media != null -> media.title
+            unknownTitle.isNotBlank() -> unknownTitle
+            else -> title
+        },
+        imageUrl = imageUrl.orNonBlank(media?.background ?: media?.poster),
+        poster = poster.orNonBlank(media?.poster),
+        background = background.orNonBlank(media?.background),
     )
 }
 

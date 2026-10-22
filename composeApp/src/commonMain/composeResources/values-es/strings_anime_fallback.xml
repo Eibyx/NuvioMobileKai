@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="continue_watching_unknown_title">Sin título</string>
+    <string name="details_anime_no_meta_title">No hay datos de este anime</string>
+    <string name="details_anime_no_meta">Ninguno de tus complementos reconoce %1$s y no se encontró su equivalente en IMDb ni en TMDB.</string>
+    <string name="details_remove_from_continue_watching">Quitar de Seguir viendo</string>
+</resources>

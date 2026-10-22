@@ -1,5 +1,9 @@
 package com.nuvio.app.features.streams
 
+import com.nuvio.app.features.tracking.AnimeIdFallback
+import com.nuvio.app.features.watchprogress.buildPlaybackVideoId
+import com.nuvio.app.features.tracking.AnimeIdRef
+import com.nuvio.app.features.tracking.parseAnimeIdRef
 import co.touchlab.kermit.Logger
 import com.nuvio.app.core.logging.InAppLogger
 import com.nuvio.app.core.build.AppFeaturePolicy
@@ -75,14 +79,99 @@ object StreamsRepository {
         )
     }
 
-    private fun load(type: String, videoId: String, parentMetaId: String?, season: Int?, episode: Int?, manualSelection: Boolean, forceRefresh: Boolean) {
+    /**
+     * No stream addon accepts this tracker anime id (mal:22:5, kitsu:13...): look its IMDb or TMDB
+     * id up, map the absolute episode to season/episode, and load streams for that instead. The
+     * request keeps its original token, so the streams page that asked for it receives the result.
+     */
+    private fun loadThroughAnimeFallback(
+        type: String,
+        videoId: String,
+        season: Int?,
+        episode: Int?,
+        manualSelection: Boolean,
+        forceRefresh: Boolean,
+        requestToken: String,
+    ) {
+        val anime = parseAnimeIdRef(videoId) ?: return
+        _uiState.value = StreamsUiState(requestToken = requestToken, isAnyLoading = true)
+        activeJob = scope.launch {
+            val translated = translateAnimeVideo(type, anime, episode)
+            if (translated == null) {
+                InAppLogger.warn("Streams/StreamsRepository", "No IMDb or TMDB equivalent for $videoId")
+                _uiState.value = StreamsUiState(
+                    requestToken = requestToken,
+                    isAnyLoading = false,
+                    emptyStateReason = StreamsEmptyStateReason.NoCompatibleAddons,
+                    autoPlayDecided = true,
+                )
+                return@launch
+            }
+            InAppLogger.info(
+                "Streams/StreamsRepository",
+                "No addon accepts $videoId; loading ${translated.videoId} (season ${translated.season ?: -1} " +
+                    "episode ${translated.episode ?: -1}) instead",
+            )
+            activeRequestKey = null
+            load(
+                type = type,
+                videoId = translated.videoId,
+                parentMetaId = translated.parentMetaId,
+                season = translated.season ?: season,
+                episode = translated.episode,
+                manualSelection = manualSelection,
+                forceRefresh = forceRefresh,
+                requestTokenOverride = requestToken,
+            )
+        }
+    }
+
+    private data class TranslatedAnimeVideo(
+        val videoId: String,
+        val parentMetaId: String,
+        val season: Int?,
+        val episode: Int?,
+    )
+
+    private suspend fun translateAnimeVideo(type: String, anime: AnimeIdRef, episode: Int?): TranslatedAnimeVideo? {
+        val metaId = AnimeIdFallback.metaId(anime) ?: return null
+        if (type.equals("movie", ignoreCase = true)) {
+            return TranslatedAnimeVideo(videoId = metaId, parentMetaId = metaId, season = null, episode = null)
+        }
+        val absolute = anime.episode ?: episode ?: 1
+        val (mappedSeason, mappedEpisode) = AnimeIdFallback.episodeCoordinates(anime, absolute) {
+            MetaDetailsRepository.fetch(type = "series", id = metaId)?.videos
+        } ?: return null
+        return TranslatedAnimeVideo(
+            videoId = buildPlaybackVideoId(
+                parentMetaId = metaId,
+                seasonNumber = mappedSeason,
+                episodeNumber = mappedEpisode,
+                fallbackVideoId = null,
+            ),
+            parentMetaId = metaId,
+            season = mappedSeason,
+            episode = mappedEpisode,
+        )
+    }
+
+    private fun load(
+        type: String,
+        videoId: String,
+        parentMetaId: String?,
+        season: Int?,
+        episode: Int?,
+        manualSelection: Boolean,
+        forceRefresh: Boolean,
+        requestTokenOverride: String? = null,
+    ) {
         val pluginUiState = if (AppFeaturePolicy.pluginsEnabled) {
             PluginRepository.initialize()
             PluginRepository.uiState.value
         } else {
             PluginsUiState(pluginsEnabled = false)
         }
-        val requestToken = requestToken(
+        val requestToken = requestTokenOverride ?: requestToken(
             type = type,
             videoId = videoId,
             season = season,
@@ -215,6 +304,11 @@ object StreamsRepository {
             "Found addons=${streamAddons.size} pluginGroups=${pluginProviderGroups.size} pluginScrapers=${pluginScrapers.size} " +
                 "for type=$type id=$videoId",
         )
+
+        if (requestTokenOverride == null && streamAddons.isEmpty() && parseAnimeIdRef(videoId) != null) {
+            loadThroughAnimeFallback(type, videoId, season, episode, manualSelection, forceRefresh, requestToken)
+            return
+        }
 
         if (streamAddons.isEmpty() && pluginProviderGroups.isEmpty() && serverSources.isEmpty()) {
             InAppLogger.warn("Streams/StreamsRepository", "No compatible stream addon/plugin for type=$type id=$videoId")
