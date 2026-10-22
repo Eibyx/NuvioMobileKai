@@ -1,5 +1,7 @@
 package com.nuvio.app.features.details
 
+import androidx.compose.material.icons.rounded.FavoriteBorder
+import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalSharedTransitionApi
@@ -105,6 +107,10 @@ fun PersonDetailScreen(
         WatchedRepository.uiState
     }.collectAsStateWithLifecycle()
     val fullyWatchedSeriesKeys by WatchedRepository.fullyWatchedSeriesKeys.collectAsStateWithLifecycle()
+    val favoritePeopleState by remember {
+        FavoritePeopleRepository.ensureLoaded()
+        FavoritePeopleRepository.uiState
+    }.collectAsStateWithLifecycle()
     val resolvedAvatarTransitionKey = avatarTransitionKey ?: castAvatarSharedTransitionKey(personId)
 
     LaunchedEffect(personId) {
@@ -172,6 +178,42 @@ fun PersonDetailScreen(
                 )
             }
         }
+
+        (uiState as? PersonDetailUiState.Success)?.personDetail?.let { person ->
+            PersonFavoriteButton(
+                isFavorite = favoritePeopleState.people.any { it.tmdbId == person.tmdbId },
+                onClick = { FavoritePeopleRepository.toggle(person) },
+                modifier = Modifier
+                    .windowInsetsPadding(WindowInsets.statusBars)
+                    .padding(end = 8.dp, top = 4.dp)
+                    .align(Alignment.TopEnd),
+            )
+        }
+    }
+}
+
+// Marks the person as a favorite (yesnt10's Enhanced fork); they show up in Profile Insights.
+@Composable
+private fun PersonFavoriteButton(
+    isFavorite: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    IconButton(
+        onClick = onClick,
+        modifier = modifier
+            .size(48.dp)
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.76f))
+            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.22f), CircleShape),
+    ) {
+        Icon(
+            imageVector = if (isFavorite) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
+            contentDescription = stringResource(
+                if (isFavorite) Res.string.person_remove_favorite else Res.string.person_add_favorite,
+            ),
+            tint = if (isFavorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+        )
     }
 }
 

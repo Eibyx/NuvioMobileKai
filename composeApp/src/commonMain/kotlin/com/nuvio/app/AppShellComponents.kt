@@ -1,5 +1,6 @@
 package com.nuvio.app
 
+import com.nuvio.app.features.details.FavoritePerson
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -172,6 +173,7 @@ internal data class AppTabActions(
     val onTestUpdateBannerClick: (() -> Unit)? = null,
     val onCollectionsSettingsClick: () -> Unit = {},
     val onWatchPartySettingsClick: () -> Unit = {},
+    val onFavoritePersonClick: ((FavoritePerson) -> Unit)? = null,
     val onFolderClick: ((collectionId: String, folderId: String) -> Unit)? = null,
     val onRequestedSettingsPageConsumed: () -> Unit = {},
     val onInitialHomeContentRendered: () -> Unit = {},
@@ -271,6 +273,7 @@ internal fun AppTabHost(
                     onTestUpdateBannerClick = actions.onTestUpdateBannerClick,
                     onCollectionsClick = actions.onCollectionsSettingsClick,
                     onWatchPartyClick = actions.onWatchPartySettingsClick,
+                    onFavoritePersonClick = actions.onFavoritePersonClick,
                 )
             }
         }

@@ -1,5 +1,6 @@
 package com.nuvio.app.features.settings
 
+import com.nuvio.app.features.details.FavoritePerson
 import com.nuvio.app.core.ui.NuvioDarkSurface
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.draw.drawWithContent
@@ -171,6 +172,8 @@ internal fun LazyListScope.profileInsightsContent(
     onEditProfile: (() -> Unit)?,
     onPosterClick: ((MetaPreview) -> Unit)?,
     onBack: (() -> Unit)? = null,
+    onFavoritePersonClick: ((FavoritePerson) -> Unit)? = null,
+    onFavoritePeopleViewAllClick: () -> Unit = {},
 ) {
     item {
         ProfileInsightsBody(
@@ -179,6 +182,8 @@ internal fun LazyListScope.profileInsightsContent(
             onEditProfile = onEditProfile,
             onPosterClick = onPosterClick,
             onBack = onBack,
+            onFavoritePersonClick = onFavoritePersonClick,
+            onFavoritePeopleViewAllClick = onFavoritePeopleViewAllClick,
         )
     }
 }
@@ -190,6 +195,8 @@ private fun ProfileInsightsBody(
     onEditProfile: (() -> Unit)?,
     onPosterClick: ((MetaPreview) -> Unit)?,
     onBack: (() -> Unit)? = null,
+    onFavoritePersonClick: ((FavoritePerson) -> Unit)? = null,
+    onFavoritePeopleViewAllClick: () -> Unit = {},
 ) {
     val profileState by ProfileRepository.state.collectAsStateWithLifecycle()
     val avatars by AvatarRepository.avatars.collectAsStateWithLifecycle()
@@ -399,6 +406,13 @@ private fun ProfileInsightsBody(
                 onRefresh = ProfileInsightsRefresher::refresh,
             )
             ProfileWatchTimeRow(stats = stats)
+            if (onFavoritePersonClick != null) {
+                FavoritePeopleSection(
+                    isTablet = isTablet,
+                    onPersonClick = onFavoritePersonClick,
+                    onViewAllClick = onFavoritePeopleViewAllClick,
+                )
+            }
             SettingsSection(
                 title = stringResource(Res.string.profile_insights_section_taste),
                 isTablet = isTablet,

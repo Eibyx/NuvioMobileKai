@@ -1571,6 +1571,11 @@
     <string name="person_known_for">Conocido por: %1$s</string>
     <string name="person_latest">Más reciente</string>
     <string name="person_load_failed">No se pudieron cargar los detalles de %1$s</string>
+    <string name="favorite_people_title">Personas favoritas</string>
+    <string name="favorite_people_pin">Fijar al principio</string>
+    <string name="favorite_people_unpin">Dejar de fijar</string>
+    <string name="person_add_favorite">Añadir a personas favoritas</string>
+    <string name="person_remove_favorite">Quitar de personas favoritas</string>
     <string name="person_popular">Popular</string>
     <string name="person_something_wrong">Algo salió mal</string>
     <string name="person_upcoming">Próximamente</string>

@@ -1870,6 +1870,11 @@
     <string name="person_known_for">Known for: %1$s</string>
     <string name="person_latest">Latest</string>
     <string name="person_load_failed">Could not load details for %1$s</string>
+    <string name="favorite_people_title">Favorite People</string>
+    <string name="favorite_people_pin">Pin to the front</string>
+    <string name="favorite_people_unpin">Unpin</string>
+    <string name="person_add_favorite">Add to favorite people</string>
+    <string name="person_remove_favorite">Remove from favorite people</string>
     <string name="person_popular">Popular</string>
     <string name="person_something_wrong">Something went wrong</string>
     <string name="person_upcoming">Upcoming</string>

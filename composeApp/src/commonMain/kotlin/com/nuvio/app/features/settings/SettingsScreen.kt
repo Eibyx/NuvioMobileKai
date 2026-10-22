@@ -1,5 +1,6 @@
 package com.nuvio.app.features.settings
 
+import com.nuvio.app.features.details.FavoritePerson
 import com.nuvio.app.features.whatsnew.WhatsNewSettingsScreen
 import com.nuvio.app.navigation.LocalUseNativeNavigation
 import com.nuvio.app.core.build.AppFeaturePolicy
@@ -145,6 +146,7 @@ fun SettingsScreen(
     onSwitchProfile: (() -> Unit)? = null,
     onEditProfile: (() -> Unit)? = null,
     onPosterClick: ((MetaPreview) -> Unit)? = null,
+    onFavoritePersonClick: ((FavoritePerson) -> Unit)? = null,
     onHomescreenClick: () -> Unit = {},
     onMetaScreenClick: () -> Unit = {},
     onContinueWatchingClick: () -> Unit = {},
@@ -482,6 +484,7 @@ fun SettingsScreen(
                         onSwitchProfile = onSwitchProfile,
                         onEditProfile = onEditProfile,
                         onPosterClick = onPosterClick,
+                        onFavoritePersonClick = onFavoritePersonClick,
                         onSupportersContributorsClick = openSupportersContributors,
                         onLicensesAttributionsClick = openLicensesAttributions,
                         onWhatsNewClick = openWhatsNew,
@@ -561,6 +564,7 @@ fun SettingsScreen(
                         onSwitchProfile = onSwitchProfile,
                         onEditProfile = onEditProfile,
                         onPosterClick = onPosterClick,
+                        onFavoritePersonClick = onFavoritePersonClick,
                         onHomescreenClick = openHomescreen,
                         onMetaScreenClick = openMetaScreen,
                         onContinueWatchingClick = openContinueWatching,
@@ -652,6 +656,7 @@ private fun MobileSettingsScreen(
     onSwitchProfile: (() -> Unit)? = null,
     onEditProfile: (() -> Unit)? = null,
     onPosterClick: ((MetaPreview) -> Unit)? = null,
+    onFavoritePersonClick: ((FavoritePerson) -> Unit)? = null,
     onHomescreenClick: () -> Unit = {},
     onMetaScreenClick: () -> Unit = {},
     onContinueWatchingClick: () -> Unit = {},
@@ -814,6 +819,12 @@ private fun MobileSettingsScreen(
                     onEditProfile = onEditProfile,
                     onPosterClick = onPosterClick,
                     onBack = if (profileDrawsOwnChrome) onNavigateBack else null,
+                    onFavoritePersonClick = onFavoritePersonClick,
+                    onFavoritePeopleViewAllClick = { onPageChange(SettingsPage.FavoritePeople) },
+                )
+                SettingsPage.FavoritePeople -> favoritePeopleContent(
+                    isTablet = false,
+                    onPersonClick = { person -> onFavoritePersonClick?.invoke(person) },
                 )
                 SettingsPage.SupportersContributors -> {
                     if (AppFeaturePolicy.supportersContributorsPageEnabled) {
@@ -1100,6 +1111,7 @@ private fun TabletSettingsScreen(
     onSwitchProfile: (() -> Unit)? = null,
     onEditProfile: (() -> Unit)? = null,
     onPosterClick: ((MetaPreview) -> Unit)? = null,
+    onFavoritePersonClick: ((FavoritePerson) -> Unit)? = null,
     onSupportersContributorsClick: () -> Unit = {},
     onLicensesAttributionsClick: () -> Unit = {},
     onWhatsNewClick: () -> Unit = {},
@@ -1311,6 +1323,12 @@ private fun TabletSettingsScreen(
                         onSwitchProfile = onSwitchProfile,
                         onEditProfile = onEditProfile,
                         onPosterClick = onPosterClick,
+                        onFavoritePersonClick = onFavoritePersonClick,
+                        onFavoritePeopleViewAllClick = { openInlinePage(SettingsPage.FavoritePeople) },
+                    )
+                    SettingsPage.FavoritePeople -> favoritePeopleContent(
+                        isTablet = true,
+                        onPersonClick = { person -> onFavoritePersonClick?.invoke(person) },
                     )
                     SettingsPage.SupportersContributors -> {
                         if (AppFeaturePolicy.supportersContributorsPageEnabled) {

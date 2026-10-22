@@ -1,5 +1,6 @@
 package com.nuvio.app
 
+import com.nuvio.app.features.details.FavoritePeopleStorage
 import android.content.Intent
 import android.content.res.Configuration
 import com.nuvio.app.features.autosync.AutoSyncPreferencesAndroid
@@ -114,6 +115,7 @@ open class MainActivity : AppCompatActivity() {
         ThemeSettingsStorage.initialize(applicationContext)
         AppFontSettingsStorage.initialize(applicationContext)
         AppearanceSettingsStorage.initialize(applicationContext)
+        FavoritePeopleStorage.initialize(applicationContext)
         AppIconPlatform.initialize(applicationContext)
         SentrySettingsStorage.initialize(applicationContext)
         SentryInitializer.start(application)

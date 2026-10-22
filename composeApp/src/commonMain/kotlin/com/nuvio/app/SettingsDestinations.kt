@@ -1,5 +1,6 @@
 package com.nuvio.app
 
+import com.nuvio.app.navigation.PersonDetailRoute
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -62,6 +63,17 @@ internal fun SettingsRootDestination(
         onEditProfile = onEditProfile,
         onPosterClick = { meta ->
             navController.navigate(DetailRoute(type = meta.type, id = meta.id, title = meta.name))
+        },
+        onFavoritePersonClick = { person ->
+            navController.navigate(
+                PersonDetailRoute(
+                    personId = person.tmdbId,
+                    personName = person.name,
+                    personPhoto = person.photo,
+                    // Directors and writers open on their crew credits, as from a cast list.
+                    preferCrew = person.knownFor?.equals("Acting", ignoreCase = true) == false,
+                ),
+            )
         },
         onCollectionsClick = {
             navController.navigate(CollectionsRoute(collectionsTitle))

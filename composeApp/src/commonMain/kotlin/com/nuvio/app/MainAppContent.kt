@@ -1,5 +1,6 @@
 package com.nuvio.app
 
+import com.nuvio.app.navigation.PersonDetailRoute
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.core.MutableTransitionState
@@ -1733,6 +1734,17 @@ internal fun MainAppContent(
                                 },
                                 onCollectionsSettingsClick = { navController.navigate(CollectionsRoute(collectionsTitle)) },
                                 onWatchPartySettingsClick = { navController.navigate(PartyRoute(title = watchPartyTitle)) },
+                                onFavoritePersonClick = { person ->
+                                    navController.navigate(
+                                        PersonDetailRoute(
+                                            personId = person.tmdbId,
+                                            personName = person.name,
+                                            personPhoto = person.photo,
+                                            // Directors and writers open on their crew credits, as from a cast list.
+                                            preferCrew = person.knownFor?.equals("Acting", ignoreCase = true) == false,
+                                        ),
+                                    )
+                                },
                                 onFolderClick = { collectionId, folderId ->
                                     val folderTitle = CollectionRepository.collections.value
                                         .firstOrNull { it.id == collectionId }
