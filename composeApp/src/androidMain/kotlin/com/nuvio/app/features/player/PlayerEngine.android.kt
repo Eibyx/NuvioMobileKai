@@ -86,7 +86,7 @@ import com.nuvio.app.R
 import com.nuvio.app.core.logging.InAppLogger
 import com.nuvio.app.features.streams.normalizeStreamType
 import `is`.xyz.mpv.BaseMPVView
-import `is`.xyz.mpv.MPV
+import `is`.xyz.mpv.MPVLib
 import `is`.xyz.mpv.MPVNode
 import `is`.xyz.mpv.Utils
 import kotlinx.coroutines.delay
@@ -1494,7 +1494,7 @@ private fun LibmpvPlayerSurface(
                 }
             }
         }
-        val observer = object : MPV.EventObserver {
+        val observer = object : MPVLib.EventObserver {
             override fun eventProperty(property: String) = Unit
             override fun eventProperty(property: String, value: Long) {
                 if (property == "cache-buffering-state") {
@@ -1539,7 +1539,7 @@ private fun LibmpvPlayerSurface(
             }
             override fun event(eventId: Int, data: MPVNode) {
                 when (eventId) {
-                    MPV.mpvEvent.MPV_EVENT_START_FILE -> {
+                    MPVLib.MpvEvent.MPV_EVENT_START_FILE -> {
                         Log.i(
                             PLAYER_DIAGNOSTIC_TAG,
                             "mpv_event=START_FILE attempt=${playbackDiagnostics.attempt} " +
@@ -1552,8 +1552,8 @@ private fun LibmpvPlayerSurface(
                             nowPlayingController?.syncPlayback(snapshot)
                         }
                     }
-                    MPV.mpvEvent.MPV_EVENT_FILE_LOADED,
-                    MPV.mpvEvent.MPV_EVENT_PLAYBACK_RESTART -> {
+                    MPVLib.MpvEvent.MPV_EVENT_FILE_LOADED,
+                    MPVLib.MpvEvent.MPV_EVENT_PLAYBACK_RESTART -> {
                         coroutineScope.launch(Dispatchers.Main.immediate) {
                             InAppLogger.info(
                                 "MPV/Android",
@@ -1563,7 +1563,7 @@ private fun LibmpvPlayerSurface(
                             val snapshot = view.snapshot()
                             Log.i(
                                 PLAYER_DIAGNOSTIC_TAG,
-                                "mpv_event=${if (eventId == MPV.mpvEvent.MPV_EVENT_FILE_LOADED) "FILE_LOADED" else "PLAYBACK_RESTART"} " +
+                                "mpv_event=${if (eventId == MPVLib.MpvEvent.MPV_EVENT_FILE_LOADED) "FILE_LOADED" else "PLAYBACK_RESTART"} " +
                                     "attempt=${playbackDiagnostics.attempt} " +
                                     "elapsedMs=${diagnosticElapsedSince(playbackDiagnostics.prepareStartedAtMs)} " +
                                     "positionMs=${snapshot.positionMs} bufferedMs=${snapshot.bufferedPositionMs} " +
@@ -1573,7 +1573,7 @@ private fun LibmpvPlayerSurface(
                             nowPlayingController?.syncPlayback(snapshot)
                         }
                     }
-                    MPV.mpvEvent.MPV_EVENT_END_FILE -> {
+                    MPVLib.MpvEvent.MPV_EVENT_END_FILE -> {
                         coroutineScope.launch(Dispatchers.Main.immediate) {
                             val snapshot = view.snapshot()
                             Log.w(
@@ -1593,7 +1593,7 @@ private fun LibmpvPlayerSurface(
                 }
             }
         }
-        val logObserver = object : MPV.LogObserver {
+        val logObserver = object : MPVLib.LogObserver {
             override fun logMessage(prefix: String, level: Int, text: String) {
                 Log.w(
                     PLAYER_DIAGNOSTIC_TAG,
@@ -1770,26 +1770,26 @@ private class NuvioLibmpvView(
 
     override fun observeProperties() {
         val props = mapOf(
-            "pause" to MPV.mpvFormat.MPV_FORMAT_FLAG,
-            "paused-for-cache" to MPV.mpvFormat.MPV_FORMAT_FLAG,
-            "core-idle" to MPV.mpvFormat.MPV_FORMAT_FLAG,
-            "eof-reached" to MPV.mpvFormat.MPV_FORMAT_FLAG,
-            "seeking" to MPV.mpvFormat.MPV_FORMAT_FLAG,
-            "cache-buffering-state" to MPV.mpvFormat.MPV_FORMAT_INT64,
-            "duration" to MPV.mpvFormat.MPV_FORMAT_DOUBLE,
-            "time-pos" to MPV.mpvFormat.MPV_FORMAT_DOUBLE,
-            "demuxer-cache-time" to MPV.mpvFormat.MPV_FORMAT_DOUBLE,
-            "speed" to MPV.mpvFormat.MPV_FORMAT_DOUBLE,
-            "video-params/w" to MPV.mpvFormat.MPV_FORMAT_INT64,
-            "video-params/h" to MPV.mpvFormat.MPV_FORMAT_INT64,
-            "video-out-params/w" to MPV.mpvFormat.MPV_FORMAT_INT64,
-            "video-out-params/h" to MPV.mpvFormat.MPV_FORMAT_INT64,
-            "track-list" to MPV.mpvFormat.MPV_FORMAT_NODE,
-            "video-codec" to MPV.mpvFormat.MPV_FORMAT_STRING,
-            "audio-codec" to MPV.mpvFormat.MPV_FORMAT_STRING,
-            "hwdec-current" to MPV.mpvFormat.MPV_FORMAT_STRING,
-            "video-params" to MPV.mpvFormat.MPV_FORMAT_NODE,
-            "audio-params" to MPV.mpvFormat.MPV_FORMAT_NODE,
+            "pause" to MPVLib.MpvFormat.MPV_FORMAT_FLAG,
+            "paused-for-cache" to MPVLib.MpvFormat.MPV_FORMAT_FLAG,
+            "core-idle" to MPVLib.MpvFormat.MPV_FORMAT_FLAG,
+            "eof-reached" to MPVLib.MpvFormat.MPV_FORMAT_FLAG,
+            "seeking" to MPVLib.MpvFormat.MPV_FORMAT_FLAG,
+            "cache-buffering-state" to MPVLib.MpvFormat.MPV_FORMAT_INT64,
+            "duration" to MPVLib.MpvFormat.MPV_FORMAT_DOUBLE,
+            "time-pos" to MPVLib.MpvFormat.MPV_FORMAT_DOUBLE,
+            "demuxer-cache-time" to MPVLib.MpvFormat.MPV_FORMAT_DOUBLE,
+            "speed" to MPVLib.MpvFormat.MPV_FORMAT_DOUBLE,
+            "video-params/w" to MPVLib.MpvFormat.MPV_FORMAT_INT64,
+            "video-params/h" to MPVLib.MpvFormat.MPV_FORMAT_INT64,
+            "video-out-params/w" to MPVLib.MpvFormat.MPV_FORMAT_INT64,
+            "video-out-params/h" to MPVLib.MpvFormat.MPV_FORMAT_INT64,
+            "track-list" to MPVLib.MpvFormat.MPV_FORMAT_NODE,
+            "video-codec" to MPVLib.MpvFormat.MPV_FORMAT_STRING,
+            "audio-codec" to MPVLib.MpvFormat.MPV_FORMAT_STRING,
+            "hwdec-current" to MPVLib.MpvFormat.MPV_FORMAT_STRING,
+            "video-params" to MPVLib.MpvFormat.MPV_FORMAT_NODE,
+            "audio-params" to MPVLib.MpvFormat.MPV_FORMAT_NODE,
         )
         props.forEach { (name, format) -> mpv.observeProperty(name, format) }
     }
