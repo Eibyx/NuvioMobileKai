@@ -1,4 +1,5 @@
 import java.util.Properties
+import javax.inject.Inject
 
 fun readXcconfigValue(file: File, key: String): String? {
     if (!file.exists()) return null
@@ -12,6 +13,33 @@ fun readXcconfigValue(file: File, key: String): String? {
         }
         .firstOrNull { (entryKey, _) -> entryKey == key }
         ?.second
+}
+
+/** Copies one native library, for every ABI, out of an AAR into a jniLibs-shaped directory. */
+abstract class ExtractAarNativeLibrary @Inject constructor(
+    private val archives: ArchiveOperations,
+    private val files: FileSystemOperations,
+) : DefaultTask() {
+    @get:InputFiles
+    abstract val aar: ConfigurableFileCollection
+
+    @get:Input
+    abstract val libraryName: Property<String>
+
+    @get:OutputDirectory
+    abstract val outputDirectory: DirectoryProperty
+
+    @TaskAction
+    fun extract() {
+        files.sync {
+            from(archives.zipTree(aar.singleFile)) {
+                include("jni/*/${libraryName.get()}")
+                eachFile { path = path.removePrefix("jni/") }
+            }
+            includeEmptyDirs = false
+            into(outputDirectory)
+        }
+    }
 }
 
 plugins {
@@ -150,9 +178,28 @@ android {
     }
 }
 
+// libmpv from mpvlibAndroid is built with a newer NDK than ass-kt and needs symbols only its own
+// libc++_shared.so has. pickFirsts keeps whichever copy it meets first, so the app ships mpvlib's
+// copy itself: the app's own native libraries win over those of its dependencies.
+val mpvlibAar: Configuration by configurations.creating {
+    isCanBeConsumed = false
+    isTransitive = false
+}
+val extractMpvlibCxxShared by tasks.registering(ExtractAarNativeLibrary::class) {
+    aar.from(mpvlibAar)
+    libraryName.set("libc++_shared.so")
+    outputDirectory.set(layout.buildDirectory.dir("generated/mpvlib-libcxx/jniLibs"))
+}
+
 androidComponents {
     onVariants(selector().withBuildType("debug")) { variant ->
         variant.applicationId.set("com.eibyx.nuviokai.debug")
+    }
+    onVariants { variant ->
+        variant.sources.jniLibs?.addGeneratedSourceDirectory(
+            extractMpvlibCxxShared,
+            ExtractAarNativeLibrary::outputDirectory,
+        )
     }
 }
 
@@ -179,6 +226,7 @@ sentry {
 }
 
 dependencies {
+    mpvlibAar(variantOf(libs.mpvlib) { artifactType("aar") })
     implementation(project(":composeApp"))
     implementation(libs.androidx.appcompat)
     implementation(libs.compose.runtime)
