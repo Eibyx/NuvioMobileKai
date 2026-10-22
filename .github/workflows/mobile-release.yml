@@ -73,6 +73,7 @@ jobs:
           RELEASE_COMMIT: ${{ steps.release.outputs.release_commit }}
           RELEASE_BRANCH: ${{ github.ref_name }}
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          KAI_BRANCH: kai
           RELEASE_REF_TYPE: ${{ github.ref_type }}
           RELEASE_MODE: ${{ inputs.mode }}
         run: |
@@ -81,8 +82,8 @@ jobs:
             exit 1
           fi
           if [[ "${RELEASE_MODE}" == "draft" || "${RELEASE_MODE}" == "publish" ]]; then
-            if [[ "${RELEASE_BRANCH}" != "${DEFAULT_BRANCH}" ]]; then
-              echo "Mode '${RELEASE_MODE}' creates a tag, so it must be dispatched from the default branch (${DEFAULT_BRANCH})." >&2
+            if [[ "${RELEASE_BRANCH}" != "${DEFAULT_BRANCH}" && "${RELEASE_BRANCH}" != "${KAI_BRANCH}" ]]; then
+              echo "Mode '${RELEASE_MODE}' creates a tag, so it must be dispatched from ${KAI_BRANCH} or the default branch (${DEFAULT_BRANCH})." >&2
               echo "Use mode 'test-build' to build '${RELEASE_BRANCH}' without tagging." >&2
               exit 1
             fi
@@ -102,7 +103,7 @@ jobs:
 
             unexpected_changes="$(
               git diff --name-only "${CURRENT_BUMP}..${RELEASE_COMMIT}" \
-                | grep -Ev '^(\.github/workflows/(mobile-release|update-store-source)\.yml|store\.json|scripts/(build-ios-ipa|generate-release-notes|prepare-ios-dependencies|release-metadata)\.sh|scripts/update-store-source\.py)$' \
+                | grep -Ev '^(\.github/workflows/(mobile-release|update-store-source)\.yml|\.github/release-notes/[^/]+\.md|store\.json|scripts/(build-ios-ipa|generate-release-notes|prepare-ios-dependencies|release-metadata)\.sh|scripts/update-store-source\.py)$' \
                 || true
             )"
             if [[ -n "${unexpected_changes}" ]]; then
@@ -135,8 +136,11 @@ jobs:
           PREVIOUS_BUMP: ${{ steps.release.outputs.previous_bump }}
           EXCLUDE_COMMITS: ${{ inputs.exclude_commits }}
           NOTES_FROM: ${{ inputs.notes_from }}
+          RELEASE_VERSION: ${{ steps.release.outputs.version }}
           UPSTREAM_URL: https://github.com/NuvioMedia/NuvioMobile.git
           UPSTREAM_BRANCH: cmp-rewrite
+          ENHANCED_URL: https://github.com/luqmanfadlli/NuvioMobile-Enhanced.git
+          ENHANCED_BRANCH: enhanced
         run: |
           notes_to="${GITHUB_SHA}"
           notes_from="$(printf '%s' "${NOTES_FROM}" | tr -d '[:space:]')"
@@ -162,9 +166,15 @@ jobs:
 
           exclude_ref_args=()
           if git fetch --no-tags --quiet "${UPSTREAM_URL}" "${UPSTREAM_BRANCH}:refs/remotes/upstream/${UPSTREAM_BRANCH}"; then
-            exclude_ref_args=(--exclude-ref "refs/remotes/upstream/${UPSTREAM_BRANCH}")
+            exclude_ref_args+=(--exclude-ref "refs/remotes/upstream/${UPSTREAM_BRANCH}")
           else
             echo "::warning::Could not fetch upstream; release notes may include upstream commits."
+          fi
+          # Kai is built on luqmanfadlli's Enhanced fork; its commits are not Kai's to announce.
+          if git fetch --no-tags --quiet "${ENHANCED_URL}" "${ENHANCED_BRANCH}:refs/remotes/enhanced/${ENHANCED_BRANCH}"; then
+            exclude_ref_args+=(--exclude-ref "refs/remotes/enhanced/${ENHANCED_BRANCH}")
+          else
+            echo "::warning::Could not fetch Nuvio Enhanced; release notes may include its commits."
           fi
 
           ./scripts/generate-release-notes.sh \
@@ -173,7 +183,21 @@ jobs:
             --repository "${GITHUB_REPOSITORY}" \
             --exclude "${EXCLUDE_COMMITS}" \
             "${exclude_ref_args[@]}" \
-            > release-notes.md
+            > generated-notes.md
+
+          # A hand-written summary in .github/release-notes/<version>.md leads the notes when present.
+          summary_file=".github/release-notes/${RELEASE_VERSION}.md"
+          if [[ -s "${summary_file}" ]]; then
+            {
+              cat "${summary_file}"
+              if [[ -s generated-notes.md ]]; then
+                printf '\n### Commits\n\n'
+                cat generated-notes.md
+              fi
+            } > release-notes.md
+          else
+            mv generated-notes.md release-notes.md
+          fi
 
           if [[ ! -s release-notes.md ]]; then
             echo "No release-note commits were found." >&2
@@ -234,9 +258,6 @@ jobs:
             NUVIO_RELEASE_STORE_PASSWORD
             NUVIO_RELEASE_KEY_ALIAS
             NUVIO_RELEASE_KEY_PASSWORD
-            TRAKT_CLIENT_ID
-            TRAKT_CLIENT_SECRET
-            SIMKL_CLIENT_ID
           )
           for property_name in "${required_properties[@]}"; do
             if ! grep -Eq "^${property_name}=.+" local.properties; then
@@ -244,15 +265,46 @@ jobs:
               exit 1
             fi
           done
+          # Kai ships without its own Trakt and Simkl apps until they are registered.
+          optional_properties=(
+            TRAKT_CLIENT_ID
+            TRAKT_CLIENT_SECRET
+            SIMKL_CLIENT_ID
+          )
+          for property_name in "${optional_properties[@]}"; do
+            if ! grep -Eq "^${property_name}=.+" local.properties; then
+              echo "::warning::${property_name} is not set; that integration is disabled in this build."
+            fi
+          done
 
       - name: Build full release APKs
         run: ./gradlew :androidApp:assembleFullRelease -Pnuvio.app.versionName="${RELEASE_VERSION}" --stacktrace
+
+      # The in-app updater picks the asset whose name contains the device ABI (arm64-v8a, ...).
+      - name: Name APKs for the updater
+        run: |
+          apk_dir=androidApp/build/outputs/apk/full/release
+          mkdir -p release-apks
+          shopt -s nullglob
+          apks=("${apk_dir}"/androidApp-full-*-release.apk)
+          if (( ${#apks[@]} == 0 )); then
+            echo "No signed release APKs in ${apk_dir}:" >&2
+            ls -l "${apk_dir}" >&2 || true
+            exit 1
+          fi
+          for apk in "${apks[@]}"; do
+            abi="$(basename "${apk}")"
+            abi="${abi#androidApp-full-}"
+            abi="${abi%-release.apk}"
+            cp "${apk}" "release-apks/NuvioKai-${RELEASE_VERSION}-${abi}.apk"
+          done
+          ls -l release-apks
 
       - name: Upload Android artifacts
         uses: actions/upload-artifact@v7
         with:
           name: nuvio-${{ needs.prepare.outputs.version }}-android-full-release
-          path: androidApp/build/outputs/apk/full/release/*.apk
+          path: release-apks/*.apk
           if-no-files-found: error
 
   ios:
@@ -345,7 +397,13 @@ jobs:
 
   release:
     name: Create ${{ inputs.mode }} release
-    if: inputs.mode == 'draft' || inputs.mode == 'publish'
+    # always() lets the release go ahead when one platform was skipped by the target choice.
+    if: >-
+      always()
+      && (inputs.mode == 'draft' || inputs.mode == 'publish')
+      && needs.prepare.result == 'success'
+      && contains(fromJSON('["success","skipped"]'), needs.android.result)
+      && contains(fromJSON('["success","skipped"]'), needs.ios.result)
     needs:
       - prepare
       - android
