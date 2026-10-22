@@ -75,6 +75,7 @@ import com.nuvio.app.core.ui.NuvioFloatingPrompt
 import com.nuvio.app.core.ui.NuvioPosterZoomActionOverlay
 import com.nuvio.app.core.ui.NuvioStatusModal
 import com.nuvio.app.core.ui.NuvioToastController
+import com.nuvio.app.core.diagnostics.UnexpectedExitNoticeHost
 import com.nuvio.app.core.ui.NuvioToastHost
 import com.nuvio.app.core.ui.PosterZoomAnchor
 import com.nuvio.app.core.ui.PosterZoomAnchorHolder
@@ -2426,6 +2427,12 @@ internal fun MainAppContent(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .zIndex(15f),
+            )
+
+            UnexpectedExitNoticeHost(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .zIndex(16f),
             )
 
             NuvioToastHost(

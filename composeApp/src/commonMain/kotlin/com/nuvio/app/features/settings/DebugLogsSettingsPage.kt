@@ -25,6 +25,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -33,9 +34,21 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.nuvio.app.core.diagnostics.AppDiagnostics
 import com.nuvio.app.core.logging.InAppLogLevel
 import com.nuvio.app.core.logging.InAppLogger
+import com.nuvio.app.core.ui.NuvioToastController
+import com.nuvio.app.features.updater.formatFileSize
+import kotlinx.coroutines.launch
 import nuvio.composeapp.generated.resources.Res
+import nuvio.composeapp.generated.resources.diagnostics_clear
+import nuvio.composeapp.generated.resources.diagnostics_clear_description
+import nuvio.composeapp.generated.resources.diagnostics_cleared
+import nuvio.composeapp.generated.resources.diagnostics_export
+import nuvio.composeapp.generated.resources.diagnostics_export_description
+import nuvio.composeapp.generated.resources.diagnostics_export_failed
+import nuvio.composeapp.generated.resources.diagnostics_simulate_crash
+import nuvio.composeapp.generated.resources.diagnostics_simulate_crash_description
 import nuvio.composeapp.generated.resources.settings_advanced_debugging_clear_logs
 import nuvio.composeapp.generated.resources.settings_advanced_debugging_clear_logs_description
 import nuvio.composeapp.generated.resources.settings_advanced_debugging_copy_logs
@@ -48,6 +61,7 @@ import nuvio.composeapp.generated.resources.settings_advanced_debugging_log_view
 import nuvio.composeapp.generated.resources.settings_advanced_debugging_no_filter_matches
 import nuvio.composeapp.generated.resources.settings_advanced_debugging_showing_logs
 import nuvio.composeapp.generated.resources.settings_advanced_section_debugging
+import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 
 private const val ALL_FILTER_VALUE = "__all__"
@@ -95,6 +109,9 @@ private fun DebugLogsSection(isTablet: Boolean) {
         title = stringResource(Res.string.settings_advanced_section_debugging),
         isTablet = isTablet,
     ) {
+        if (AppDiagnostics.isSupported) {
+            DiagnosticsGroup(isTablet = isTablet)
+        }
         SettingsGroup(isTablet = isTablet) {
             DebugLogFilterPanel(
                 categoryOptions = categoryOptions,
@@ -138,6 +155,57 @@ private fun DebugLogsSection(isTablet: Boolean) {
             )
         }
     }
+}
+
+@Composable
+private fun DiagnosticsGroup(isTablet: Boolean) {
+    val scope = rememberCoroutineScope()
+    val status by AppDiagnostics.status.collectAsState()
+    var exporting by rememberSaveable { mutableStateOf(false) }
+
+    SettingsGroup(isTablet = isTablet) {
+        SettingsNavigationRow(
+            title = stringResource(Res.string.diagnostics_export),
+            description = stringResource(Res.string.diagnostics_export_description, status.reportCount),
+            enabled = !exporting,
+            isTablet = isTablet,
+            onClick = {
+                exporting = true
+                scope.launch {
+                    AppDiagnostics.exportAndShare().onFailure {
+                        NuvioToastController.show(getString(Res.string.diagnostics_export_failed))
+                    }
+                    exporting = false
+                }
+            },
+        )
+        SettingsGroupDivider(isTablet = isTablet)
+        SettingsNavigationRow(
+            title = stringResource(Res.string.diagnostics_clear),
+            description = stringResource(
+                Res.string.diagnostics_clear_description,
+                formatFileSize(status.savedLogBytes),
+            ),
+            enabled = status.reportCount > 0 || status.savedLogBytes > 0,
+            isTablet = isTablet,
+            onClick = {
+                scope.launch {
+                    AppDiagnostics.clear()
+                    NuvioToastController.show(getString(Res.string.diagnostics_cleared))
+                }
+            },
+        )
+        if (AppDiagnostics.canSimulateCrash) {
+            SettingsGroupDivider(isTablet = isTablet)
+            SettingsNavigationRow(
+                title = stringResource(Res.string.diagnostics_simulate_crash),
+                description = stringResource(Res.string.diagnostics_simulate_crash_description),
+                isTablet = isTablet,
+                onClick = AppDiagnostics::simulateCrash,
+            )
+        }
+    }
+    Spacer(modifier = Modifier.height(12.dp))
 }
 
 @Composable

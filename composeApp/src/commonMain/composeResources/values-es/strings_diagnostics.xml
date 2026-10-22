@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="diagnostics_notice_title">Nuvio Kai se cerró inesperadamente</string>
+    <string name="diagnostics_notice_kind_crash">La app falló.</string>
+    <string name="diagnostics_notice_kind_native">Falló el reproductor o una librería nativa.</string>
+    <string name="diagnostics_notice_kind_anr">La app dejó de responder.</string>
+    <string name="diagnostics_notice_kind_low_memory">Android cerró la app para liberar memoria.</string>
+    <string name="diagnostics_notice_kind_other">El sistema cerró la app.</string>
+    <string name="diagnostics_export">Exportar diagnóstico</string>
+    <string name="diagnostics_export_description">Crea un TXT con los fallos y las últimas líneas del registro, sin claves, tokens ni correos, y abre el menú de compartir. Reportes guardados: %1$d.</string>
+    <string name="diagnostics_export_failed">No se pudo exportar el diagnóstico</string>
+    <string name="diagnostics_share_title">Compartir diagnóstico</string>
+    <string name="diagnostics_clear">Borrar diagnósticos</string>
+    <string name="diagnostics_clear_description">Borra los reportes de fallos y el registro guardado (%1$s).</string>
+    <string name="diagnostics_cleared">Diagnósticos borrados</string>
+    <string name="diagnostics_simulate_crash">Simular fallo</string>
+    <string name="diagnostics_simulate_crash_description">Solo en builds debug. Cierra la app con un fallo de prueba para comprobar el reporte.</string>
+</resources>

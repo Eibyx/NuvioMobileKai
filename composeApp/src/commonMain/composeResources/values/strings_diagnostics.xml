@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="diagnostics_notice_title">Nuvio Kai closed unexpectedly</string>
+    <string name="diagnostics_notice_kind_crash">The app crashed.</string>
+    <string name="diagnostics_notice_kind_native">The player or a native library crashed.</string>
+    <string name="diagnostics_notice_kind_anr">The app stopped responding.</string>
+    <string name="diagnostics_notice_kind_low_memory">Android closed the app to free memory.</string>
+    <string name="diagnostics_notice_kind_other">The system closed the app.</string>
+    <string name="diagnostics_export">Export diagnostics</string>
+    <string name="diagnostics_export_description">Creates a TXT with crashes and recent log lines, with keys, tokens and e-mails removed, and opens the share menu. Saved reports: %1$d.</string>
+    <string name="diagnostics_export_failed">Could not export diagnostics</string>
+    <string name="diagnostics_share_title">Share diagnostics</string>
+    <string name="diagnostics_clear">Clear diagnostics</string>
+    <string name="diagnostics_clear_description">Deletes saved crash reports and the saved log (%1$s).</string>
+    <string name="diagnostics_cleared">Diagnostics cleared</string>
+    <string name="diagnostics_simulate_crash">Simulate crash</string>
+    <string name="diagnostics_simulate_crash_description">Debug builds only. Closes the app with a test crash so you can check the report.</string>
+</resources>

@@ -83,6 +83,7 @@ import com.nuvio.app.features.autosync.rememberLibmpvAutoSyncCoordinator
 import com.nuvio.app.features.player.aiostreams.AiostreamsAss
 import com.nuvio.app.features.player.aiostreams.AiostreamsAssEngine
 import com.nuvio.app.R
+import com.nuvio.app.core.diagnostics.PlaybackDiagnostics
 import com.nuvio.app.core.logging.InAppLogger
 import com.nuvio.app.features.streams.normalizeStreamType
 import `is`.xyz.mpv.BaseMPVView
@@ -185,6 +186,7 @@ actual fun PlatformPlayerSurface(
     }
 
     LaunchedEffect(activeEngine, playerSourceKey, requestedEngine) {
+        PlaybackDiagnostics.lastActiveEngine = activeEngine.name
         InAppLogger.info(
             "Player/Android",
             "engine=$activeEngine configured=$requestedEngine url=${InAppLogger.redactUrl(sourceUrl)} " +
@@ -252,6 +254,15 @@ actual fun PlatformPlayerSurface(
     if (castBridge != null) {
         PlayerCastOverlay(bridge = castBridge, modifier = modifier)
     }
+}
+
+/** libmpv's mpv_log_level values, as MPVLib.LogObserver reports them. */
+private fun mpvLogLevelName(level: Int): String = when {
+    level <= 10 -> "fatal"
+    level <= 20 -> "error"
+    level <= 30 -> "warn"
+    level <= 40 -> "info"
+    else -> "debug"
 }
 
 private enum class ResolvedAndroidPlaybackEngine {
@@ -912,6 +923,18 @@ private fun ExoPlayerSurface(
                         "type=${mediaLoadData.dataType} trackType=${mediaLoadData.trackType} canceled=$wasCanceled " +
                         "error=${InAppLogger.throwableSummary(error)}",
                 )
+            }
+
+            override fun onVideoCodecError(eventTime: AnalyticsListener.EventTime, videoCodecError: Exception) {
+                InAppLogger.error("ExoPlayer/Android", "videoCodecError ${InAppLogger.throwableSummary(videoCodecError)}")
+            }
+
+            override fun onAudioCodecError(eventTime: AnalyticsListener.EventTime, audioCodecError: Exception) {
+                InAppLogger.error("ExoPlayer/Android", "audioCodecError ${InAppLogger.throwableSummary(audioCodecError)}")
+            }
+
+            override fun onAudioSinkError(eventTime: AnalyticsListener.EventTime, audioSinkError: Exception) {
+                InAppLogger.warn("ExoPlayer/Android", "audioSinkError ${InAppLogger.throwableSummary(audioSinkError)}")
             }
 
             override fun onBandwidthEstimate(
@@ -1598,6 +1621,13 @@ private fun LibmpvPlayerSurface(
                     PLAYER_DIAGNOSTIC_TAG,
                     "mpv_log level=$level prefix=${diagnosticPlayerMessage(prefix)} " +
                         "message=${diagnosticPlayerMessage(text)}",
+                )
+                // msg-level is all=warn, so these are mpv's warnings and errors; keep them for diagnostics.
+                InAppLogger.logMpv(
+                    platform = "Android",
+                    prefix = prefix,
+                    level = mpvLogLevelName(level),
+                    message = text,
                 )
             }
         }

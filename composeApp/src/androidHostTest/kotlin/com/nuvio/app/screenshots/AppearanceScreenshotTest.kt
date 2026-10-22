@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -40,6 +41,8 @@ import androidx.compose.ui.unit.dp
 import coil3.asImage
 import coil3.compose.AsyncImagePreviewHandler
 import coil3.compose.LocalAsyncImagePreviewHandler
+import com.nuvio.app.core.diagnostics.UnexpectedExitKind
+import com.nuvio.app.core.diagnostics.UnexpectedExitNoticeCard
 import com.nuvio.app.core.ui.AppTheme
 import com.nuvio.app.core.ui.AppearanceMode
 import com.nuvio.app.core.ui.FloatingNavigationBar
@@ -162,6 +165,28 @@ class AppearanceScreenshotTest(private val appearance: AppearanceMode) {
         compose.mainClock.advanceTimeBy(1_000L)
         compose.waitForIdle()
         capture("profile_backdrop")
+    }
+
+    @Test
+    fun unexpectedExitNotice() {
+        setScreen {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background),
+                contentAlignment = Alignment.BottomCenter,
+            ) {
+                UnexpectedExitNoticeCard(
+                    kind = UnexpectedExitKind.NativeCrash,
+                    exporting = false,
+                    onExport = {},
+                    onDismiss = {},
+                    modifier = Modifier.padding(16.dp).padding(bottom = 96.dp),
+                )
+            }
+        }
+        compose.waitForIdle()
+        capture("unexpected_exit_notice")
     }
 
     private fun showDetail(episodeCardStyle: MetaEpisodeCardStyle) {

@@ -1,5 +1,6 @@
 package com.nuvio.app.core.logging
 
+import kotlin.concurrent.Volatile
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -28,11 +29,16 @@ data class InAppLogEntry(
 /**
  * In-memory app log buffer shown from Settings -> Advanced -> Debugging.
  *
- * This is intentionally process-local and non-persistent so playback URLs,
- * headers, or account state are not written to disk.
+ * The buffer itself is process-local. On Android the diagnostics system keeps a size-capped copy
+ * on disk through [sink] so the last lines survive a crash; it redacts keys, tokens and e-mails
+ * before anything is written.
  */
 object InAppLogger {
     val maxRetainedEntries: Int = DEFAULT_MAX_LOG_LINES
+
+    /** Receives every new entry; set by the platform diagnostics to persist the log. */
+    @Volatile
+    var sink: ((InAppLogEntry) -> Unit)? = null
 
     private val maxLines = DEFAULT_MAX_LOG_LINES
     private val _entries = MutableStateFlow<List<InAppLogEntry>>(emptyList())
@@ -154,6 +160,7 @@ object InAppLogger {
             syncLines(updated)
             updated
         }
+        sink?.invoke(entry)
     }
 
     private fun syncLines(entries: List<InAppLogEntry>) {
