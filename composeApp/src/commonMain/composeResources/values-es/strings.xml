@@ -701,6 +701,11 @@
     <string name="settings_appearance_liquid_glass_description">Usa la barra de pestañas nativa de iPhone en iOS 26 y versiones posteriores.</string>
     <string name="settings_appearance_poster_customization_description">Ajusta el ancho compartido de las tarjetas de póster y los radios de esquina.</string>
     <string name="settings_appearance_section_display">PANTALLA</string>
+    <string name="settings_appearance_mode">Apariencia</string>
+    <string name="settings_appearance_mode_description">Colores oscuros o claros para la app. El reproductor y las portadas con imagen siguen oscuros.</string>
+    <string name="settings_appearance_mode_dark">Oscuro</string>
+    <string name="settings_appearance_mode_light">Claro</string>
+    <string name="settings_appearance_mode_system">Sistema</string>
     <string name="settings_appearance_section_text">TEXTO</string>
     <string name="settings_appearance_app_font">Fuente de la app</string>
     <string name="settings_appearance_app_font_description">La tipografía de todos los textos de la app.</string>

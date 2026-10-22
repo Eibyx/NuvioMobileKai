@@ -29,6 +29,8 @@ import com.nuvio.app.isIos
 import com.nuvio.app.core.ui.AppFont
 import com.nuvio.app.core.ui.AppFontSettingsRepository
 import com.nuvio.app.core.ui.AppTheme
+import com.nuvio.app.core.ui.AppearanceMode
+import com.nuvio.app.core.ui.AppearanceSettingsRepository
 import com.nuvio.app.core.ui.Chip
 import com.nuvio.app.core.ui.NuvioBottomSheetActionRow
 import com.nuvio.app.core.ui.NuvioModalBottomSheet
@@ -62,6 +64,11 @@ import nuvio.composeapp.generated.resources.settings_appearance_app_font_descrip
 import nuvio.composeapp.generated.resources.settings_appearance_app_font_nuvio
 import nuvio.composeapp.generated.resources.settings_appearance_app_font_system
 import nuvio.composeapp.generated.resources.settings_appearance_section_text
+import nuvio.composeapp.generated.resources.settings_appearance_mode
+import nuvio.composeapp.generated.resources.settings_appearance_mode_dark
+import nuvio.composeapp.generated.resources.settings_appearance_mode_description
+import nuvio.composeapp.generated.resources.settings_appearance_mode_light
+import nuvio.composeapp.generated.resources.settings_appearance_mode_system
 import nuvio.composeapp.generated.resources.settings_appearance_system_font_scale
 import nuvio.composeapp.generated.resources.settings_appearance_system_font_scale_description
 import nuvio.composeapp.generated.resources.settings_appearance_dynamic_artwork_background
@@ -121,7 +128,31 @@ internal fun LazyListScope.appearanceSettingsContent(
             title = stringResource(Res.string.settings_appearance_section_theme),
             isTablet = isTablet,
         ) {
+            val appearanceMode by remember {
+                AppearanceSettingsRepository.ensureLoaded()
+                AppearanceSettingsRepository.mode
+            }.collectAsStateWithLifecycle()
             SettingsGroup(isTablet = isTablet) {
+                SettingsChipRow(
+                    title = stringResource(Res.string.settings_appearance_mode),
+                    description = stringResource(Res.string.settings_appearance_mode_description),
+                    isTablet = isTablet,
+                ) {
+                    AppearanceMode.entries.forEach { mode ->
+                        Chip(
+                            label = stringResource(
+                                when (mode) {
+                                    AppearanceMode.DARK -> Res.string.settings_appearance_mode_dark
+                                    AppearanceMode.LIGHT -> Res.string.settings_appearance_mode_light
+                                    AppearanceMode.SYSTEM -> Res.string.settings_appearance_mode_system
+                                },
+                            ),
+                            selected = appearanceMode == mode,
+                            onClick = { AppearanceSettingsRepository.setMode(mode) },
+                        )
+                    }
+                }
+                SettingsGroupDivider(isTablet = isTablet)
                 AppearanceThemePicker(
                     isTablet = isTablet,
                     selectedTheme = selectedTheme,

@@ -13,6 +13,7 @@ import coil3.request.crossfade
 import coil3.svg.SvgDecoder
 import com.nuvio.app.core.poster.CustomPosterFallbackInterceptor
 import com.nuvio.app.core.ui.AppFontSettingsRepository
+import com.nuvio.app.core.ui.AppearanceSettingsRepository
 import com.nuvio.app.core.ui.NativeProfileSwitcherController
 import com.nuvio.app.core.ui.NuvioTheme
 import com.nuvio.app.core.ui.configurePlatformImageLoader
@@ -104,8 +105,14 @@ internal fun AppEnvironment(content: @Composable () -> Unit) {
         AppFontSettingsRepository.settings
     }.collectAsStateWithLifecycle()
 
+    val appearanceMode by remember {
+        AppearanceSettingsRepository.ensureLoaded()
+        AppearanceSettingsRepository.mode
+    }.collectAsStateWithLifecycle()
+
     NuvioTheme(
         appTheme = selectedTheme,
+        appearance = appearanceMode,
         amoled = amoledEnabled,
         customThemeColors = customThemeColors,
         appFont = fontSettings.font,

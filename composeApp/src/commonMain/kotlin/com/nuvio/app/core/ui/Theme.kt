@@ -8,7 +8,11 @@ import androidx.compose.material3.Typography
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalDensity
@@ -40,6 +44,24 @@ val MaterialTheme.appTheme: AppTheme
 
 private fun contentColorFor(background: Color): Color =
     if (background.luminance() > 0.5f) Color(0xFF111111) else Color(0xFFF5F7F8)
+
+private fun buildLightColorScheme(palette: ThemeColorPalette) = lightColorScheme(
+    primary = palette.secondary,
+    onPrimary = palette.onSecondary,
+    primaryContainer = palette.focusBackground,
+    onPrimaryContainer = contentColorFor(palette.focusBackground),
+    secondary = palette.secondaryVariant,
+    onSecondary = palette.onSecondaryVariant,
+    background = palette.background,
+    onBackground = LightTextPrimary,
+    surface = palette.backgroundElevated,
+    onSurface = LightTextPrimary,
+    surfaceVariant = palette.backgroundCard,
+    onSurfaceVariant = LightTextMuted,
+    outline = LightOutline,
+    error = Color(0xFFB3261E),
+    onError = Color.White,
+)
 
 private fun buildColorScheme(palette: ThemeColorPalette, amoled: Boolean = false) = darkColorScheme(
     primary = palette.secondary,
@@ -193,19 +215,25 @@ private val NuvioRippleConfiguration = RippleConfiguration(
 
 @Composable
 fun NuvioTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
     appTheme: AppTheme = AppTheme.WHITE,
+    appearance: AppearanceMode = AppearanceMode.DARK,
     amoled: Boolean = false,
     customThemeColors: CustomThemeColors = CustomThemeColors.Default,
     appFont: AppFont = AppFont.NUVIO,
     useSystemFontScale: Boolean = false,
     content: @Composable () -> Unit,
 ) {
-    val palette = remember(appTheme, customThemeColors) {
+    val darkPalette = remember(appTheme, customThemeColors) {
         ThemeColors.getColorPalette(appTheme, customThemeColors)
     }
-    val colorScheme = buildColorScheme(palette, amoled = amoled)
-    val tokens = defaultNuvioThemeTokens(palette, amoled = amoled, colorScheme = colorScheme)
+    val dark = when (appearance) {
+        AppearanceMode.DARK -> true
+        AppearanceMode.LIGHT -> false
+        AppearanceMode.SYSTEM -> isSystemInDarkTheme()
+    }
+    val palette = remember(darkPalette, dark) { if (dark) darkPalette else darkPalette.toLightPalette() }
+    val colorScheme = if (dark) buildColorScheme(palette, amoled = amoled) else buildLightColorScheme(palette)
+    val tokens = defaultNuvioThemeTokens(palette, amoled = amoled, colorScheme = colorScheme, dark = dark)
 
     val fontFamily = when (appFont) {
         AppFont.NUVIO -> JetBrainsSans
@@ -223,13 +251,101 @@ fun NuvioTheme(
         LocalRippleConfiguration provides NuvioRippleConfiguration,
         LocalAppTheme provides appTheme,
         LocalThemePalette provides palette,
+        LocalNuvioAppearance provides NuvioAppearance(isDark = dark, darkPalette = darkPalette, amoled = amoled),
     ) {
         MaterialTheme(
             colorScheme = colorScheme,
             typography = nuvioTypography(fontFamily),
         ) {
             if (palette.animatedGradient) AccentGradientMotion.Run()
+            StatusBarIcons(appDark = dark)
             SkeletonAnimationProvider(content = content)
         }
+    }
+}
+
+/** Whether the app is drawing light or dark, and the dark palette that [NuvioDarkSurface] restores. */
+internal data class NuvioAppearance(
+    val isDark: Boolean,
+    val darkPalette: ThemeColorPalette,
+    val amoled: Boolean,
+)
+
+internal val LocalNuvioAppearance = staticCompositionLocalOf {
+    NuvioAppearance(isDark = true, darkPalette = ThemeColors.White, amoled = false)
+}
+
+val MaterialTheme.isDarkAppearance: Boolean
+    @Composable
+    @ReadOnlyComposable
+    get() = LocalNuvioAppearance.current.isDark
+
+/**
+ * Strong text and icons on the theme's surfaces: the pure white the dark design was drawn with,
+ * and the theme's text colour in the light appearance. For screens that used Color.White.
+ */
+val MaterialTheme.contentOnSurface: Color
+    @Composable
+    @ReadOnlyComposable
+    get() = if (isDarkAppearance) Color.White else colorScheme.onSurface
+
+/** A tint for borders, tracks and fills on the theme's surfaces: white on dark, black on light. */
+@Composable
+@ReadOnlyComposable
+fun MaterialTheme.surfaceOverlay(alpha: Float): Color =
+    (if (isDarkAppearance) Color.White else Color.Black).copy(alpha = alpha)
+
+// Its own composable, so a dark surface coming and going recomposes only this.
+@Composable
+private fun StatusBarIcons(appDark: Boolean) {
+    PlatformStatusBarAppearance(darkIcons = !appDark && DarkSurfaceStatusBar.requests == 0)
+}
+
+/** Dark surfaces under the status bar while the app is light; while any is shown its icons stay light. */
+private object DarkSurfaceStatusBar {
+    private val requestCount = mutableIntStateOf(0)
+    val requests: Int get() = requestCount.intValue
+
+    fun add() { requestCount.intValue += 1 }
+    fun remove() { requestCount.intValue -= 1 }
+}
+
+/**
+ * Draws [content] with the dark theme even while the app is light. The player and the artwork
+ * heroes use it: their text and gradients are made for dark artwork.
+ * [underStatusBar] keeps the status bar icons light while the surface is composed.
+ */
+@Composable
+fun NuvioDarkSurface(
+    underStatusBar: Boolean = false,
+    content: @Composable () -> Unit,
+) {
+    val appearance = LocalNuvioAppearance.current
+    if (appearance.isDark) {
+        content()
+        return
+    }
+    if (underStatusBar) {
+        DisposableEffect(Unit) {
+            DarkSurfaceStatusBar.add()
+            onDispose { DarkSurfaceStatusBar.remove() }
+        }
+    }
+    val palette = appearance.darkPalette
+    val colorScheme = remember(palette, appearance.amoled) { buildColorScheme(palette, amoled = appearance.amoled) }
+    val tokens = remember(palette, appearance.amoled, colorScheme) {
+        defaultNuvioThemeTokens(palette, amoled = appearance.amoled, colorScheme = colorScheme, dark = true)
+    }
+    CompositionLocalProvider(
+        LocalNuvioThemeTokens provides tokens,
+        LocalThemePalette provides palette,
+        LocalNuvioAppearance provides appearance.copy(isDark = true),
+        LocalContentColor provides colorScheme.onBackground,
+    ) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = MaterialTheme.typography,
+            content = content,
+        )
     }
 }

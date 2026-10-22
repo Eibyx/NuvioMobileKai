@@ -780,6 +780,11 @@
     <string name="settings_appearance_liquid_glass_description">Use the native iPhone tab bar on iOS 26 and later.</string>
     <string name="settings_appearance_poster_customization_description">Tune card width and corner radius.</string>
     <string name="settings_appearance_section_display">DISPLAY</string>
+    <string name="settings_appearance_mode">Appearance</string>
+    <string name="settings_appearance_mode_description">Dark or light colours for the app. The player and artwork headers stay dark.</string>
+    <string name="settings_appearance_mode_dark">Dark</string>
+    <string name="settings_appearance_mode_light">Light</string>
+    <string name="settings_appearance_mode_system">System</string>
     <string name="settings_appearance_section_text">TEXT</string>
     <string name="settings_appearance_app_font">App Font</string>
     <string name="settings_appearance_app_font_description">The typeface used for all text in the app.</string>

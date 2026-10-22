@@ -396,6 +396,15 @@ internal fun settingsSearchEntries(
     )
     addRow(
         page = SettingsPage.Appearance,
+        key = "appearance-mode",
+        title = stringResource(Res.string.settings_appearance_mode),
+        description = stringResource(Res.string.settings_appearance_mode_description),
+        pageLabel = layoutPage,
+        section = stringResource(Res.string.settings_appearance_section_theme),
+        icon = Icons.Rounded.Palette,
+    )
+    addRow(
+        page = SettingsPage.Appearance,
         key = "amoled",
         title = stringResource(Res.string.settings_appearance_amoled_black),
         description = stringResource(Res.string.settings_appearance_amoled_description),
