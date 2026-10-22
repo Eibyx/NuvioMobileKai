@@ -60,7 +60,14 @@ import com.nuvio.app.core.ui.AppearanceMode
 import com.nuvio.app.core.ui.FloatingNavigationBar
 import com.nuvio.app.core.ui.FloatingNavigationItem
 import com.nuvio.app.core.ui.NuvioTheme
+import com.nuvio.app.features.anilist.AniListLink
+import com.nuvio.app.features.anilist.AniListLinkPart
+import com.nuvio.app.features.anilist.AniListLinkRowContent
+import com.nuvio.app.features.anilist.AniListPendingSend
+import com.nuvio.app.features.anilist.AniListQueueState
+import com.nuvio.app.features.anilist.AniListSendFailure
 import com.nuvio.app.features.auth.AuthScreen
+import com.nuvio.app.features.settings.AniListSyncStatusContent
 import com.nuvio.app.features.details.MetaCompany
 import com.nuvio.app.features.details.MetaDetails
 import com.nuvio.app.features.profiles.NuvioProfile
@@ -204,6 +211,60 @@ class AppearanceScreenshotTest(private val appearance: AppearanceMode) {
         }
         compose.waitForIdle()
         capture("unexpected_exit_notice")
+    }
+
+    @Test
+    fun aniListSyncStatusAndLinks() {
+        val now = 1_761_150_000_000L
+        val state = AniListQueueState(
+            pending = listOf(
+                AniListPendingSend(
+                    key = "tt2560140|s3",
+                    title = "Attack on Titan",
+                    contentType = "series",
+                    contentId = "tt2560140",
+                    season = 3,
+                    episode = 14,
+                    attempts = 2,
+                    nextAttemptAtMs = now + 60_000L,
+                    lastError = "network error",
+                ),
+            ),
+            lastSyncAtMs = now - 3_600_000L,
+            lastSyncTitle = "SPY×FAMILY",
+            lastSyncEpisode = 13,
+            failures = listOf(
+                AniListSendFailure("Obscure Anime", "no AniList entry matches", now - 7_200_000L, notFound = true),
+                AniListSendFailure("Attack on Titan", "network error", now - 60_000L, notFound = false),
+            ),
+        )
+        val links = listOf<Pair<Int?, AniListLink>>(
+            1 to AniListLink("tt2560140|s1", listOf(AniListLinkPart(16498, "Attack on Titan")), manual = false),
+            3 to AniListLink(
+                "tt2560140|s3",
+                listOf(
+                    AniListLinkPart(99147, "Attack on Titan Season 3", 1, 12),
+                    AniListLinkPart(104578, "Attack on Titan Season 3 Part 2", 13, 10),
+                ),
+                manual = false,
+            ),
+            4 to AniListLink("tt2560140|s4", listOf(AniListLinkPart(110277, "Attack on Titan Final Season")), manual = true),
+        )
+        setScreen {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background)
+                    .padding(16.dp),
+                verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(16.dp),
+            ) {
+                AniListLinkRowContent(links = emptyList(), showSeasons = false, onClick = {})
+                AniListLinkRowContent(links = links, showSeasons = true, onClick = {})
+                AniListSyncStatusContent(state = state, onRetryNow = {}, onNotifyChange = {})
+            }
+        }
+        compose.waitForIdle()
+        capture("anilist_sync_status_and_links")
     }
 
     @Test

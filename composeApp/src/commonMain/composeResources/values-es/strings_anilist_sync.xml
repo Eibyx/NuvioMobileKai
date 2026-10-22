@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="anilist_sync_toast_synced">Sincronizado con AniList: episodio %1$d</string>
+    <string name="anilist_sync_toast_not_found">AniList no reconoce «%1$s». Usa Vincular con AniList en su ficha.</string>
+    <string name="anilist_sync_status_title">Sincronización con AniList</string>
+    <string name="anilist_sync_last">Última sincronización: %1$s, %2$s episodio %3$d</string>
+    <string name="anilist_sync_never">Todavía no se ha enviado nada a AniList.</string>
+    <string name="anilist_sync_pending_none">No hay envíos pendientes.</string>
+    <string name="anilist_sync_pending_count">Envíos pendientes: %1$d</string>
+    <string name="anilist_sync_pending_item">%1$s, episodio %2$d</string>
+    <string name="anilist_sync_pending_retry">Reintento %1$s: %2$s</string>
+    <string name="anilist_sync_recent_errors">Errores recientes</string>
+    <string name="anilist_sync_error_not_found">%1$s: no encontrado en AniList</string>
+    <string name="anilist_sync_error_reason">%1$s: %2$s</string>
+    <string name="anilist_sync_retry_now">Reintentar ahora</string>
+    <string name="anilist_sync_notify">Avisar al sincronizar</string>
+    <string name="anilist_sync_notify_description">Muestra «Sincronizado con AniList: episodio N» cada vez que un episodio llega a AniList.</string>
+    <string name="anilist_link_action">Vincular con AniList</string>
+    <string name="anilist_link_current">AniList: %1$s</string>
+    <string name="anilist_link_change">Cambiar</string>
+    <string name="anilist_link_title">Vincular con AniList</string>
+    <string name="anilist_link_description">Elige la entrada de AniList para este título y temporada. Se guarda y todas las sincronizaciones la usan; tiene prioridad sobre la vinculación automática.</string>
+    <string name="anilist_link_search_hint">Buscar en AniList</string>
+    <string name="anilist_link_season">Temporada %1$d</string>
+    <string name="anilist_link_movie">Película</string>
+    <string name="anilist_link_episodes">%1$d episodios</string>
+    <string name="anilist_link_no_results">No se encontró ningún anime.</string>
+    <string name="anilist_link_search_failed">Falló la búsqueda en AniList. Revisa la conexión.</string>
+    <string name="anilist_link_remove">Quitar vínculo</string>
+    <string name="anilist_link_saved">Vinculado con %1$s</string>
+    <string name="anilist_sync_toast_link_needed">No encontré «%1$s» en AniList. Vincúlalo desde su ficha antes de terminar el episodio.</string>
+    <string name="anilist_link_season_short">T%1$d</string>
+    <string name="anilist_link_manual">elegida a mano</string>
+    <string name="anilist_link_auto">automática</string>
+    <string name="anilist_link_pending_hint">Se vincula sola al empezar a verla.</string>
+</resources>

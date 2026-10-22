@@ -1,6 +1,7 @@
 package com.nuvio.app.features.tracking
 
 import co.touchlab.kermit.Logger
+import com.nuvio.app.core.logging.InAppLogger
 import com.nuvio.app.features.profiles.ProfileRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
@@ -32,6 +33,10 @@ object TrackingScrobbleCoordinator {
             log.w(failure.cause) {
                 "${failure.providerId.storageId} scrobble ${action.wireValue} failed"
             }
+            InAppLogger.warn(
+                "Tracking",
+                "${failure.providerId.storageId} scrobble ${action.wireValue} failed: ${InAppLogger.throwableSummary(failure.cause)}",
+            )
         }
         return failures
     }
@@ -53,6 +58,10 @@ object TrackingScrobbleCoordinator {
             log.w(failure.cause) {
                 "${failure.providerId.storageId} seek scrobble ${action.wireValue} failed"
             }
+            InAppLogger.warn(
+                "Tracking",
+                "${failure.providerId.storageId} seek scrobble ${action.wireValue} failed: ${InAppLogger.throwableSummary(failure.cause)}",
+            )
         }
         return failures
     }

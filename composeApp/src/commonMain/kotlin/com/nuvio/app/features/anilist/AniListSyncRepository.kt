@@ -88,6 +88,9 @@ class AniListSyncRepository internal constructor(
 
     fun currentScope(): AniListAuthScope = auth.scope().also { checkScope(it) }
 
+    internal fun isAuthenticatedFor(profileId: Int): Boolean =
+        auth.state.value.isAuthenticated && auth.scope().profileId == profileId
+
     fun currentSnapshot(): AniListSyncSnapshot? = mutableState.value.takeIf { matchesCurrent(it.scope) }?.snapshot
 
     internal fun currentProjection(): AniListProjection = mutableProjection.value

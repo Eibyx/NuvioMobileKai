@@ -2,6 +2,8 @@ package com.nuvio.app.features.anilist
 
 import com.nuvio.app.core.network.createApiHttpClient
 import com.nuvio.app.core.network.readBoundedResponseBody
+import com.nuvio.app.features.details.MetaDetailsRepository
+import com.nuvio.app.features.details.MetaVideo
 import com.nuvio.app.features.player.skip.SimklIdResolver
 import com.nuvio.app.features.simkl.SimklAnimeIdPreference
 import com.nuvio.app.features.simkl.SimklConfig
@@ -106,36 +108,169 @@ internal fun aniListVideoId(contentId: String, season: Int, episode: Int): Strin
 internal fun fallbackAniListMapping(media: AniListMedia): AniListMapping =
     AniListMapping(anilist = media.id, mal = media.idMal)
 
+/** A network or server failure while resolving: the send is retried, not reported as "not found". */
+internal class AniListTransientException(message: String, cause: Throwable? = null) : Exception(message, cause)
+
+/** One row of ARM's /imdb answer: an AniList entry and the TVDB season it belongs to. */
+internal data class ArmImdbEntry(
+    val anilist: Long,
+    val tvdbSeason: Int?,
+    val media: String?,
+)
+
 internal class AniListIdResolver(
     private val api: AniListApiClient,
     private val client: HttpClient = createApiHttpClient(),
     private val now: () -> Long = { kotlin.time.Clock.System.now().toEpochMilliseconds() },
+    /** The show's episode list, to turn a season episode into an absolute one (One Piece). */
+    private val showEpisodes: suspend (imdb: String) -> List<MetaVideo>? = { imdb ->
+        MetaDetailsRepository.fetch(type = "series", id = imdb)?.videos
+    },
 ) {
     private val cacheLock = Mutex()
     private val animeIdCache = mutableMapOf<String, Long?>()
     private val imdbCache = mutableMapOf<String, List<Long>>()
+    private val imdbSeasonCache = mutableMapOf<String, List<ArmImdbEntry>>()
+    private val mediaCache = mutableMapOf<Long, AniListMedia>()
 
+    /** The saved link of a title and season (see [AniListLink]); used as is, never guessed again. */
+    @kotlin.concurrent.Volatile
+    internal var storedLink: (TrackingMediaReference) -> AniListLink? = { null }
+
+    /** The entry and episode to write for [reference]: from its saved link, else freshly bound. */
     suspend fun resolve(reference: TrackingMediaReference, snapshot: AniListSyncSnapshot?): AniListTarget? {
-        val episodeNumber = reference.episode?.number
+        val link = storedLink(reference) ?: link(reference, snapshot) ?: return null
+        return targetFor(link, reference)
+    }
+
+    /** [reference]'s episode on the entries of [link]. */
+    internal suspend fun targetFor(link: AniListLink, reference: TrackingMediaReference): AniListTarget {
+        if (reference.isMovie()) return AniListTarget(link.parts.first().mediaId, 1)
+        val episode = parseAniListAnimeVideoId(reference.catalog?.videoId)?.episode ?: reference.episode?.number
+        val absolute = if (link.absolute) {
+            val imdb = reference.ids.imdb?.trim()?.takeIf { it.startsWith("tt", ignoreCase = true) }
+            val season = reference.episode?.season
+            if (imdb != null && season != null && episode != null) absoluteEpisode(imdb, season, episode) else null
+        } else {
+            null
+        }
+        return targetIn(link.parts, link.absolute, episode, absolute)
+    }
+
+    /**
+     * Binds [reference]'s title and season to its AniList entries: anime ids map straight to one
+     * entry, IMDb shows go through ARM's season table (parts, cours, specials, absolute numbering).
+     * Returns null when nothing matches; network and server failures throw
+     * [AniListTransientException] so the caller retries instead of reporting "not found".
+     */
+    suspend fun link(reference: TrackingMediaReference, snapshot: AniListSyncSnapshot?): AniListLink? {
+        val key = reference.toPendingSend().key
+        val isMovie = reference.isMovie()
         val season = reference.episode?.season
-        val isMovie = reference.kind == TrackingMediaKind.MOVIE ||
-            reference.catalog?.contentType.equals("movie", ignoreCase = true)
 
         parseAniListAnimeVideoId(reference.catalog?.videoId)?.let { parts ->
-            animeIdToAniList(parts.prefix, parts.id, snapshot)?.let { mediaId ->
-                return AniListTarget(mediaId, (parts.episode ?: episodeNumber ?: 1).coerceAtLeast(1))
-            }
+            animeIdToAniList(parts.prefix, parts.id, snapshot)?.let { return singleLink(key, it) }
         }
-
         val ids = reference.ids
-        val nativeEpisode = (episodeNumber ?: 1).coerceAtLeast(1)
-        ids.anilist?.let { return AniListTarget(it, nativeEpisode) }
-        ids.mal?.let { mal -> animeIdToAniList("mal", mal, snapshot)?.let { return AniListTarget(it, nativeEpisode) } }
-        ids.kitsu?.let { kitsu -> animeIdToAniList("kitsu", kitsu, snapshot)?.let { return AniListTarget(it, nativeEpisode) } }
-        ids.anidb?.let { anidb -> animeIdToAniList("anidb", anidb, snapshot)?.let { return AniListTarget(it, nativeEpisode) } }
+        ids.anilist?.let { return singleLink(key, it) }
+        ids.mal?.let { mal -> animeIdToAniList("mal", mal, snapshot)?.let { return singleLink(key, it) } }
+        ids.kitsu?.let { kitsu -> animeIdToAniList("kitsu", kitsu, snapshot)?.let { return singleLink(key, it) } }
+        ids.anidb?.let { anidb -> animeIdToAniList("anidb", anidb, snapshot)?.let { return singleLink(key, it) } }
         val imdb = ids.imdb?.trim()?.takeIf { it.startsWith("tt", ignoreCase = true) } ?: return null
-        return resolveImdb(imdb, season, episodeNumber, isMovie, snapshot)
+
+        val entries = imdbSeasonEntries(imdb)
+        if (entries.isNotEmpty()) {
+            val media = mediaFor(entries.map(ArmImdbEntry::anilist))
+            val candidates = entries.map { entry ->
+                val details = media[entry.anilist]
+                AniListSeasonCandidate(
+                    mediaId = entry.anilist,
+                    format = details?.format ?: entry.media,
+                    tvdbSeason = entry.tvdbSeason,
+                    episodes = details?.episodes,
+                    startKey = details?.startKey() ?: Long.MAX_VALUE,
+                    title = details?.displayTitle() ?: "AniList ${entry.anilist}",
+                )
+            }
+            val plan = aniListLinkPlan(candidates, season, isMovie) ?: return null
+            return AniListLink(key, plan.parts, manual = false, absolute = plan.absolute)
+        }
+        return simklLink(key, imdb, season, reference.episode?.number, isMovie, snapshot)
+            ?: snapshotLink(key, imdb, season, isMovie, snapshot)
     }
+
+    private suspend fun singleLink(key: String, mediaId: Long): AniListLink {
+        val title = mediaFor(listOf(mediaId))[mediaId]?.displayTitle() ?: "AniList $mediaId"
+        return AniListLink(key, listOf(AniListLinkPart(mediaId, title)), manual = false)
+    }
+
+    /** ARM has no row for the show: Simkl's episode table, when Simkl is configured. */
+    private suspend fun simklLink(
+        key: String,
+        imdb: String,
+        season: Int?,
+        episode: Int?,
+        isMovie: Boolean,
+        snapshot: AniListSyncSnapshot?,
+    ): AniListLink? {
+        if (isMovie || SimklConfig.CLIENT_ID.isBlank()) return null
+        val wantedSeason = season ?: 1
+        val wantedEpisode = (episode ?: 1).coerceAtLeast(1)
+        val ids = try {
+            SimklIdResolver.resolveIdsForImdbEpisode(imdb, wantedSeason, wantedEpisode)
+        } catch (error: CancellationException) {
+            throw error
+        } catch (_: Throwable) {
+            null
+        } ?: return null
+        if (ids.type != "anime") return null
+        val anilist = ids.anilist?.toLongOrNull()
+            ?: ids.mal?.toLongOrNull()?.let { animeIdToAniList("mal", it, snapshot) }
+            ?: return null
+        val episodes = try {
+            SimklIdResolver.getEpisodeMapping(ids.simklId, ids.type)
+        } catch (error: CancellationException) {
+            throw error
+        } catch (_: Throwable) {
+            emptyList()
+        }
+        val animeEpisode = episodes.firstOrNull { it.tvdbSeason == wantedSeason && it.tvdbEpisode == wantedEpisode }
+            ?.animeEpisode ?: wantedEpisode
+        val single = singleLink(key, anilist)
+        return single.copy(parts = single.parts.map { it.copy(firstEpisode = (wantedEpisode - animeEpisode + 1).coerceAtLeast(1)) })
+    }
+
+    /** Last resort: the season data the AniList list sync already saved for entries in the list. */
+    private fun snapshotLink(
+        key: String,
+        imdb: String,
+        season: Int?,
+        isMovie: Boolean,
+        snapshot: AniListSyncSnapshot?,
+    ): AniListLink? {
+        val snap = snapshot ?: return null
+        val candidates = snap.mappings.values.filter { it.imdb.equals(imdb, ignoreCase = true) }
+        fun titleOf(mediaId: Long) = snap.entries.firstOrNull { it.mediaId == mediaId }?.media?.displayTitle() ?: "AniList $mediaId"
+        if (isMovie) {
+            val only = candidates.singleOrNull() ?: return null
+            return AniListLink(key, listOf(AniListLinkPart(only.anilist, titleOf(only.anilist))), manual = false)
+        }
+        val parts = candidates
+            .filter { it.seasonResolved && (it.tvdbSeason ?: 1) == (season ?: 1) }
+            .sortedBy { it.episodeOffset ?: 0 }
+            .map { mapping ->
+                AniListLinkPart(
+                    mediaId = mapping.anilist,
+                    title = titleOf(mapping.anilist),
+                    firstEpisode = 1 + (mapping.episodeOffset ?: 0).coerceAtLeast(0),
+                    episodes = snap.entries.firstOrNull { it.mediaId == mapping.anilist }?.media?.episodes,
+                )
+            }
+        return parts.takeIf { it.isNotEmpty() }?.let { AniListLink(key, it, manual = false) }
+    }
+
+    private fun TrackingMediaReference.isMovie(): Boolean =
+        kind == TrackingMediaKind.MOVIE || catalog?.contentType.equals("movie", ignoreCase = true)
 
     suspend fun mapping(media: AniListMedia, existing: AniListMapping?, wantSeason: Boolean): AniListMapping? {
         val nowMs = now()
@@ -273,81 +408,92 @@ internal class AniListIdResolver(
             "mal" -> "myanimelist"
             else -> prefix
         }
-        val value = getJson("${AniListConfig.ARM_BASE_URL}/ids?source=$source&id=$id&include=anilist") as? JsonObject
+        val value = getJsonStrict("${AniListConfig.ARM_BASE_URL}/ids?source=$source&id=$id&include=anilist") as? JsonObject
         return value?.longValue("anilist")
     }
 
-    private suspend fun resolveImdb(
-        imdb: String,
-        season: Int?,
-        episode: Int?,
-        isMovie: Boolean,
-        snapshot: AniListSyncSnapshot?,
-    ): AniListTarget? {
-        snapshot?.let { snap ->
-            val candidates = snap.mappings.values.filter { it.imdb.equals(imdb, ignoreCase = true) }
-            if (isMovie) {
-                candidates.singleOrNull()?.let { return AniListTarget(it.anilist, 1) }
-            } else if (season != null && episode != null) {
-                val resolved = candidates.filter { it.seasonResolved }
-                resolved.firstNotNullOfOrNull { mapping ->
-                    mapping.exactAnimeEpisode(season, episode)?.let { AniListTarget(mapping.anilist, it) }
-                }?.let { return it }
-                resolved.firstNotNullOfOrNull { mapping ->
-                    val total = snap.entries.firstOrNull { it.mediaId == mapping.anilist }?.media?.totalEpisodeCount() ?: -1
-                    mapping.approximateAnimeEpisode(season, episode, total)?.let { AniListTarget(mapping.anilist, it) }
-                }?.let { return it }
-            }
-        }
-
-        if (!isMovie && season != null && episode != null && SimklConfig.CLIENT_ID.isNotBlank()) {
-            val ids = try {
-                SimklIdResolver.resolveIdsForImdbEpisode(imdb, season, episode)
-            } catch (error: CancellationException) {
-                throw error
-            } catch (_: Throwable) {
-                null
-            }
-            if (ids != null) {
-                if (ids.type != "anime") return null
-                val anilist = ids.anilist?.toLongOrNull()
-                    ?: ids.mal?.toLongOrNull()?.let { animeIdToAniList("mal", it, snapshot) }
-                if (anilist != null) {
-                    val episodes = try {
-                        SimklIdResolver.getEpisodeMapping(ids.simklId, ids.type)
-                    } catch (error: CancellationException) {
-                        throw error
-                    } catch (_: Throwable) {
-                        emptyList()
-                    }
-                    val animeEpisode = episodes.firstOrNull { it.tvdbSeason == season && it.tvdbEpisode == episode }
-                        ?.animeEpisode
-                    return AniListTarget(anilist, (animeEpisode ?: episode).coerceAtLeast(1))
-                }
-            }
-        }
-
-        val candidates = imdbCandidates(imdb)
-        if (candidates.isEmpty()) return null
-        val fallbackEpisode = if (isMovie) 1 else (episode ?: 1).coerceAtLeast(1)
-        if (candidates.size == 1) return AniListTarget(candidates.first(), fallbackEpisode)
-        val media = try {
-            api.mediaPage(null, candidates)
+    private suspend fun absoluteEpisode(imdb: String, season: Int, episode: Int): Int? {
+        if (season <= 1) return episode
+        val videos = try {
+            showEpisodes(imdb)
         } catch (error: CancellationException) {
             throw error
         } catch (_: Throwable) {
-            emptyList()
+            null
+        } ?: return null
+        val regular = videos
+            .mapNotNull { video ->
+                val s = video.season?.takeIf { it > 0 } ?: return@mapNotNull null
+                val e = video.episode?.takeIf { it > 0 } ?: return@mapNotNull null
+                s to e
+            }
+            .distinct()
+            .sortedWith(compareBy({ it.first }, { it.second }))
+        val index = regular.indexOf(season to episode)
+        return if (index >= 0) index + 1 else null
+    }
+
+    private suspend fun imdbSeasonEntries(imdb: String): List<ArmImdbEntry> {
+        val key = imdb.lowercase()
+        cacheLock.withLock { imdbSeasonCache[key]?.let { return it } }
+        val element = getJsonStrict("${AniListConfig.ARM_BASE_URL}/imdb?id=$imdb")
+        val values = when (element) {
+            is JsonArray -> element.mapNotNull { (it as? JsonObject)?.toArmImdbEntry() }
+            is JsonObject -> listOfNotNull(element.toArmImdbEntry())
+            else -> emptyList()
+        }.distinctBy(ArmImdbEntry::anilist)
+        cacheLock.withLock { imdbSeasonCache[key] = values }
+        return values
+    }
+
+    private fun JsonObject.toArmImdbEntry(): ArmImdbEntry? {
+        val anilist = longValue("anilist") ?: return null
+        return ArmImdbEntry(
+            anilist = anilist,
+            tvdbSeason = longValue("thetvdb-season")?.toInt(),
+            media = stringValue("media"),
+        )
+    }
+
+    private suspend fun mediaFor(ids: List<Long>): Map<Long, AniListMedia> {
+        val missing = cacheLock.withLock { ids.filterNot(mediaCache::containsKey) }
+        if (missing.isNotEmpty()) {
+            val loaded = try {
+                api.mediaPage(null, missing)
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: AniListAuthException) {
+                throw error
+            } catch (error: Throwable) {
+                throw AniListTransientException("AniList media lookup failed", error)
+            }
+            cacheLock.withLock { loaded.forEach { mediaCache[it.id] = it } }
         }
-        if (isMovie) {
-            media.firstOrNull { it.isMovie }?.let { return AniListTarget(it.id, 1) }
-            return AniListTarget(candidates.first(), 1)
+        return cacheLock.withLock { ids.mapNotNull { id -> mediaCache[id]?.let { id to it } }.toMap() }
+    }
+
+    /** Like [getJson], but a network failure or server error throws instead of reading as "no data". */
+    private suspend fun getJsonStrict(url: String): kotlinx.serialization.json.JsonElement {
+        val outcome = try {
+            client.prepareGet(url) {
+                header("Accept", "application/json")
+            }.execute { response ->
+                response.status.value to readBoundedResponseBody(response.bodyAsChannel(), response.contentLength())
+            }
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Throwable) {
+            throw AniListTransientException("ARM unreachable", error)
         }
-        val ordered = orderedSeriesMedia(media)
-        if (ordered.isNotEmpty()) {
-            val index = ((season ?: 1) - 1).coerceIn(0, ordered.lastIndex)
-            return AniListTarget(ordered[index].id, fallbackEpisode)
+        val (status, body) = outcome
+        return when {
+            status == 404 || body.isBlank() -> kotlinx.serialization.json.JsonNull
+            status == 429 || status >= 500 -> throw AniListTransientException("ARM answered $status")
+            status !in 200..299 -> kotlinx.serialization.json.JsonNull
+            else -> runCatching { aniListJson.parseToJsonElement(body) }.getOrElse {
+                throw AniListTransientException("ARM sent an unreadable answer", it)
+            }
         }
-        return AniListTarget(candidates.first(), fallbackEpisode)
     }
 
     private suspend fun imdbCandidates(imdb: String): List<Long> {

@@ -83,6 +83,7 @@ import com.nuvio.app.features.trakt.TraktSettingsStorage
 import com.nuvio.app.features.mdblist.PlatformMdbListAuthPersistence
 import com.nuvio.app.features.mdblist.PlatformMdbListSyncStorage
 import com.nuvio.app.features.anilist.PlatformAniListAuthPersistence
+import com.nuvio.app.features.anilist.PlatformAniListQueueStorage
 import com.nuvio.app.features.anilist.PlatformAniListSyncStorage
 import com.nuvio.app.features.wetrakr.PlatformWeTrakrAuthPersistence
 import com.nuvio.app.features.wetrakr.PlatformWeTrakrSyncStorage
@@ -179,6 +180,8 @@ open class MainActivity : AppCompatActivity() {
         PlatformMdbListSyncStorage.initialize(applicationContext)
         PlatformAniListAuthPersistence.initialize(applicationContext)
         PlatformAniListSyncStorage.initialize(applicationContext)
+        PlatformAniListQueueStorage.initialize(applicationContext)
+        com.nuvio.app.features.anilist.AniListSyncWorker.initialize(applicationContext)
         PlatformWeTrakrAuthPersistence.initialize(applicationContext)
         PlatformWeTrakrSyncStorage.initialize(applicationContext)
         DiscordRpcStorage.initialize(applicationContext)

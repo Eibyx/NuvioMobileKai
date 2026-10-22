@@ -234,6 +234,7 @@ internal fun TrackingProviderCards(
         )
         MdbListProviderCard(Modifier.fillMaxWidth())
         AniListProviderCard(Modifier.fillMaxWidth())
+        AniListSyncStatusCard(Modifier.fillMaxWidth())
         WeTrakrProviderCard(Modifier.fillMaxWidth())
     }
 

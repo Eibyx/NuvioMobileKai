@@ -1,5 +1,6 @@
 package com.nuvio.app.features.watchprogress
 
+import com.nuvio.app.features.anilist.AniListTracker
 import co.touchlab.kermit.Logger
 import com.nuvio.app.core.auth.AuthRepository
 import com.nuvio.app.core.auth.AuthState
@@ -1365,6 +1366,10 @@ object WatchProgressRepository {
         }
         if (syncRemote) {
             pushScrobbleToServer(entry = entry, profileId = targetProfileId)
+            // AniList gets the episode the moment it counts as watched, not when the player closes.
+            if (entry.isCompleted && TrackingProviderRegistry.isAuthenticated(TrackingProviderId.ANILIST)) {
+                AniListTracker.onEpisodeWatched(targetProfileId, entry)
+            }
         }
         if (
             shouldCascadeCompletedProgressToWatchedHistory(

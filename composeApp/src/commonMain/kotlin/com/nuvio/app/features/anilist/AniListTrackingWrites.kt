@@ -1,6 +1,29 @@
+/*
+ * deliver() follows Aniyomi's TrackEpisode (https://github.com/aniyomiorg/aniyomi,
+ * app/src/main/java/eu/kanade/domain/track/anime/interactor/TrackEpisode.kt) and the status rules
+ * of its Anilist tracker (data/track/anilist/Anilist.kt).
+ *
+ * Copyright © 2015 Javier Tomás
+ * Copyright © 2024 Mihon Open Source Project
+ * Copyright © 2024 Aniyomi Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
+ * in compliance with the License. You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the
+ * License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+ * express or implied. See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Modified for Nuvio: saved per-season links, queue outcomes instead of exceptions.
+ */
 package com.nuvio.app.features.anilist
 
+import com.nuvio.app.core.logging.InAppLogger
 import com.nuvio.app.features.tracking.TrackingHistoryItem
+import com.nuvio.app.features.tracking.buildTrackingMediaReference
 import com.nuvio.app.features.tracking.TrackingHistoryWriter
 import com.nuvio.app.features.tracking.TrackingListStatus
 import com.nuvio.app.features.tracking.TrackingListWriter
@@ -13,8 +36,10 @@ import com.nuvio.app.features.tracking.TrackingScrobbleAction
 import com.nuvio.app.features.tracking.TrackingScrobbleEvent
 import com.nuvio.app.features.tracking.TrackingScrobbler
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 
 class AniListTrackingWrites internal constructor(
     private val sync: AniListSyncRepository,
@@ -24,34 +49,138 @@ class AniListTrackingWrites internal constructor(
     override val providerId = TrackingProviderId.ANILIST
     private val writeLock = Mutex()
 
+    /** Every watched episode goes through it; set by [AniListTracker]. */
+    internal var queue: AniListSendQueue? = null
+
+    /**
+     * Whether a title AniList could not match is worth telling the user about: anime ids, the
+     * Anime genre, Japanese animation. Everything else is skipped quietly. Set by [AniListTracker].
+     */
+    internal var looksLikeAnime: (TrackingMediaReference) -> Boolean = { true }
+
     override suspend fun scrobble(profileId: Int, action: TrackingScrobbleAction, event: TrackingScrobbleEvent) {
-        if (action != TrackingScrobbleAction.STOP) return
-        if (event.progressPercent < COMPLETION_THRESHOLD_PERCENT) return
-        val scope = scope(profileId)
-        val target = resolve(event.media) ?: return
-        writeLock.withLock {
-            updateProgress(scope, target.mediaId, target.episode, onlyIfGreater = true)
+        when (action) {
+            // Starting to watch binds the title and season, so a missing match is known before the end.
+            TrackingScrobbleAction.START -> ensureLinked(profileId, event.media)
+            TrackingScrobbleAction.STOP -> if (event.progressPercent >= COMPLETION_THRESHOLD_PERCENT) {
+                enqueueWatched(profileId, event.media)
+            }
+            else -> Unit
         }
     }
 
     override suspend fun addToHistory(profileId: Int, items: Collection<TrackingHistoryItem>): TrackingMutationResult {
-        val scope = scope(profileId)
-        val targets = mutableMapOf<Long, Int>()
-        var notFound = 0
-        items.forEach { item ->
-            val target = resolve(item.media)
-            if (target == null) {
-                notFound += 1
-            } else {
-                targets[target.mediaId] = maxOf(targets[target.mediaId] ?: 0, target.episode)
+        scope(profileId)
+        items.forEach { item -> enqueueWatched(profileId, item.media) }
+        // Delivery is asynchronous; failures and unknown titles surface in the AniList status.
+        return TrackingMutationResult(attemptedCount = items.size, notFoundCount = 0)
+    }
+
+    /** Queues [media] as watched; the queue sends it right away when it can. */
+    internal suspend fun enqueueWatched(profileId: Int, media: TrackingMediaReference) {
+        val queue = queue ?: return
+        if (!sync.isAuthenticatedFor(profileId)) return
+        queue.enqueue(media.toPendingSend())
+    }
+
+    /**
+     * Binds [media]'s title and season to AniList once, when playback starts. If nothing matches,
+     * the user is told right away so they can link it by hand before the episode ends.
+     */
+    internal suspend fun ensureLinked(profileId: Int, media: TrackingMediaReference) {
+        val queue = queue ?: return
+        if (!sync.isAuthenticatedFor(profileId)) return
+        val pending = media.toPendingSend()
+        try {
+            when (bindLink(pending.key, media)) {
+                is LinkOutcome.Linked -> Unit
+                LinkOutcome.Missing -> if (looksLikeAnime(media)) {
+                    queue.reportLinkNeeded(pending.key, pending.title, "no AniList entry matches this title and season")
+                } else {
+                    InAppLogger.debug(TAG, "${pending.title} is not on AniList; not an anime, nothing to report")
+                }
             }
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Throwable) {
+            // Offline or AniList busy: the link is made when the episode is sent.
+            InAppLogger.info(TAG, "Could not link ${pending.title} yet: ${error.toDelivery().reasonText()}")
         }
-        writeLock.withLock {
-            targets.forEach { (mediaId, episode) ->
-                updateProgress(scope, mediaId, episode, onlyIfGreater = true)
+    }
+
+    private sealed interface LinkOutcome {
+        data class Linked(val link: AniListLink) : LinkOutcome
+        data object Missing : LinkOutcome
+    }
+
+    /**
+     * The saved link of [key], or a new one from the mapping. A saved automatic link is only
+     * renewed when [media]'s episode lies past its last part (a new cour AniList added later).
+     */
+    private suspend fun bindLink(key: String, media: TrackingMediaReference): LinkOutcome {
+        val queue = queue
+        val saved = queue?.linkFor(key)
+        val episode = media.episode?.number ?: 1
+        if (saved != null && (saved.manual || saved.absolute || !saved.parts.endsBefore(episode))) {
+            return LinkOutcome.Linked(saved)
+        }
+        val fresh = resolver.link(media, sync.currentSnapshot())
+        if (fresh == null) return saved?.let { LinkOutcome.Linked(it) } ?: LinkOutcome.Missing
+        if (fresh != saved?.copy(linkedAtMs = 0L)) queue?.setLink(fresh)
+        return LinkOutcome.Linked(fresh)
+    }
+
+    /**
+     * One attempt to send a queued episode, as Aniyomi's TrackEpisode does: read the entry from
+     * AniList first, write only when the episode is past the saved progress, and never let a
+     * closing screen cancel it halfway.
+     */
+    internal suspend fun deliver(profileId: Int, item: AniListPendingSend): AniListDelivery = withContext(NonCancellable) {
+        val scope = sync.currentScope()
+        if (scope.profileId != profileId) return@withContext AniListDelivery.Retry("profile changed")
+        val reference = item.toReference()
+        val target = try {
+            when (val outcome = bindLink(item.key, reference)) {
+                is LinkOutcome.Linked -> resolver.targetFor(outcome.link, reference)
+                LinkOutcome.Missing -> return@withContext if (looksLikeAnime(reference)) {
+                    AniListDelivery.NotFound("no AniList entry matches this title and season")
+                } else {
+                    AniListDelivery.Skipped
+                }
             }
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Throwable) {
+            return@withContext error.toDelivery()
         }
-        return TrackingMutationResult(attemptedCount = items.size, notFoundCount = notFound)
+        try {
+            writeLock.withLock {
+                val (media, saved) = updateProgress(scope, target.mediaId, target.episode, onlyIfGreater = true, fresh = true)
+                    ?: return@withLock AniListDelivery.NotFound("AniList has no entry ${target.mediaId}")
+                if (saved == null) AniListDelivery.AlreadyUpToDate else AniListDelivery.Sent(media.displayTitle(), saved.progress)
+            }
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Throwable) {
+            error.toDelivery()
+        }
+    }
+
+    private fun AniListDelivery.reasonText(): String = when (this) {
+        is AniListDelivery.Retry -> reason
+        is AniListDelivery.NotFound -> reason
+        else -> toString()
+    }
+
+    private fun Throwable.toDelivery(): AniListDelivery = when (this) {
+        is AniListNotFoundException -> AniListDelivery.NotFound(message ?: "not found on AniList")
+        is AniListApiException -> AniListDelivery.Retry(
+            reason = if (status == 429) "AniList rate limit" else "AniList answered $status",
+            retryAtMs = retryAtEpochMs,
+        )
+        is AniListAuthException -> AniListDelivery.Retry("AniList sign-in expired")
+        is AniListTransientException -> AniListDelivery.Retry(message ?: "network error")
+        else -> AniListDelivery.Retry(InAppLogger.throwableSummary(this))
     }
 
     override suspend fun removeFromHistory(
@@ -59,6 +188,8 @@ class AniListTrackingWrites internal constructor(
         items: Collection<TrackingMediaReference>,
     ): TrackingMutationResult {
         val scope = scope(profileId)
+        // Unmarking makes a later "watched" for these titles send again.
+        items.forEach { media -> queue?.forgetDelivered(media.toPendingSend().key) }
         val targets = mutableMapOf<Long, Int>()
         var notFound = 0
         items.forEach { media ->
@@ -173,16 +304,31 @@ class AniListTrackingWrites internal constructor(
         null
     }
 
-    private suspend fun updateProgress(scope: AniListAuthScope, mediaId: Long, episode: Int, onlyIfGreater: Boolean) {
-        val (media, current) = currentEntry(scope, mediaId) ?: return
-        if (onlyIfGreater && current != null && current.progress >= episode) return
-        val total = media.totalEpisodeCount()
-        var status = AniListListStatus.CURRENT
-        if (current?.status == AniListListStatus.REPEATING) status = AniListListStatus.REPEATING
-        if (total > 0 && episode >= total) status = AniListListStatus.COMPLETED
-        val progress = if (total > 0 && episode > total) total else episode
-        val saved = api.saveEntry(scope, mediaId, status = status, progress = progress)
+    /**
+     * Saves [episode] as watched under the rules of [aniListProgressUpdate]. Returns null when AniList
+     * has no such media, and a null entry when nothing needed saving.
+     */
+    private suspend fun updateProgress(
+        scope: AniListAuthScope,
+        mediaId: Long,
+        episode: Int,
+        onlyIfGreater: Boolean,
+        fresh: Boolean = false,
+    ): Pair<AniListMedia, AniListEntry?>? {
+        val (media, current) = (if (fresh) api.mediaById(scope, mediaId) else currentEntry(scope, mediaId)) ?: return null
+        val update = aniListProgressUpdate(
+            current = current?.takeIf { onlyIfGreater },
+            episode = episode,
+            totalEpisodes = media.totalEpisodeCount(),
+        ) ?: return media to null
+        InAppLogger.info(
+            TAG,
+            "Saving ${media.displayTitle()} progress ${update.progress} status ${update.status} " +
+                "(was ${current?.progress ?: 0} ${current?.status ?: "no entry"})",
+        )
+        val saved = api.saveEntry(scope, mediaId, status = update.status, progress = update.progress)
         sync.applyEntry(scope, saved, media)
+        return media to saved
     }
 
     private suspend fun currentEntry(scope: AniListAuthScope, mediaId: Long): Pair<AniListMedia, AniListEntry?>? {
@@ -199,5 +345,32 @@ class AniListTrackingWrites internal constructor(
 
     companion object {
         const val COMPLETION_THRESHOLD_PERCENT = 80.0
+        private const val TAG = "Sync/AniList"
     }
 }
+
+internal fun TrackingMediaReference.toPendingSend(): AniListPendingSend {
+    val contentType = catalog?.contentType
+        ?: if (kind == TrackingMediaKind.MOVIE) "movie" else "series"
+    val contentId = catalog?.contentId ?: ids.imdb ?: stableKey
+    val season = episode?.season
+    return AniListPendingSend(
+        key = aniListSendKey(contentId, contentType, season),
+        title = title?.takeIf(String::isNotBlank) ?: contentId,
+        contentType = contentType,
+        contentId = contentId,
+        videoId = catalog?.videoId,
+        season = season,
+        episode = episode?.number,
+    )
+}
+
+internal fun AniListPendingSend.toReference(): TrackingMediaReference = buildTrackingMediaReference(
+    contentType = contentType,
+    parentMetaId = contentId,
+    videoId = videoId,
+    title = title,
+    seasonNumber = season,
+    episodeNumber = episode,
+)
+

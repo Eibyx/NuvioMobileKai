@@ -75,6 +75,21 @@ internal class AniListApiClient(
         }
     }
 
+    /** Anime matching [query], best match first, for "Link with AniList". */
+    suspend fun searchAnime(query: String): List<AniListMedia> {
+        if (query.isBlank()) return emptyList()
+        val data = execute(
+            MEDIA_SEARCH_QUERY,
+            buildJsonObject { put("search", query.trim()) },
+            scope = null,
+            allowNotFound = true,
+        )
+        val media = ((data["Page"] as? JsonObject)?.get("media") as? JsonArray) ?: return emptyList()
+        return media.mapNotNull { element ->
+            runCatching { aniListJson.decodeFromJsonElement(AniListMedia.serializer(), element) }.getOrNull()
+        }
+    }
+
     suspend fun saveEntry(
         scope: AniListAuthScope,
         mediaId: Long,
@@ -226,6 +241,9 @@ internal class AniListApiClient(
 
         private val MEDIA_PAGE_QUERY = "query (\$ids: [Int]) { Page(perPage: 50) { media(id_in: \$ids, type: ANIME) " +
             "{ $MEDIA_FIELDS } } }"
+
+        private val MEDIA_SEARCH_QUERY = "query (\$search: String) { Page(perPage: 20) { media(search: \$search, " +
+            "type: ANIME, sort: SEARCH_MATCH) { $MEDIA_FIELDS } } }"
 
         private val SAVE_ENTRY_MUTATION = "mutation (\$mediaId: Int, \$status: MediaListStatus, \$progress: Int, " +
             "\$scoreRaw: Int) { SaveMediaListEntry(mediaId: \$mediaId, status: \$status, progress: \$progress, " +
