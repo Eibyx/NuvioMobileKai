@@ -1790,6 +1790,9 @@ private class NuvioLibmpvView(
         mpv.setOptionString("demuxer-max-back-bytes", "${libmpvCacheBytes()}").logIfMpvError("demuxer-max-back-bytes")
         mpv.setOptionString("vd-lavc-film-grain", "cpu")
         SubtitleFontFiles.directoryPath()?.let { mpv.setOptionString("sub-fonts-dir", it).logIfMpvError("sub-fonts-dir") }
+        // Fonts attached to the file first; then the font directory (copied into sub-fonts-dir),
+        // then the default subtitle font.
+        mpv.setOptionString("embeddedfonts", "yes").logIfMpvError("embeddedfonts")
         // External subtitles come in any encoding (Windows-1252, ISO-8859-1...): let mpv detect it.
         mpv.setOptionString("sub-codepage", "auto").logIfMpvError("sub-codepage")
         mpv.setPropertyBoolean("keep-open", true)

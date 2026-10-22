@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_playback_section_fonts">Fonts</string>
+    <string name="settings_font_directory">Font directory</string>
+    <string name="settings_font_directory_none">None. Pick a folder with .ttf, .otf, .ttc or .otc fonts; its subfolders are included.</string>
+    <plurals name="settings_font_directory_summary">
+        <item quantity="one">%1$d font · %2$s</item>
+        <item quantity="other">%1$d fonts · %2$s</item>
+    </plurals>
+    <string name="settings_font_directory_result">Last reload: %1$d copied, %2$d skipped (duplicates or not fonts)</string>
+    <string name="settings_font_directory_scanning">Looking for fonts… %1$d found</string>
+    <string name="settings_font_directory_copying">Copying %1$d of %2$d · %3$s</string>
+    <string name="settings_font_directory_reload">Reload fonts</string>
+    <string name="settings_font_directory_reload_description">Reads the folder again, adding new fonts and removing deleted ones.</string>
+    <string name="settings_font_directory_clear">Clear font directory</string>
+    <string name="settings_font_directory_clear_description">Deletes the copied fonts and forgets the folder. Your default subtitle font stays.</string>
+</resources>

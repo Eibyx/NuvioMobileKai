@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_playback_section_fonts">Fuentes</string>
+    <string name="settings_font_directory">Directorio de fuentes</string>
+    <string name="settings_font_directory_none">Ninguno. Elige una carpeta con fuentes .ttf, .otf, .ttc u .otc; se incluyen sus subcarpetas.</string>
+    <plurals name="settings_font_directory_summary">
+        <item quantity="one">%1$d fuente · %2$s</item>
+        <item quantity="other">%1$d fuentes · %2$s</item>
+    </plurals>
+    <string name="settings_font_directory_result">Última recarga: %1$d copiadas, %2$d omitidas (duplicadas o no válidas)</string>
+    <string name="settings_font_directory_scanning">Buscando fuentes… %1$d encontradas</string>
+    <string name="settings_font_directory_copying">Copiando %1$d de %2$d · %3$s</string>
+    <string name="settings_font_directory_reload">Recargar fuentes</string>
+    <string name="settings_font_directory_reload_description">Vuelve a leer la carpeta: añade las fuentes nuevas y quita las borradas.</string>
+    <string name="settings_font_directory_clear">Borrar directorio de fuentes</string>
+    <string name="settings_font_directory_clear_description">Borra las fuentes copiadas y olvida la carpeta. Tu fuente de subtítulos por defecto se conserva.</string>
+</resources>

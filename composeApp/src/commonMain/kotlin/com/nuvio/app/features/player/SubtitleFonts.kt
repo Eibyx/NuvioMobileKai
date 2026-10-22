@@ -45,7 +45,7 @@ object SubtitleFontRepository {
 
     fun refresh() {
         _fonts.value = SubtitleFontFiles.listFileNames()
-            .filter { it.hasFontExtension() }
+            .filter { it.hasFontExtension() && !it.startsWith(DIRECTORY_FONT_PREFIX) }
             .mapNotNull { fileName -> familyNameOf(fileName)?.let { SubtitleFont(fileName, it) } }
             .sortedBy { it.familyName.lowercase() }
     }
@@ -80,6 +80,7 @@ object SubtitleFontRepository {
         val extension = OpenTypeNameReader.fileExtension(bytes)
         val baseName = (originalName?.substringBeforeLast('.')?.takeIf { it.isNotBlank() } ?: family)
             .sanitizedFileStem()
+            .let { if (it.startsWith(DIRECTORY_FONT_PREFIX)) "font_$it" else it }
         val fileName = uniqueFileName(baseName, extension)
         if (!SubtitleFontFiles.write(fileName, bytes)) return SubtitleFontImportResult.Failed
         familyCache = familyCache + (fileName to family)

@@ -266,6 +266,56 @@ class AppearanceScreenshotTest(private val appearance: AppearanceMode) {
     }
 
     @Test
+    fun subtitleFontDirectory() {
+        setScreen {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background)
+                    .verticalScroll(rememberScrollState())
+                    .padding(vertical = 16.dp),
+            ) {
+                com.nuvio.app.features.settings.SubtitleFontDirectoryContent(
+                    state = com.nuvio.app.features.player.FontDirectoryState(),
+                    isTablet = false,
+                    onPickFolder = {},
+                    onReload = {},
+                    onClear = {},
+                )
+                com.nuvio.app.features.settings.SubtitleFontDirectoryContent(
+                    state = com.nuvio.app.features.player.FontDirectoryState(
+                        folder = "/storage/emulated/0/Fonts/Anime",
+                        fontCount = 128,
+                        totalBytes = 245_000_000L,
+                        progress = com.nuvio.app.features.player.FontDirectoryProgress(
+                            found = 140, processed = 61, copied = 58, skipped = 3, copiedBytes = 98_000_000L,
+                        ),
+                    ),
+                    isTablet = false,
+                    onPickFolder = {},
+                    onReload = {},
+                    onClear = {},
+                )
+                com.nuvio.app.features.settings.SubtitleFontDirectoryContent(
+                    state = com.nuvio.app.features.player.FontDirectoryState(
+                        folder = "/storage/emulated/0/Fonts/Anime",
+                        fontCount = 134,
+                        totalBytes = 251_000_000L,
+                        lastResult = com.nuvio.app.features.player.FontDirectoryProgress(140, 140, 134, 6, 251_000_000L),
+                    ),
+                    isTablet = false,
+                    onPickFolder = {},
+                    onReload = {},
+                    onClear = {},
+                )
+            }
+        }
+        compose.mainClock.advanceTimeBy(500L)
+        compose.waitForIdle()
+        capture("settings_font_directory")
+    }
+
+    @Test
     fun aniListSyncStatusAndLinks() {
         val now = 1_761_150_000_000L
         val state = AniListQueueState(

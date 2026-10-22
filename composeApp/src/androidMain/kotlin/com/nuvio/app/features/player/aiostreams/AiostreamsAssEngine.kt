@@ -124,6 +124,7 @@ internal class AiostreamsAssEngine(
     init {
         fontsDir.deleteRecursively()
         if (smallDevice(this.context)) ass.setCacheLimit(SMALL_ASS_CACHE_MB)
+        ass.directoryFonts(com.nuvio.app.features.player.SubtitleFontDirectoryPlatform.fontFiles())
         this.context.registerComponentCallbacks(this)
     }
 

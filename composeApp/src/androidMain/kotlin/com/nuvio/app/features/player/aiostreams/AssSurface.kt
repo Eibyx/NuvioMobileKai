@@ -102,6 +102,8 @@ internal class AssSurface(context: Context, font: () -> File) : SurfaceHolder.Ca
 
     /** The file's fonts, those libass has, and the names each track's styles and lines ask for. */
     private var fonts: List<FontFile> = emptyList()
+    /** The user's font directory: offered after the file's own fonts, so those win. */
+    private var directoryFonts: List<FontFile> = emptyList()
     private val given = HashSet<File>()
     private val wanted = HashMap<String, MutableSet<String>>()
     private var surface: Surface? = null
@@ -116,6 +118,12 @@ internal class AssSurface(context: Context, font: () -> File) : SurfaceHolder.Ca
             if (native == 0L) Log.e(TAG, "libass is missing from libmpv")
         }
     }
+
+    /** Fonts from the user's font directory, kept across files. */
+    fun directoryFonts(fonts: List<FontFile>) = queue(Runnable {
+        directoryFonts = fonts
+        giveFonts()
+    })
 
     /** The reader's way in for the file opening now. */
     fun sink(): AssSink {
@@ -263,7 +271,7 @@ internal class AssSurface(context: Context, font: () -> File) : SurfaceHolder.Ca
     /** Hands libass the fonts the shown track asks for. */
     private fun giveFonts() {
         val names = shown?.let(wanted::get) ?: return
-        val giving = fonts.filter { font -> font.file !in given && font.names?.any(names::contains) != false }
+        val giving = (fonts + directoryFonts).filter { font -> font.file !in given && font.names?.any(names::contains) != false }
         if (giving.isEmpty()) return
         for (font in giving) {
             runCatching { nativeAddFont(native, font.file.name, font.file.readBytes()) }
