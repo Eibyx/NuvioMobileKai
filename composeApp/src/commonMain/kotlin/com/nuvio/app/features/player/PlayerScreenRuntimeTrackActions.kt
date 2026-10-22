@@ -15,8 +15,10 @@ internal val PlayerScreenRuntime.addonSubtitleFetchKey: String?
 
 internal val PlayerScreenRuntime.visibleAddonSubtitles: List<AddonSubtitle>
     get() {
-        val filtered = filterAddonSubtitlesForSettings(
-            subtitles = addonSubtitles,
+        // Files the user added are always listed, whatever the language filters say.
+        val local = addonSubtitles.filter { it.isImportedFile }
+        val filtered = local + filterAddonSubtitlesForSettings(
+            subtitles = addonSubtitles.filterNot { it.isImportedFile },
             settings = playerSettingsUiState,
         )
         val selectedId = selectedAddonSubtitleId ?: return filtered

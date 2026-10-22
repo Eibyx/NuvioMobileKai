@@ -1,5 +1,6 @@
 package com.nuvio.app.features.player.aiostreams
 
+import com.nuvio.app.features.player.ExternalSubtitleFiles
 import android.app.ActivityManager
 import android.content.ComponentCallbacks2
 import android.content.Context
@@ -231,7 +232,9 @@ internal class AiostreamsAssEngine(
 
     suspend fun showExternal(url: String, headers: Map<String, String>): Boolean {
         val body = runCatching {
-            withContext(Dispatchers.IO) { httpGetTextWithHeaders(url = url, headers = headers) }
+            withContext(Dispatchers.IO) {
+                ExternalSubtitleFiles.readText(url) ?: httpGetTextWithHeaders(url = url, headers = headers)
+            }
         }.onFailure { Log.w(AiostreamsAss.TAG, "couldn't add the subtitle", it) }.getOrNull() ?: return false
         val text = body.trimStart('﻿', ' ', '\r', '\n')
         if (!text.startsWith("[Script Info]", ignoreCase = true)) return false

@@ -252,6 +252,9 @@ internal class PlayerScreenRuntime(
     var selectedAudioIndex by mutableStateOf(-1)
     var selectedSubtitleIndex by mutableStateOf(-1)
     var selectedAddonSubtitleId by mutableStateOf<String?>(null)
+    /** Subtitle files the user added while watching [localSubtitlesVideoId]. */
+    var localSubtitles by mutableStateOf<List<AddonSubtitle>>(emptyList())
+    var localSubtitlesVideoId by mutableStateOf<String?>(null)
     var useCustomSubtitles by mutableStateOf(false)
     var preferredAudioSelectionApplied by mutableStateOf(false)
     var appliedAudioPreferences: AppliedAudioPreferences? = null

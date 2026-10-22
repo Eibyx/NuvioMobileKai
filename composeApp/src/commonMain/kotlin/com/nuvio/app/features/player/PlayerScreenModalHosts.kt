@@ -1,6 +1,8 @@
 package com.nuvio.app.features.player
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
+import com.nuvio.app.core.ui.NuvioToastController
 import com.nuvio.app.features.details.MetaDetailsUiState
 import com.nuvio.app.features.details.MetaVideo
 import com.nuvio.app.features.downloads.DownloadsRepository
@@ -10,6 +12,15 @@ import com.nuvio.app.features.p2p.P2pSettingsRepository
 import com.nuvio.app.features.streams.StreamItem
 import com.nuvio.app.features.streams.StreamsUiState
 import com.nuvio.app.features.watchprogress.WatchProgressEntry
+import kotlinx.coroutines.launch
+import nuvio.composeapp.generated.resources.Res
+import nuvio.composeapp.generated.resources.external_subtitles_failed
+import nuvio.composeapp.generated.resources.external_subtitles_not_text
+import nuvio.composeapp.generated.resources.external_subtitles_source
+import nuvio.composeapp.generated.resources.external_subtitles_too_large
+import nuvio.composeapp.generated.resources.external_subtitles_unsupported
+import org.jetbrains.compose.resources.getString
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 internal fun PlayerScreenModalHosts(
@@ -37,6 +48,7 @@ internal fun PlayerScreenModalHosts(
     subtitleAutoSyncState: SubtitleAutoSyncUiState,
     onBuiltInSubtitleTrackSelected: (Int) -> Unit,
     onAddonSubtitleSelected: (AddonSubtitle) -> Unit,
+    onExternalSubtitleImported: (ImportedSubtitle, sourceName: String) -> Unit,
     onFetchAddonSubtitles: () -> Unit,
     onSubtitleStyleChanged: (SubtitleStyleState) -> Unit,
     onSubtitleDelayChanged: (Int) -> Unit,
@@ -144,6 +156,26 @@ internal fun PlayerScreenModalHosts(
         onDismiss = onAudioModalDismissed,
     )
 
+    val localFileSource = stringResource(Res.string.external_subtitles_source)
+    val toastScope = rememberCoroutineScope()
+    val pickExternalSubtitle = rememberExternalSubtitlePicker(
+        onImported = { imported -> onExternalSubtitleImported(imported, localFileSource) },
+        onRejected = { reason ->
+            toastScope.launch {
+                NuvioToastController.show(
+                    getString(
+                        when (reason) {
+                            ExternalSubtitleRejection.UnsupportedFormat -> Res.string.external_subtitles_unsupported
+                            ExternalSubtitleRejection.NotText -> Res.string.external_subtitles_not_text
+                            ExternalSubtitleRejection.TooLarge -> Res.string.external_subtitles_too_large
+                            ExternalSubtitleRejection.ReadFailed -> Res.string.external_subtitles_failed
+                        },
+                    ),
+                )
+            }
+        },
+    )
+
     SubtitleModal(
         visible = showSubtitleModal,
         subtitleTracks = subtitleTracks,
@@ -160,6 +192,7 @@ internal fun PlayerScreenModalHosts(
         onBuiltInTrackSelected = onBuiltInSubtitleTrackSelected,
         onAddonSubtitleSelected = onAddonSubtitleSelected,
         onFetchAddonSubtitles = onFetchAddonSubtitles,
+        onAddExternalSubtitle = pickExternalSubtitle,
         onStyleChanged = onSubtitleStyleChanged,
         onSubtitleDelayChanged = onSubtitleDelayChanged,
         onSubtitleDelayReset = onSubtitleDelayReset,

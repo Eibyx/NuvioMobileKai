@@ -28,6 +28,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.CloudDownload
 import androidx.compose.material3.Icon
@@ -57,6 +58,7 @@ import nuvio.composeapp.generated.resources.compose_player_languages
 import nuvio.composeapp.generated.resources.compose_player_none
 import nuvio.composeapp.generated.resources.compose_player_style
 import nuvio.composeapp.generated.resources.compose_player_subtitles
+import nuvio.composeapp.generated.resources.external_subtitles_add
 import nuvio.composeapp.generated.resources.settings_playback_option_forced
 import nuvio.composeapp.generated.resources.subtitle_language_unknown
 import org.jetbrains.compose.resources.stringResource
@@ -79,6 +81,8 @@ fun SubtitleModal(
     onAddonSubtitleSelected: (AddonSubtitle) -> Unit,
     onFetchAddonSubtitles: () -> Unit,
     onStyleChanged: (SubtitleStyleState) -> Unit,
+    /** Opens the file picker for "Add external subtitles"; null hides the entry. */
+    onAddExternalSubtitle: (() -> Unit)? = null,
     onSubtitleDelayChanged: (Int) -> Unit,
     onSubtitleDelayReset: () -> Unit,
     onSyncByEarClick: () -> Unit,
@@ -200,6 +204,11 @@ fun SubtitleModal(
                             verticalArrangement = Arrangement.spacedBy(4.dp),
                             contentPadding = PaddingValues(vertical = 8.dp),
                         ) {
+                            if (onAddExternalSubtitle != null) {
+                                    item(key = "add-external-subtitle") {
+                                        AddExternalSubtitleRow(onClick = onAddExternalSubtitle)
+                                    }
+                                }
                             items(languageItems, key = { it.key }) { item ->
                                 SubtitleLanguageRow(
                                     item = item,
@@ -344,6 +353,35 @@ private fun SubtitleRail(
             overflow = TextOverflow.Ellipsis,
         )
         content()
+    }
+}
+
+@Composable
+private fun AddExternalSubtitleRow(onClick: () -> Unit) {
+    val tokens = MaterialTheme.nuvio
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .border(1.dp, Color.White.copy(alpha = 0.16f), RoundedCornerShape(12.dp))
+            .clickableIncludingFlingStop(onClick = onClick)
+            .padding(horizontal = 10.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = Icons.Rounded.Add,
+            contentDescription = null,
+            tint = tokens.colors.accent,
+            modifier = Modifier.size(20.dp),
+        )
+        Text(
+            text = stringResource(Res.string.external_subtitles_add),
+            color = Color.White,
+            style = MaterialTheme.typography.bodyMedium,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 

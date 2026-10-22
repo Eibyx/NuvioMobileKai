@@ -214,6 +214,58 @@ class AppearanceScreenshotTest(private val appearance: AppearanceMode) {
     }
 
     @Test
+    @Config(qualifiers = "w915dp-h412dp-xhdpi")
+    fun playerSubtitlesWithAnExternalFile() {
+        val local = com.nuvio.app.features.player.AddonSubtitle(
+            id = "local:3f2a9c",
+            url = "file:///cache/external_subtitles/3f2a9c-Movie.es.srt",
+            language = "es",
+            display = "Movie.2019.1080p.es.srt",
+            addonName = "Local file",
+        )
+        val addon = com.nuvio.app.features.player.AddonSubtitle(
+            id = "os-1",
+            url = "https://example.com/sub.srt",
+            language = "es",
+            display = "Movie.2019.WEB.srt",
+            addonName = "OpenSubtitles",
+        )
+        setScreen {
+            Box(modifier = Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Color(0xFF101014))) {
+                com.nuvio.app.features.player.SubtitleModal(
+                    visible = true,
+                    subtitleTracks = emptyList(),
+                    selectedSubtitleIndex = -1,
+                    addonSubtitles = listOf(local, addon),
+                    selectedAddonSubtitleId = local.url,
+                    isLoadingAddonSubtitles = false,
+                    preferredSubtitleLanguage = "es",
+                    secondaryPreferredSubtitleLanguage = null,
+                    subtitleStyle = com.nuvio.app.features.player.SubtitleStyleState.DEFAULT,
+                    subtitleDelayMs = 0,
+                    selectedAddonSubtitle = local,
+                    subtitleAutoSyncState = com.nuvio.app.features.player.SubtitleAutoSyncUiState(),
+                    onBuiltInTrackSelected = {},
+                    onAddonSubtitleSelected = {},
+                    onFetchAddonSubtitles = {},
+                    onStyleChanged = {},
+                    onAddExternalSubtitle = {},
+                    onSubtitleDelayChanged = {},
+                    onSubtitleDelayReset = {},
+                    onSyncByEarClick = {},
+                    onAutoSyncCapture = {},
+                    onAutoSyncCueSelected = {},
+                    onAutoSyncReload = {},
+                    onDismiss = {},
+                )
+            }
+        }
+        compose.mainClock.advanceTimeBy(1_000L)
+        compose.waitForIdle()
+        capture("player_subtitles_external_file")
+    }
+
+    @Test
     fun aniListSyncStatusAndLinks() {
         val now = 1_761_150_000_000L
         val state = AniListQueueState(

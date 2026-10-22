@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="external_subtitles_add">Añadir subtítulos externos</string>
+    <string name="external_subtitles_source">Archivo local</string>
+    <string name="external_subtitles_unsupported">Solo se pueden añadir archivos .srt, .ass, .ssa, .vtt y .sub.</string>
+    <string name="external_subtitles_not_text">Este archivo no es un subtítulo de texto.</string>
+    <string name="external_subtitles_too_large">Este archivo es demasiado grande para ser un subtítulo.</string>
+    <string name="external_subtitles_failed">No se pudo leer el archivo.</string>
+</resources>

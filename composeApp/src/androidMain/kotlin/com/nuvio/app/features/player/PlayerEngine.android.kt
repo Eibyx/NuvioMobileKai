@@ -1790,6 +1790,8 @@ private class NuvioLibmpvView(
         mpv.setOptionString("demuxer-max-back-bytes", "${libmpvCacheBytes()}").logIfMpvError("demuxer-max-back-bytes")
         mpv.setOptionString("vd-lavc-film-grain", "cpu")
         SubtitleFontFiles.directoryPath()?.let { mpv.setOptionString("sub-fonts-dir", it).logIfMpvError("sub-fonts-dir") }
+        // External subtitles come in any encoding (Windows-1252, ISO-8859-1...): let mpv detect it.
+        mpv.setOptionString("sub-codepage", "auto").logIfMpvError("sub-codepage")
         mpv.setPropertyBoolean("keep-open", true)
         mpv.setPropertyBoolean("input-default-bindings", true)
         mpv.setPropertyBoolean("audio-fallback-to-null", true)
@@ -2297,6 +2299,10 @@ private class NuvioLibmpvView(
 
             override fun setSubtitleUri(url: String) {
                 InAppLogger.info("MPV/Android", "set external subtitle url=${InAppLogger.redactUrl(url)}")
+                if (ExternalSubtitleFiles.isImported(context, url)) {
+                    addImportedSubtitle(url.removePrefix("file://"))
+                    return
+                }
                 executeMpv { mpv.command("sub-add", url, "select") }
             }
 
@@ -2411,6 +2417,26 @@ private class NuvioLibmpvView(
         }
     }
 
+    /**
+     * A subtitle file the user added: loaded once under its own name and selected; picking it again
+     * selects the track mpv already has (as mpvRx's addSubtitleSuspend does).
+     */
+    private fun addImportedSubtitle(path: String) {
+        executeMpv {
+            val existing = mpv.getPropertyNode("track-list")?.asArray()?.toList().orEmpty()
+                .firstOrNull { node -> node.nodeString("type") == "sub" && node.nodeString("external-filename") == path }
+                ?.nodeInt("id")
+            if (existing != null) {
+                InAppLogger.info("MPV/Android", "external subtitle already loaded; selecting sid=$existing")
+                mpv.setPropertyInt("sid", existing)
+            } else {
+                val title = path.substringAfterLast('/').substringAfter('-').replace(".utf8.", ".")
+                InAppLogger.info("MPV/Android", "sub-add external subtitle file title=$title")
+                mpv.command("sub-add", path, "select", title)
+            }
+        }
+    }
+
     fun refreshTracks(context: Context) {
         executeMpv {
             latestAudioTracks = extractLibmpvTracks(context, type = "audio")
@@ -2466,6 +2492,8 @@ private class NuvioLibmpvView(
         val nodes = mpv.getPropertyNode("track-list")?.asArray()?.toList().orEmpty()
         return nodes
             .filter { node -> node.nodeString("type") == type }
+            // Files the user added show up once, as their own entry in the subtitle list.
+            .filterNot { node -> type == "sub" && ExternalSubtitleFiles.isImported(context, node.nodeString("external-filename")) }
             .mapIndexedNotNull { index, node ->
                 val id = node.nodeInt("id") ?: return@mapIndexedNotNull null
                 val rawLabel = node.nodeString("title")

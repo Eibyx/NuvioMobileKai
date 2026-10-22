@@ -117,7 +117,7 @@ internal class SidecarSubtitleController(
         sidecarSubtitleJob = scope.launch {
             try {
                 val rawBody = rawBodyLoader?.invoke() ?: withContext(Dispatchers.IO) {
-                    httpGetTextWithHeaders(url = url, headers = headers)
+                    ExternalSubtitleFiles.readText(url) ?: httpGetTextWithHeaders(url = url, headers = headers)
                 }
                 if (!isCurrent()) return@launch
 
