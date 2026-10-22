@@ -149,8 +149,9 @@ internal fun PlayerScreenRuntime.BindMiniPlayerEffects(presentation: Boolean?) {
             onDispose { MiniPlayerController.detach(runtime) }
         }
     }
+    // Back closes the player like the top bar arrow; only the minimize button hands off to the mini player.
     PlatformBackHandler(enabled = presentation == false) {
-        if (!handOffToMiniPlayer()) flushWatchProgress()
+        flushWatchProgress()
         args.onBack()
     }
 }
