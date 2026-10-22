@@ -164,7 +164,11 @@ internal fun subtitleLanguageKey(language: String?): String {
 }
 
 private fun SubtitleTrack.subtitleLanguageKey(): String {
-    val normalized = subtitleLanguageKey(language)
+    // Some files tag a track only by its title ("English", "Español (Latino)"), as AKRusso's grouping
+    // allowed for; fall back to the label when it names a language the app knows.
+    val normalized = subtitleLanguageKey(language).takeUnless { it == SubtitleUnknownLanguageKey }
+        ?: label.takeIf { languageLabelResForCode(it) != null }?.let(::subtitleLanguageKey)
+        ?: SubtitleUnknownLanguageKey
     val haystack = listOf(label, language, id).filterNotNull().joinToString(" ").lowercase()
     return when (normalized) {
         "pt" -> when {
