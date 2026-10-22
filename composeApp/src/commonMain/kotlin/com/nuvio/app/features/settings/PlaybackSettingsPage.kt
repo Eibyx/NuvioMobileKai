@@ -1,5 +1,6 @@
 package com.nuvio.app.features.settings
 
+import com.nuvio.app.features.player.PlayerDeviceStatusSettingsRepository
 import com.nuvio.app.core.build.AppFeaturePolicy
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
@@ -433,6 +434,18 @@ private fun PlaybackSettingsSection(
                     checked = autoPlayPlayerSettings.pauseOverlayEnabled,
                     isTablet = isTablet,
                     onCheckedChange = PlayerSettingsRepository::setPauseOverlayEnabled,
+                )
+                SettingsGroupDivider(isTablet = isTablet)
+                val deviceStatusEnabled by remember {
+                    PlayerDeviceStatusSettingsRepository.ensureLoaded()
+                    PlayerDeviceStatusSettingsRepository.enabled
+                }.collectAsStateWithLifecycle()
+                SettingsSwitchRow(
+                    title = stringResource(Res.string.settings_playback_device_status),
+                    description = stringResource(Res.string.settings_playback_device_status_description),
+                    checked = deviceStatusEnabled,
+                    isTablet = isTablet,
+                    onCheckedChange = PlayerDeviceStatusSettingsRepository::setEnabled,
                 )
                 SettingsGroupDivider(isTablet = isTablet)
                 SettingsSwitchRow(

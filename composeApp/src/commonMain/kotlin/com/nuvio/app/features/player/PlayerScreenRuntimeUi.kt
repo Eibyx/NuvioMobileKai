@@ -22,6 +22,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Alignment
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.safeContent
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.layout.onSizeChanged
@@ -351,6 +356,7 @@ internal fun PlayerScreenRuntime.RenderPlayerRuntimeUi() {
         }
 
         RenderPlayerControls(isEpisode = isEpisode)
+        RenderDeviceStatusOverlay()
         RenderPlaybackOverlays(
             runtime = runtime,
             currentGestureFeedback = currentGestureFeedback,
@@ -399,6 +405,42 @@ private val PlayerScreenRuntime.activeAddonLogo: String?
 private fun PlayerScreenRuntime.currentInitialPositionRequestKey(): String? {
     val positionMs = activeInitialPositionMs.takeIf { it > 0L } ?: return null
     return "$activePlaybackIdentity:${activeVideoId.orEmpty()}:$positionMs"
+}
+
+// The clock, battery and network over the video (Settings > Playback), while the controls are hidden.
+@Composable
+private fun PlayerScreenRuntime.RenderDeviceStatusOverlay() {
+    val deviceStatusEnabled by remember {
+        PlayerDeviceStatusSettingsRepository.ensureLoaded()
+        PlayerDeviceStatusSettingsRepository.enabled
+    }.collectAsStateWithLifecycle()
+    val isInPip = rememberIsInPictureInPicture()
+    AnimatedVisibility(
+        visible = deviceStatusEnabled &&
+            !controlsVisible &&
+            !showParentalGuide &&
+            !playerControlsLocked &&
+            !pausedOverlayVisible &&
+            errorMessage == null &&
+            !isInPip,
+        enter = fadeIn(),
+        exit = fadeOut(),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = horizontalSafePadding),
+        ) {
+            PlayerDeviceStatusOverlay(
+                playbackSnapshot = playbackSnapshot,
+                metrics = metrics,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .windowInsetsPadding(WindowInsets.safeContent.only(WindowInsetsSides.Top))
+                    .padding(top = metrics.verticalPadding / 4),
+            )
+        }
+    }
 }
 
 @Composable

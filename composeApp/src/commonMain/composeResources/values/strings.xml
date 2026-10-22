@@ -1406,6 +1406,14 @@
     <string name="settings_playback_show_loading_overlay">Loading Overlay</string>
     <string name="settings_playback_show_loading_overlay_description">Show loading screen until first video frame appears.</string>
     <string name="settings_playback_pause_overlay">Pause Overlay</string>
+    <string name="settings_playback_device_status">Device Status</string>
+    <string name="settings_playback_device_status_description">Show the time, battery, network and when playback ends at the top of the player while the controls are hidden.</string>
+    <string name="player_status_ends_at">Ends %1$s • %2$s left</string>
+    <string name="player_status_time_left">%1$s left</string>
+    <string name="player_status_network_wifi">Wi-Fi</string>
+    <string name="player_status_network_cellular">Mobile</string>
+    <string name="player_status_network_offline">Offline</string>
+    <string name="player_status_network_unknown">Network</string>
     <string name="settings_playback_pause_overlay_description">Show details overlay after 5 seconds while paused.</string>
     <string name="settings_playback_parental_guide">Content Warnings</string>
     <string name="settings_playback_parental_guide_description">Show parental guidance overlay when playback starts.</string>

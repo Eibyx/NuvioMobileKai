@@ -116,6 +116,7 @@ open class MainActivity : AppCompatActivity() {
         AppFontSettingsStorage.initialize(applicationContext)
         AppearanceSettingsStorage.initialize(applicationContext)
         FavoritePeopleStorage.initialize(applicationContext)
+        com.nuvio.app.features.player.PlayerDeviceStatusSettingsStorage.initialize(applicationContext)
         AppIconPlatform.initialize(applicationContext)
         SentrySettingsStorage.initialize(applicationContext)
         SentryInitializer.start(application)
