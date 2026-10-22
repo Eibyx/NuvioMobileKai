@@ -102,6 +102,9 @@ internal object LiquidGlassEffectDefaults {
 
 private val liquidGlassSettingsJson = Json {
     ignoreUnknownKeys = true
+    // Every field is written: the bar and the lens decode against different defaults, so a value
+    // left out because it matched the class default (affectTabIcons = false) came back as true.
+    encodeDefaults = true
 }
 
 internal fun encodeLiquidGlassEffectSettings(

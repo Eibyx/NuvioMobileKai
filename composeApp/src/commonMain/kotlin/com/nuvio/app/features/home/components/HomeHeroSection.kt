@@ -64,6 +64,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -605,12 +606,18 @@ internal fun HomeHeroSection(
                                     val layerItem = items[layer.itemIndex]
                                     key(layerItem.type, layerItem.id) {
                                     Box(
-                                        modifier = Modifier.graphicsLayer {
-                                            val offset = heroPageOffset(pagerState, layer.page)
-                                            val visibility = (1f - abs(offset)).coerceIn(0f, 1f)
-                                            alpha = ((visibility - 0.5f) * 2f).coerceIn(0f, 1f)
-                                            translationX = -offset * heroWidthPx * HERO_CONTENT_PARALLAX
-                                        },
+                                        modifier = Modifier
+                                            .graphicsLayer {
+                                                val offset = heroPageOffset(pagerState, layer.page)
+                                                val visibility = (1f - abs(offset)).coerceIn(0f, 1f)
+                                                alpha = ((visibility - 0.5f) * 2f).coerceIn(0f, 1f)
+                                                translationX = -offset * heroWidthPx * HERO_CONTENT_PARALLAX
+                                            }
+                                            // Neighbours stay composed for smooth swipes but are hidden;
+                                            // only the current title is exposed to accessibility.
+                                            .then(
+                                                if (layer.page == currentPage) Modifier else Modifier.clearAndSetSemantics {},
+                                            ),
                                     ) {
                                         HeroContentBlock(
                                             item = layerItem,

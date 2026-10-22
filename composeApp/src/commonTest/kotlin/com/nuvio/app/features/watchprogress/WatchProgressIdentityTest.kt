@@ -89,8 +89,8 @@ class WatchProgressIdentityTest {
                 "title": "Show",
                 "seasonNumber": 1,
                 "episodeNumber": 2,
-                "lastPositionMs": 940,
-                "durationMs": 1000,
+                "lastPositionMs": 1353600,
+                "durationMs": 1440000,
                 "lastUpdatedEpochMs": 100
               }]
             }
@@ -98,7 +98,8 @@ class WatchProgressIdentityTest {
         )
 
         assertEquals("show_s1e2", decoded.single().progressKey)
-        assertEquals(940L, decoded.single().lastPositionMs)
+        // 94% of a 24-minute episode; clips under a few minutes never count as completed.
+        assertEquals(1_353_600L, decoded.single().lastPositionMs)
         assertTrue(decoded.single().isCompleted)
     }
 

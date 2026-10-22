@@ -149,26 +149,36 @@ class PluginSyncTest {
         assertTrue(PluginRepository.uiState.value.repositories.isEmpty())
     }
 
+    // Unlike plugins, kai keeps the earlier addon rule: an empty remote on the first pull of a
+    // session is treated as never synced, so the cached addons are uploaded once and kept.
     @Test
-    fun emptyRemoteRemovesCachedAddonsWithoutUploadingAndStaysEmptyAfterReload(): Unit = runBlocking {
+    fun emptyRemoteUploadsCachedAddonsOnceAndKeepsThem(): Unit = runBlocking {
         AddonStorage.saveInstalledAddonUrls(1, listOf(manifestUrl))
         AddonStorage.saveAddonEnabledStates(1, mapOf(manifestUrl to false))
         AddonRepository.initialize()
         assertEquals(1, AddonRepository.uiState.value.addons.size)
         respond("[]")
+        respond("")
 
         AddonRepository.pullFromServer(1)
 
-        assertTrue(AddonRepository.uiState.value.addons.isEmpty())
-        assertTrue(AddonStorage.loadInstalledAddonUrls(1).isEmpty())
-        assertTrue(AddonStorage.loadAddonEnabledStates(1).isEmpty())
-        AddonRepository.clearLocalState()
-        AddonRepository.initialize()
+        assertEquals(listOf(manifestUrl), AddonRepository.uiState.value.addons.map { it.manifestUrl })
+        assertEquals(listOf(manifestUrl), AddonStorage.loadInstalledAddonUrls(1))
+        val pull = assertNotNull(server.takeRequest(5, TimeUnit.SECONDS))
+        assertEquals("GET", pull.method)
+        assertEquals("/rest/v1/addons", pull.requestUrl?.encodedPath)
+        val push = assertNotNull(server.takeRequest(5, TimeUnit.SECONDS))
+        assertEquals("POST", push.method)
+        assertEquals("/rest/v1/rpc/sync_push_addons", push.requestUrl?.encodedPath)
+        val pushed = push.body.readUtf8()
+        assertTrue(pushed.contains(manifestUrl.replace("/", "\\/")) || pushed.contains(manifestUrl), pushed)
+        assertTrue(pushed.contains("\"enabled\":false"), pushed)
+
         respond("[]")
         AddonRepository.pullFromServer(1)
 
-        assertTrue(AddonRepository.uiState.value.addons.isEmpty())
-        assertPullsOnly("addons", count = 2)
+        assertEquals(listOf(manifestUrl), AddonRepository.uiState.value.addons.map { it.manifestUrl })
+        assertPullsOnly("addons")
     }
 
     private fun seedPlugins(urls: List<String> = listOf(manifestUrl)) {

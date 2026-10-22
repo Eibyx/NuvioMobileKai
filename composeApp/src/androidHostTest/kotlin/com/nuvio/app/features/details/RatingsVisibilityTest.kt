@@ -16,9 +16,12 @@ import org.junit.Rule
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 import kotlin.test.Test
 
 @RunWith(RobolectricTestRunner::class)
+// Native graphics measure text for real, so the fixed-height episode cards lay out as on a device.
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34], application = Application::class)
 class RatingsVisibilityTest {
     @get:Rule
@@ -102,8 +105,9 @@ class RatingsVisibilityTest {
                 progress.value = emptyMap()
                 ratings.value = mapOf((1 to 1) to 8.4)
             }
+            // The fetched rating shows as the IMDb badge and the addon's rating as the TMDB one.
             compose.onNodeWithText("8.4").assertIsDisplayed()
-            compose.onNodeWithText("6.2").assertDoesNotExist()
+            compose.onNodeWithText("6.2").assertIsDisplayed()
 
             compose.runOnIdle { visibility.value = EpisodeRatingsVisibility.HIDE_UNWATCHED_EPISODES }
             compose.onNodeWithText("8.4").assertDoesNotExist()
@@ -133,8 +137,9 @@ class RatingsVisibilityTest {
                     title = meta.name,
                     seasonNumber = 1,
                     episodeNumber = 1,
-                    lastPositionMs = 950,
-                    durationMs = 1000,
+                    // 95% of a 24-minute episode; clips under a few minutes never count as watched.
+                    lastPositionMs = 1_368_000,
+                    durationMs = 1_440_000,
                     lastUpdatedEpochMs = 1,
                 ))
             }

@@ -17,6 +17,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
@@ -76,7 +79,9 @@ private fun AvatarChoiceItem(
                 color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
                 shape = CircleShape,
             )
-            .clickable(onClick = onClick),
+            .clickable(onClick = onClick)
+            // Labelled here, so avatars shown without a picture (member-only ones) are named too.
+            .semantics { contentDescription = avatar.displayName },
         contentAlignment = Alignment.Center,
     ) {
         val imageUrl = avatarImageUrl(avatar)
@@ -84,7 +89,8 @@ private fun AvatarChoiceItem(
             NuvioAsyncImage(
                 imageUrl = imageUrl,
                 contentDescription = avatar.displayName,
-                modifier = Modifier.fillMaxSize().clip(CircleShape),
+                // The item carries the label; the picture itself stays silent.
+                modifier = Modifier.fillMaxSize().clip(CircleShape).clearAndSetSemantics {},
                 contentScale = ContentScale.Crop,
                 animateIfPossible = true,
             )

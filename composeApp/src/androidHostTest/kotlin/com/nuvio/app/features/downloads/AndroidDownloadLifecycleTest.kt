@@ -61,11 +61,14 @@ class AndroidDownloadLifecycleTest {
     }
 
     @Test
-    fun missingSystemJobIsPausedInsteadOfSilentlyRescheduling() {
+    fun missingSystemJobIsRescheduledInsteadOfPausing() {
         val scheduler = AndroidDownloadScheduler(RuntimeEnvironment.getApplication())
         val transfer = scheduler.store.begin(downloadItem().copy(fileName = "stopped.mkv"))
 
-        assertEquals(DownloadStatus.Paused, scheduler.restore(transfer.item).status)
+        // Pausing here made downloads pause again after every restart (#167); the job is scheduled
+        // anew and the download stays active. Robolectric gives each forNamespace() call a fresh
+        // scheduler, so the new job itself cannot be looked up here.
+        assertEquals(DownloadStatus.Downloading, scheduler.restore(transfer.item).status)
     }
 
     @Test

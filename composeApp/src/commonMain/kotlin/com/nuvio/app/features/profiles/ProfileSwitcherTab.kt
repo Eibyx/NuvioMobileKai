@@ -859,11 +859,12 @@ fun ActiveProfileMiniAvatar(
         profileAvatarImageUrl(profile, avatarItem)
     }
 
-    val borderColor = if (selected) {
-        tokens.colors.borderSelected
-    } else {
-        avatarColor.copy(alpha = 0.5f)
-    }
+    val borderColor = resolveProfileAvatarBorderColor(
+        selected = selected,
+        avatarColor = avatarColor,
+        selectedBorderColor = tokens.colors.borderSelected,
+        defaultIconColorOverride = iconColorOverride,
+    )
 
     Box(
         modifier = Modifier
@@ -903,4 +904,19 @@ fun ActiveProfileMiniAvatar(
             )
         }
     }
+}
+
+/**
+ * The ring around the profile tab's avatar: the selected colour when the tab is selected, otherwise
+ * the navigation bar's custom icon colour when one is set, or the avatar colour at half strength.
+ */
+internal fun resolveProfileAvatarBorderColor(
+    selected: Boolean,
+    avatarColor: Color,
+    selectedBorderColor: Color,
+    defaultIconColorOverride: Color?,
+): Color = when {
+    selected -> selectedBorderColor
+    defaultIconColorOverride != null -> defaultIconColorOverride
+    else -> avatarColor.copy(alpha = 0.5f)
 }
