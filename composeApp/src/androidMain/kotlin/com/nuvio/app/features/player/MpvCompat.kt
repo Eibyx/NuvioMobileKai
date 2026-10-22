@@ -1,6 +1,10 @@
 package com.nuvio.app.features.player
 
+import android.content.Context
+import android.util.AttributeSet
 import android.util.Log
+import android.util.Xml
+import com.nuvio.app.R
 import `is`.xyz.mpv.BaseMPVView
 import `is`.xyz.mpv.MPVLib
 import java.util.concurrent.Executors
@@ -8,6 +12,7 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.asCoroutineDispatcher
+import org.xmlpull.v1.XmlPullParser
 
 /*
  * mpvlibAndroid (the libmpv build used by mpvRx) exposes libmpv as the process-wide [MPVLib] singleton,
@@ -18,6 +23,16 @@ import kotlinx.coroutines.asCoroutineDispatcher
 /** The libmpv instance this view drives; there is only ever one. */
 internal val BaseMPVView.mpv: MPVLib
     get() = MPVLib
+
+/**
+ * [BaseMPVView] requires an [AttributeSet], and views read theirs through the resource parser,
+ * so a view built in code gets the empty one from `res/xml/libmpv_view_attributes.xml`.
+ */
+internal fun Context.emptyMpvViewAttributes(): AttributeSet {
+    val parser = resources.getXml(R.xml.libmpv_view_attributes)
+    while (parser.next() != XmlPullParser.START_TAG && parser.eventType != XmlPullParser.END_DOCUMENT) Unit
+    return Xml.asAttributeSet(parser)
+}
 
 /**
  * Hands the single libmpv instance from one player view to the next.

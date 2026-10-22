@@ -1721,7 +1721,7 @@ private class NuvioLibmpvView(
     private val videoOutput: AndroidLibmpvVideoOutput,
     private val hardwareDecodingEnabled: Boolean,
     private val yuv420pEnabled: Boolean,
-    attrs: AttributeSet? = null,
+    attrs: AttributeSet = context.emptyMpvViewAttributes(),
 ) : BaseMPVView(context, attrs), MpvSession.Owner {
     // libmpv is a process-wide singleton, so every view shares the session's libmpv thread.
     private val mpvDispatcher = MpvSession.dispatcher
