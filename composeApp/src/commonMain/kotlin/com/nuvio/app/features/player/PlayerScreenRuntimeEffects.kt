@@ -45,6 +45,11 @@ import org.jetbrains.compose.resources.getString
 
 @Composable
 internal fun PlayerScreenRuntime.BindPlayerRuntimeEffects() {
+    LaunchedEffect(Unit) {
+        com.nuvio.app.features.player.shaders.ShaderPlaybackSession.warnings.collect { warning ->
+            NuvioToastController.show(com.nuvio.app.features.player.shaders.shaderWarningText(warning), 4_000L)
+        }
+    }
     val currentFeedback = liveGestureFeedback ?: gestureFeedback
     LaunchedEffect(currentFeedback) {
         if (currentFeedback != null) {

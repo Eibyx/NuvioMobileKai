@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="shader_warning_failed">The shader “%1$s” could not run on this device and was turned off. Playback goes on.</string>
+    <string name="shader_warning_failed_unknown">A shader could not run on this device. Playback goes on.</string>
+</resources>

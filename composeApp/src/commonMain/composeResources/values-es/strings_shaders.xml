@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="shader_warning_failed">El shader «%1$s» no pudo ejecutarse en este dispositivo y se desactivó. La reproducción continúa.</string>
+    <string name="shader_warning_failed_unknown">Un shader no pudo ejecutarse en este dispositivo. La reproducción continúa.</string>
+</resources>

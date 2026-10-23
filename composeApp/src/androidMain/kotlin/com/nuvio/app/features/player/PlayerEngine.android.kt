@@ -85,6 +85,8 @@ import com.nuvio.app.features.player.aiostreams.AiostreamsAssEngine
 import com.nuvio.app.R
 import com.nuvio.app.core.diagnostics.PlaybackDiagnostics
 import com.nuvio.app.core.logging.InAppLogger
+import com.nuvio.app.features.player.shaders.MpvRenderBackend
+import com.nuvio.app.features.player.shaders.ShaderPlaybackSession
 import com.nuvio.app.features.streams.normalizeStreamType
 import `is`.xyz.mpv.BaseMPVView
 import `is`.xyz.mpv.MPVLib
@@ -1622,6 +1624,7 @@ private fun LibmpvPlayerSurface(
                     "mpv_log level=$level prefix=${diagnosticPlayerMessage(prefix)} " +
                         "message=${diagnosticPlayerMessage(text)}",
                 )
+                view.onMpvLog(prefix, level, text)
                 // msg-level is all=warn, so these are mpv's warnings and errors; keep them for diagnostics.
                 InAppLogger.logMpv(
                     platform = "Android",
@@ -1633,9 +1636,24 @@ private fun LibmpvPlayerSurface(
         }
         view.mpv.addObserver(observer)
         view.mpv.addLogObserver(logObserver)
+        ShaderPlaybackSession.onMpvStarted()
         onDispose {
             view.mpv.removeObserver(observer)
             view.mpv.removeLogObserver(logObserver)
+            ShaderPlaybackSession.onMpvStopped()
+        }
+    }
+
+    LaunchedEffect(playerViewRef) {
+        val view = playerViewRef ?: return@LaunchedEffect
+        ShaderPlaybackSession.requestedChain.collect { view.syncShaders() }
+    }
+
+    LaunchedEffect(playerViewRef) {
+        val view = playerViewRef ?: return@LaunchedEffect
+        while (isActive) {
+            delay(1_000L)
+            view.pollShaders()
         }
     }
 
@@ -1710,8 +1728,12 @@ private fun LibmpvPlayerSurface(
         factory = { viewContext ->
             NuvioLibmpvView(
                 context = viewContext,
-                videoOutput = if (isLocalFileSource) AndroidLibmpvVideoOutput.Gpu else videoOutput,
-                hardwareDecodingEnabled = if (isLocalFileSource) false else hardwareDecodingEnabled,
+                backend = MpvRenderer.select(
+                    context = viewContext,
+                    videoOutput = if (isLocalFileSource) AndroidLibmpvVideoOutput.Gpu else videoOutput,
+                    hardwareDecoding = if (isLocalFileSource) false else hardwareDecodingEnabled,
+                    shadersEnabled = ShaderPlaybackSession.enabled.value,
+                ),
                 yuv420pEnabled = yuv420pEnabled,
             ).apply {
                 layoutParams = android.view.ViewGroup.LayoutParams(MATCH_PARENT, MATCH_PARENT)
@@ -1748,8 +1770,7 @@ private tailrec fun Context.findActivity(): Activity? =
 
 private class NuvioLibmpvView(
     context: Context,
-    private val videoOutput: AndroidLibmpvVideoOutput,
-    private val hardwareDecodingEnabled: Boolean,
+    private val backend: MpvRenderBackend,
     private val yuv420pEnabled: Boolean,
     attrs: AttributeSet = context.emptyMpvViewAttributes(),
 ) : BaseMPVView(context, attrs), MpvSession.Owner {
@@ -1769,15 +1790,13 @@ private class NuvioLibmpvView(
     private var latestAudioTracks: List<LibmpvTrack> = emptyList()
     @Volatile
     private var latestSubtitleTracks: List<LibmpvTrack> = emptyList()
+    private val shaders by lazy { MpvShaderController(mpv, backend) }
 
     override fun initOptions() {
-        InAppLogger.info(
-            "MPV/Android",
-            "Initializing libmpv vo=${videoOutput.mpvValue} hwdec=${if (hardwareDecodingEnabled) "auto" else "no"} yuv420p=$yuv420pEnabled",
-        )
-        setVo(videoOutput.mpvValue)
+        InAppLogger.info("MPV/Android", "Initializing libmpv yuv420p=$yuv420pEnabled")
         mpv.setOptionString("profile", "fast")
-        mpv.setOptionString("hwdec", if (hardwareDecodingEnabled) "auto" else "no")
+        // vo, gpu-api, gpu-context and hwdec: Vulkan with shaders on, OpenGL otherwise.
+        shaders.applyOptions()
         if (yuv420pEnabled) {
             mpv.setOptionString("vf", "format=yuv420p")
         }
@@ -2446,6 +2465,12 @@ private class NuvioLibmpvView(
             latestSubtitleTracks = extractLibmpvTracks(context, type = "sub")
         }
     }
+
+    fun syncShaders() = executeMpv { shaders.syncChain() }
+
+    fun pollShaders() = executeMpv { shaders.poll() }
+
+    fun onMpvLog(prefix: String, level: Int, text: String) = executeMpv { shaders.onLog(prefix, level, text) }
 
     fun releaseMpv() {
         onPreempted()
