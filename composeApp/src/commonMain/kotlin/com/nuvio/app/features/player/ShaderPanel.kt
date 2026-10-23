@@ -56,6 +56,7 @@ import com.nuvio.app.core.ui.LocalNuvioThemeTokens
 import com.nuvio.app.core.ui.isDarkAppearance
 import com.nuvio.app.core.ui.nuvio
 import com.nuvio.app.features.player.shaders.DebandLevel
+import com.nuvio.app.features.player.shaders.ImportedShader
 import com.nuvio.app.features.player.shaders.ShaderCatalog
 import com.nuvio.app.features.player.shaders.ShaderCategory
 import com.nuvio.app.features.player.shaders.ShaderChainDefinition
@@ -193,6 +194,7 @@ internal fun ShaderPanelContent() {
                 ids = inputs.liveChain ?: plan?.entries?.map { it.shaderId }.orEmpty(),
                 deband = settings.deband,
                 enabled = enabled,
+                imported = settings.imported,
             )
             ShaderPanelTab.Status -> statusTab(state.statuses)
         }
@@ -249,7 +251,7 @@ private fun LazyListScope.presetsTab(
 }
 
 @OptIn(ExperimentalLayoutApi::class)
-private fun LazyListScope.combineTab(ids: List<String>, deband: DebandLevel, enabled: Boolean) {
+private fun LazyListScope.combineTab(ids: List<String>, deband: DebandLevel, enabled: Boolean, imported: List<ImportedShader>) {
     val categories = listOf(
         ShaderCategory.Anime to Res.string.shader_category_anime,
         ShaderCategory.GeneralScaling to Res.string.shader_category_general,
@@ -257,25 +259,27 @@ private fun LazyListScope.combineTab(ids: List<String>, deband: DebandLevel, ena
         ShaderCategory.Color to Res.string.shader_category_color,
         ShaderCategory.Downscaling to Res.string.shader_category_downscaling,
     )
+    val toggle = { id: String, checked: Boolean ->
+        val next = if (checked) {
+            // Keep the user's order; the new shader goes in at its stage.
+            val sorted = ShaderPresets.defaultOrder(ids + id, ShaderController.traitsOf)
+            val before = sorted.take(sorted.indexOf(id)).lastOrNull { it in ids }
+            ids.toMutableList().apply { add(if (before == null) 0 else indexOf(before) + 1, id) }
+        } else {
+            ids - id
+        }
+        ShaderController.setLiveChain(next)
+    }
     categories.forEach { (category, label) ->
         item(key = "category-$category") { SectionLabel(label) }
         items(ShaderCatalog.shaders.filter { it.category == category }, key = { "shader-${it.id}" }) { shader ->
-            CheckRow(
-                title = shader.title,
-                checked = shader.id in ids,
-                enabled = enabled,
-                onChange = { checked ->
-                    val next = if (checked) ShaderPresets.defaultOrder(ids + shader.id).let { sorted ->
-                        // Keep the user's order; the new shader goes in at its stage.
-                        val index = sorted.indexOf(shader.id)
-                        val before = sorted.take(index).lastOrNull { it in ids }
-                        ids.toMutableList().apply { add(if (before == null) 0 else indexOf(before) + 1, shader.id) }
-                    } else {
-                        ids - shader.id
-                    }
-                    ShaderController.setLiveChain(next)
-                },
-            )
+            CheckRow(title = shader.title, checked = shader.id in ids, enabled = enabled, onChange = { toggle(shader.id, it) })
+        }
+    }
+    if (imported.isNotEmpty()) {
+        item(key = "category-imported") { SectionLabel(Res.string.shader_category_imported) }
+        items(imported, key = { "shader-${it.id}" }) { shader ->
+            CheckRow(title = shader.title, checked = shader.id in ids, enabled = enabled, onChange = { toggle(shader.id, it) })
         }
     }
     item(key = "category-deband") {

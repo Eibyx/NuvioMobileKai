@@ -7,6 +7,7 @@ import nuvio.composeapp.generated.resources.shader_warning_battery_saver
 import nuvio.composeapp.generated.resources.shader_warning_disabled
 import nuvio.composeapp.generated.resources.shader_warning_failed
 import nuvio.composeapp.generated.resources.shader_warning_failed_unknown
+import nuvio.composeapp.generated.resources.shader_warning_imported_removed
 import nuvio.composeapp.generated.resources.shader_warning_quality_frames
 import nuvio.composeapp.generated.resources.shader_warning_quality_heat
 import nuvio.composeapp.generated.resources.shader_warning_quality_raised
@@ -41,6 +42,9 @@ sealed interface ShaderWarning {
     /** A shader error mpv did not attribute to a file. */
     data object UnknownShaderFailed : ShaderWarning
 
+    /** An imported shader could not run and was taken out of the library. */
+    data class ImportedRemoved(val title: String) : ShaderWarning
+
     /** The heat and frame-drop guard changed something. */
     data class Guard(val step: GuardStep) : ShaderWarning
 
@@ -52,6 +56,7 @@ suspend fun shaderWarningText(warning: ShaderWarning): String = when (warning) {
     is ShaderWarning.ShaderFailed -> getString(Res.string.shader_warning_failed, warning.title)
     ShaderWarning.UnknownShaderFailed -> getString(Res.string.shader_warning_failed_unknown)
     ShaderWarning.BatterySaver -> getString(Res.string.shader_warning_battery_saver)
+    is ShaderWarning.ImportedRemoved -> getString(Res.string.shader_warning_imported_removed, warning.title)
     is ShaderWarning.Guard -> when (val step = warning.step) {
         is GuardStep.QualityLowered -> getString(
             if (step.byHeat) Res.string.shader_warning_quality_heat else Res.string.shader_warning_quality_frames,
@@ -153,7 +158,8 @@ object ShaderPlaybackSession {
         if (shader.id in mutableState.value.failedIds) return
         mutableState.update { it.copy(failedIds = it.failedIds + shader.id) }
         InAppLogger.warn(TAG, "shader failed, removed from the chain: ${shader.title} (${message.take(160)})")
-        mutableWarnings.tryEmit(ShaderWarning.ShaderFailed(shader.title))
+        val removedImport = ShaderLibrary.onFailed(shader.id)
+        mutableWarnings.tryEmit(if (removedImport != null) ShaderWarning.ImportedRemoved(removedImport) else ShaderWarning.ShaderFailed(shader.title))
     }
 
     fun notify(warning: ShaderWarning) {

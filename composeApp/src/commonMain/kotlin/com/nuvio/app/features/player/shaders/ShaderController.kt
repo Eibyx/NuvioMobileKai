@@ -71,8 +71,8 @@ object ShaderController {
     private val mutablePlan = MutableStateFlow<ShaderPlan?>(null)
     val plan: StateFlow<ShaderPlan?> = mutablePlan.asStateFlow()
 
-    /** Resolves a shader id to its installed file; imported shaders are added in part 6. */
-    var resolver: (ChainEntry) -> ChainShader? = { entry -> ShaderCatalog.shader(entry.shaderId)?.let { ShaderFiles.resolve(it, entry.forced) } }
+    /** Resolves a shader id, bundled or imported, to its installed file. */
+    var resolver: (ChainEntry) -> ChainShader? = ShaderLibrary::resolve
 
     /** A new video: everything the previous one changed is forgotten. */
     fun startPlayback(content: ShaderContent) {
@@ -152,11 +152,11 @@ object ShaderController {
         }
     }
 
-    /** A shader's name for the panel; imported shaders are added in part 6. */
-    var titleOf: (String) -> String = { id -> ShaderCatalog.shader(id)?.title ?: id }
+    /** A shader's name for the panel. */
+    var titleOf: (String) -> String = ShaderLibrary::title
 
-    /** Bundled shaders, then the imported ones (part 6). */
-    var traitsOf: (String) -> ShaderPresets.ShaderTraits? = ShaderPresets::bundledTraits
+    /** Bundled shaders, then the imported ones. */
+    var traitsOf: (String) -> ShaderPresets.ShaderTraits? = ShaderLibrary::traits
 
     fun plan(settings: ShaderSettings, inputs: ShaderRuntimeInputs): ShaderPlan {
         val enabled = (inputs.enabledOverride ?: settings.enabled) && ShaderFiles.isSupported

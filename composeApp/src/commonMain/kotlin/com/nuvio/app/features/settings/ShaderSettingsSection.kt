@@ -197,6 +197,7 @@ internal fun ShaderSettingsContent(settings: ShaderSettings, mpvEngine: Boolean,
                 onCheckedChange = ShaderSettingsRepository::setDisableOnBatterySaver,
             )
         }
+        ShaderLibrarySection(settings = settings, isTablet = isTablet)
     }
 
     val close = { dialog = null }

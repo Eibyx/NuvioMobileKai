@@ -106,4 +106,30 @@
     <string name="shader_compare_hold">Mantén pulsado para ver el original</string>
     <string name="compose_player_shaders">Shaders</string>
     <string name="compose_player_shaders_active">Shaders activos</string>
+    <string name="shader_warning_imported_removed">El shader importado «%1$s» no pudo ejecutarse en este dispositivo y se ha eliminado.</string>
+    <string name="settings_shaders_library">SHADERS PROPIOS</string>
+    <string name="settings_shaders_import_files">Importar archivos de shader</string>
+    <string name="settings_shaders_import_files_description">Archivos .glsl o .hook con un shader de mpv (//!HOOK o //!DESC).</string>
+    <string name="settings_shaders_import_folder">Importar una carpeta</string>
+    <string name="settings_shaders_import_folder_description">Todos los .glsl y .hook de la carpeta y sus subcarpetas.</string>
+    <string name="settings_shaders_imported_upscaler">Importado · escalador, con «Aplicar siempre»</string>
+    <string name="settings_shaders_imported_other">Importado</string>
+    <string name="settings_shaders_remove">Quitar %1$s</string>
+    <string name="settings_shaders_chains">CADENAS PROPIAS</string>
+    <string name="settings_shaders_chains_empty">Aún no hay cadenas propias</string>
+    <string name="settings_shaders_chains_empty_description">Crea una en el reproductor: Shaders > Combinar > Guardar como preset.</string>
+    <string name="settings_shaders_chains_export">Exportar cadenas</string>
+    <string name="settings_shaders_chains_import">Importar cadenas</string>
+    <string name="settings_shaders_chains_import_description">Un archivo exportado aquí. Se omiten los shaders que no haya en este dispositivo.</string>
+    <string name="shader_import_none">No se encontraron archivos de shader.</string>
+    <string name="shader_import_result">%1$d shaders importados.</string>
+    <string name="shader_import_rejected">%1$d archivos omitidos (no son shaders de mpv, vacíos o demasiado grandes): %2$s</string>
+    <string name="shader_chains_export_done">Cadenas exportadas.</string>
+    <string name="shader_chains_export_failed">No se pudieron guardar las cadenas.</string>
+    <string name="shader_chains_import_done">%1$d cadenas importadas.</string>
+    <string name="shader_chains_import_invalid">Ese archivo no es un archivo de cadenas de Nuvio.</string>
+    <plurals name="settings_shaders_chains_count">
+        <item quantity="one">%1$d cadena propia</item>
+        <item quantity="other">%1$d cadenas propias</item>
+    </plurals>
 </resources>

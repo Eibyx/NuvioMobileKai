@@ -106,4 +106,30 @@
     <string name="shader_compare_hold">Hold to see the original</string>
     <string name="compose_player_shaders">Shaders</string>
     <string name="compose_player_shaders_active">Shaders on</string>
+    <string name="shader_warning_imported_removed">The imported shader “%1$s” could not run on this device and was removed.</string>
+    <string name="settings_shaders_library">OWN SHADERS</string>
+    <string name="settings_shaders_import_files">Import shader files</string>
+    <string name="settings_shaders_import_files_description">.glsl or .hook files with an mpv shader (//!HOOK or //!DESC).</string>
+    <string name="settings_shaders_import_folder">Import a folder</string>
+    <string name="settings_shaders_import_folder_description">Every .glsl and .hook file in it and its subfolders.</string>
+    <string name="settings_shaders_imported_upscaler">Imported · upscaler, with “Apply always”</string>
+    <string name="settings_shaders_imported_other">Imported</string>
+    <string name="settings_shaders_remove">Remove %1$s</string>
+    <string name="settings_shaders_chains">OWN CHAINS</string>
+    <string name="settings_shaders_chains_empty">No own chains yet</string>
+    <string name="settings_shaders_chains_empty_description">Make one in the player: Shaders > Combine > Save as preset.</string>
+    <string name="settings_shaders_chains_export">Export chains</string>
+    <string name="settings_shaders_chains_import">Import chains</string>
+    <string name="settings_shaders_chains_import_description">A file exported here. Shaders this device lacks are left out.</string>
+    <string name="shader_import_none">No shader files found.</string>
+    <string name="shader_import_result">%1$d shaders imported.</string>
+    <string name="shader_import_rejected">%1$d files skipped (not mpv shaders, empty or too large): %2$s</string>
+    <string name="shader_chains_export_done">Chains exported.</string>
+    <string name="shader_chains_export_failed">The chains could not be saved.</string>
+    <string name="shader_chains_import_done">%1$d chains imported.</string>
+    <string name="shader_chains_import_invalid">That file is not a Nuvio chain file.</string>
+    <plurals name="settings_shaders_chains_count">
+        <item quantity="one">%1$d own chain</item>
+        <item quantity="other">%1$d own chains</item>
+    </plurals>
 </resources>
