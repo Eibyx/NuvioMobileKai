@@ -1,8 +1,10 @@
 package com.nuvio.app.features.details
 
+import com.nuvio.app.features.anilist.SeasonEpisode
 import com.nuvio.app.features.watched.WatchedItem
 import com.nuvio.app.features.watched.normalizeWatchedMarkedAtEpochMs
 import com.nuvio.app.features.watched.watchedItemKey
+import com.nuvio.app.features.watched.watchedItemKeys
 import com.nuvio.app.features.watching.application.WatchingState
 import com.nuvio.app.features.watchprogress.WatchProgressEntry
 import com.nuvio.app.features.watching.domain.WatchingCompletedEpisode
@@ -211,15 +213,83 @@ internal fun MetaDetails.rewatchPrimaryAction(
 ): SeriesPrimaryAction? {
     if (current?.resumePositionMs != null && current.seasonNumber == seasonNumber && current.episodeNumber == episodeNumber) return current
     val video = videos.firstOrNull { it.season == seasonNumber && it.episode == episodeNumber } ?: return current
-    return SeriesPrimaryAction(
+    return upNextAction(video)
+}
+
+private fun MetaDetails.upNextAction(video: MetaVideo): SeriesPrimaryAction =
+    SeriesPrimaryAction(
         label = video.upNextLabel(),
-        videoId = com.nuvio.app.features.watchprogress.buildPlaybackVideoId(parentMetaId = id, seasonNumber = seasonNumber, episodeNumber = episodeNumber, fallbackVideoId = video.id),
-        seasonNumber = seasonNumber,
-        episodeNumber = episodeNumber,
+        videoId = com.nuvio.app.features.watchprogress.buildPlaybackVideoId(parentMetaId = id, seasonNumber = video.season, episodeNumber = video.episode, fallbackVideoId = video.id),
+        seasonNumber = video.season,
+        episodeNumber = video.episode,
         episodeTitle = video.title,
         episodeThumbnail = video.thumbnail,
         resumePositionMs = null,
     )
+
+/**
+ * The next episode with Nuvio's history and what AniList says is watched ([importedKeys], see
+ * [com.nuvio.app.features.watched.WatchedRepository.importedWatchedKeys]) together, as the detail
+ * page and Home both show it: those episodes count as watched, Nuvio's half-watched copy of one is
+ * not resumed and the next episode skips past them, so a first season completed on AniList
+ * continues at S2E1. Rewatching on AniList resumes at [rewatch].
+ */
+internal fun MetaDetails.combinedSeriesPrimaryAction(
+    content: WatchingContentRef = WatchingContentRef(type = type, id = id),
+    entries: List<WatchProgressEntry>,
+    watchedItems: List<WatchedItem>,
+    importedKeys: Set<String>,
+    rewatch: SeasonEpisode? = null,
+    todayIsoDate: String,
+    preferFurthestEpisode: Boolean = true,
+    showUnairedNextUp: Boolean = false,
+    watchedKeys: Set<String> = emptySet(),
+    allowRewatch: Boolean = false,
+): SeriesPrimaryAction? {
+    fun imported(season: Int?, episode: Int?): Boolean {
+        if (season == null || episode == null) return false
+        if (rewatch != null && rewatch.season == season && rewatch.episode == episode) return false
+        return (watchedItemKeys(content.type, content.id, season, episode) + watchedItemKeys(content.type, content.id.lowercase(), season, episode))
+            .any(importedKeys::contains)
+    }
+    val activeEntries = if (importedKeys.isEmpty()) entries else entries.filterNot { entry ->
+        !entry.isEffectivelyCompleted && entry.parentMetaId.equals(content.id, ignoreCase = true) &&
+            imported(entry.seasonNumber, entry.episodeNumber)
+    }
+    val effectiveWatchedItems = buildList {
+        addAll(watchedItems.filter { it.type.equals(content.type, ignoreCase = true) && it.id.equals(content.id, ignoreCase = true) })
+        val existingKeys = mapTo(mutableSetOf()) { watchedItemKey(it.type, it.id, it.season, it.episode) }
+        videos.forEach { video ->
+            val season = video.season ?: return@forEach
+            val episode = video.episode ?: return@forEach
+            if (watchedItemKey(content.type, content.id, season, episode) in existingKeys) return@forEach
+            val watched = imported(season, episode) ||
+                (watchedKeys.isNotEmpty() && WatchingState.isEpisodeWatched(watchedKeys, content.type, content.id, video))
+            if (watched) add(WatchedItem(id = content.id, type = content.type, season = season, episode = episode, name = "", markedAtEpochMs = 0L))
+        }
+    }
+    val action = seriesPrimaryAction(
+        content = content,
+        entries = activeEntries,
+        watchedItems = effectiveWatchedItems,
+        todayIsoDate = todayIsoDate,
+        preferFurthestEpisode = preferFurthestEpisode,
+        showUnairedNextUp = showUnairedNextUp,
+        allowRewatch = allowRewatch,
+    )
+    rewatch?.let { return rewatchPrimaryAction(it.season, it.episode, action) }
+    if (action == null || action.resumePositionMs != null || !imported(action.seasonNumber, action.episodeNumber)) return action
+    // From the latest Nuvio episode (not the furthest) the next one can still be on AniList: walk on.
+    val episodes = videos.map(MetaVideo::toDomainReleasedEpisode)
+    var season = action.seasonNumber
+    var episode = action.episodeNumber
+    while (imported(season, episode)) {
+        val next = com.nuvio.app.features.watching.domain.nextReleasedEpisodeAfter(content, episodes, season, episode, todayIsoDate, showUnairedNextUp)
+            ?: return if (allowRewatch) action else null
+        season = next.seasonNumber
+        episode = next.episodeNumber
+    }
+    return videos.firstOrNull { it.season == season && it.episode == episode }?.let { upNextAction(it) } ?: action
 }
 
 internal fun MetaVideo.playLabel(): String =

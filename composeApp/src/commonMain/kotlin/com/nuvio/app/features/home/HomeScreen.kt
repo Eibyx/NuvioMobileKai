@@ -51,7 +51,8 @@ import com.nuvio.app.features.details.MetaDetails
 import com.nuvio.app.features.details.MetaDetailsRepository
 import com.nuvio.app.features.details.MetaVideo
 import com.nuvio.app.features.details.SeriesPrimaryAction
-import com.nuvio.app.features.details.seriesPrimaryAction
+import com.nuvio.app.features.details.combinedSeriesPrimaryAction
+import com.nuvio.app.features.anilist.SeasonEpisode
 import com.nuvio.app.features.home.components.HomeCatalogRowSection
 import com.nuvio.app.features.home.components.HomeContinueWatchingSection
 import com.nuvio.app.features.home.components.HomeEmptyStateCard
@@ -165,6 +166,12 @@ fun HomeScreen(
     val fullyWatchedSeriesKeys by WatchedRepository.fullyWatchedSeriesKeys.collectAsStateWithLifecycle()
     val watchProgressUiState by WatchProgressRepository.uiState.collectAsStateWithLifecycle()
     val effectiveWatchProgressSource = watchProgressUiState.source
+    // What AniList says is watched, as the detail page uses it.
+    val aniListWatchedKeys by AniListTracker.importer.keys.collectAsStateWithLifecycle()
+    val aniListRewatch by AniListTracker.importer.resume.collectAsStateWithLifecycle()
+    val homeProgressEntries = remember(watchProgressUiState.entries, aniListWatchedKeys, aniListRewatch) {
+        watchProgressUiState.entries.finishedByAniList(aniListWatchedKeys, aniListRewatch)
+    }
     val cloudLibraryUiState by CloudLibraryRepository.uiState.collectAsStateWithLifecycle()
     val networkStatusUiState by NetworkStatusRepository.uiState.collectAsStateWithLifecycle()
     val trackingSettingsUiState by remember {
@@ -220,11 +227,11 @@ fun HomeScreen(
     }
 
     val effectiveWatchProgressEntries = remember(
-        watchProgressUiState.entries,
+        homeProgressEntries,
         watchProgressUiState.hiddenContentIds,
         continueWatchingCutoffEpochMs,
     ) {
-        val visibleProviderEntries = watchProgressUiState.entries.filterNot { entry ->
+        val visibleProviderEntries = homeProgressEntries.filterNot { entry ->
             entry.parentMetaId in watchProgressUiState.hiddenContentIds ||
                 WatchProgressRepository.isDroppedShow(entry.parentMetaId)
         }
@@ -234,9 +241,9 @@ fun HomeScreen(
         )
     }
 
-    val nextUpProgressSeedEntries = remember(watchProgressUiState.entries) {
+    val nextUpProgressSeedEntries = remember(homeProgressEntries) {
         val nowEpochMs = WatchProgressClock.nowEpochMs()
-        watchProgressUiState.entries.filter { entry ->
+        homeProgressEntries.filter { entry ->
             WatchProgressRepository.shouldUseAsNextUpSeed(entry, nowEpochMs)
         }
     }
@@ -287,8 +294,8 @@ fun HomeScreen(
         effectiveWatchProgressEntries.continueWatchingEntries(limit = HomeContinueWatchingMaxRecentProgressItems)
     }
 
-    val watchProgressSeedKey = remember(watchProgressUiState.entries) {
-        watchProgressUiState.entries.map { entry ->
+    val watchProgressSeedKey = remember(homeProgressEntries) {
+        homeProgressEntries.map { entry ->
             Triple(entry.parentMetaId, entry.seasonNumber, entry.episodeNumber)
         }
     }
@@ -405,10 +412,15 @@ fun HomeScreen(
         continueWatchingPreferences.showUnairedNextUp,
         watchedUiState.isLoaded,
         watchProgressUiState.hiddenContentIds,
+        aniListWatchedKeys,
+        aniListRewatch,
     ) {
         val nowEpochMs = WatchProgressClock.nowEpochMs()
         cachedNextUpReleases.mapNotNull { cachedRelease ->
             val cached = cachedRelease.item
+            if (cached.isWatchedOnAniList(aniListWatchedKeys, aniListRewatch)) {
+                return@mapNotNull null
+            }
             if (
                 shouldValidateMissingNextUpSeeds &&
                 cached.contentId !in activeNextUpSeedContentIds
@@ -665,6 +677,8 @@ fun HomeScreen(
         watchProgressSeedKey,
         visibleContinueWatchingEntries,
         nextUpWatchedItems,
+        aniListWatchedKeys,
+        aniListRewatch,
         watchedUiState.isLoaded,
         watchedUiState.hasLoadedRemoteItems,
         watchProgressUiState.hasLoadedRemoteProgress,
@@ -760,7 +774,9 @@ fun HomeScreen(
                             semaphore.withPermit {
                                 resolveHomeNextUpCandidate(
                                     completedEntry = completedEntry,
-                                    watchProgressEntries = watchProgressUiState.entries,
+                                    watchProgressEntries = homeProgressEntries,
+                                    aniListWatchedKeys = aniListWatchedKeys,
+                                    aniListRewatch = aniListRewatch,
                                     watchedItems = nextUpWatchedItems,
                                     cachedFallbackItem = cachedNextUpItems[completedEntry.content.id]?.second,
                                     todayIsoDate = todayIsoDate,
@@ -1519,6 +1535,8 @@ private suspend fun resolveHomeNextUpCandidate(
     completedEntry: CompletedSeriesCandidate,
     watchProgressEntries: List<WatchProgressEntry>,
     watchedItems: List<WatchedItem>,
+    aniListWatchedKeys: Set<String>,
+    aniListRewatch: Map<String, SeasonEpisode>,
     cachedFallbackItem: ContinueWatchingItem?,
     todayIsoDate: String,
     preferFurthestEpisode: Boolean,
@@ -1548,6 +1566,7 @@ private suspend fun resolveHomeNextUpCandidate(
     val resolvedWatchedKeys = resolvedWatchedItems.mapTo(linkedSetOf()) { item ->
         watchedItemKey(item.type, item.id, item.season, item.episode)
     }
+    val rewatch = aniListRewatch[contentId.lowercase()]
 
     if (!providerOwnsCompletedHistory) {
         WatchedRepository.reconcileFullyWatchedSeriesState(
@@ -1565,10 +1584,12 @@ private suspend fun resolveHomeNextUpCandidate(
         )
     }
 
-    val action = meta.seriesPrimaryAction(
+    val action = meta.combinedSeriesPrimaryAction(
         content = completedEntry.content,
         entries = resolvedProgressEntries,
         watchedItems = resolvedWatchedItems,
+        importedKeys = aniListWatchedKeys,
+        rewatch = rewatch,
         todayIsoDate = todayIsoDate,
         preferFurthestEpisode = preferFurthestEpisode,
         showUnairedNextUp = showUnairedNextUp,

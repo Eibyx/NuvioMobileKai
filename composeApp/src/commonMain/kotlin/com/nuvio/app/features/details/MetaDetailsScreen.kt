@@ -651,6 +651,7 @@ fun MetaDetailsScreen(
                 }
                 val aniListResume by com.nuvio.app.features.anilist.AniListTracker.importer.resume.collectAsStateWithLifecycle()
                 val aniListRewatch = aniListResume[meta.id.lowercase()]
+                val aniListWatchedKeys by com.nuvio.app.features.anilist.AniListTracker.importer.keys.collectAsStateWithLifecycle()
                 LaunchedEffect(
                     meta.id,
                     meta.type,
@@ -685,7 +686,7 @@ fun MetaDetailsScreen(
                 } else {
                     null
                 }
-                val seriesAction = remember(watchProgressUiState.entries, watchedUiState.items, meta, todayIsoDate, cwPrefs.upNextFromFurthestEpisode, watchedUiState.watchedKeys, shuffleSettings, shuffleVisit, shuffleProfileId, aniListRewatch) {
+                val seriesAction = remember(watchProgressUiState.entries, watchedUiState.items, meta, todayIsoDate, cwPrefs.upNextFromFurthestEpisode, watchedUiState.watchedKeys, shuffleSettings, shuffleVisit, shuffleProfileId, aniListRewatch, aniListWatchedKeys) {
                     if (shuffleSettings.enabled) meta.shufflePrimaryAction(
                         profileId = shuffleProfileId,
                         settings = shuffleSettings,
@@ -694,15 +695,16 @@ fun MetaDetailsScreen(
                         visit = shuffleVisit,
                     ) else {
                         EpisodeShuffleRepository.shuffle.clearSelection(shuffleProfileId, meta.id, ShuffleSurface.DETAIL)
-                        val action = meta.seriesPrimaryAction(
+                        meta.combinedSeriesPrimaryAction(
                             entries = watchProgressUiState.entries,
                             watchedItems = watchedUiState.items,
+                            importedKeys = aniListWatchedKeys,
+                            rewatch = aniListRewatch,
                             todayIsoDate = todayIsoDate,
                             preferFurthestEpisode = cwPrefs.upNextFromFurthestEpisode,
                             watchedKeys = watchedUiState.watchedKeys,
                             allowRewatch = true,
                         )
-                        aniListRewatch?.let { meta.rewatchPrimaryAction(it.season, it.episode, action) } ?: action
                     }
                 }
                 val seriesActionVideo = remember(seriesAction, meta.id, meta.videos) {
