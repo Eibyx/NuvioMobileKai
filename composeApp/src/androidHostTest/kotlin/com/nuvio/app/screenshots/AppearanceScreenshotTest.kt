@@ -243,6 +243,52 @@ class AppearanceScreenshotTest(private val appearance: AppearanceMode) {
         compose.waitForIdle()
     }
 
+    /** The player's controls over the worst frame for them: pure white (a bright anime scene). */
+    @Test
+    @Config(sdk = [GLASS_SDK], qualifiers = "w915dp-h412dp-xhdpi")
+    fun playerControlsOverAWhiteFrame() {
+        setScreen {
+            Box(modifier = Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Color.White)) {
+                com.nuvio.app.features.player.PlayerToolbar(
+                    isLocked = false,
+                    onLockToggle = {},
+                    onBack = {},
+                    onCastClick = {},
+                    onPictureInPictureClick = {},
+                    showShaderCompare = true,
+                    modifier = Modifier.align(Alignment.TopEnd).padding(16.dp),
+                )
+                Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(16.dp)) {
+                    com.nuvio.app.features.player.PlayerControlActions(
+                        playbackSnapshot = PlayerPlaybackSnapshot(positionMs = 754_000L, durationMs = 1_420_000L),
+                        displayedPositionMs = 754_000L,
+                        showRemainingTime = false,
+                        onRuntimeClick = {},
+                        metrics = com.nuvio.app.features.player.PlayerLayoutMetrics.fromWidth(915.dp),
+                        resizeMode = com.nuvio.app.features.player.PlayerResizeMode.entries.first(),
+                        onSubtitleClick = {},
+                        onAudioClick = {},
+                        onSourcesClick = {},
+                        onEpisodesClick = {},
+                        onNextEpisodeClick = {},
+                        onSpeedClick = {},
+                        onShadersClick = {},
+                        shadersActive = true,
+                        onResizeModeClick = {},
+                        onVideoSettingsClick = null,
+                        onOpenInExternalPlayer = null,
+                        onStreamInfoClick = {},
+                        onSubmitIntroClick = null,
+                        onInteraction = {},
+                    )
+                }
+            }
+        }
+        compose.mainClock.advanceTimeBy(800L)
+        compose.waitForIdle()
+        capture("player_controls_white_frame")
+    }
+
     @Test
     @Config(sdk = [GLASS_SDK], qualifiers = "w915dp-h412dp-xhdpi")
     fun playerShaderPanel() {

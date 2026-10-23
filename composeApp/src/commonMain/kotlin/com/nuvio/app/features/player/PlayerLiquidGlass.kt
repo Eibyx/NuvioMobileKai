@@ -28,7 +28,11 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.kyant.backdrop.Backdrop
+import com.nuvio.app.core.ui.glass.GlassText
+import com.nuvio.app.core.ui.glass.LargeTextContrast
 import com.nuvio.app.core.ui.glass.LiquidGlassBackdropHost
+import com.nuvio.app.core.ui.glass.NormalTextContrast
+import com.nuvio.app.core.ui.glass.minimumReadableAlpha
 import com.nuvio.app.core.ui.glass.ambientLiquidGlass
 import kotlin.math.roundToInt
 
@@ -41,8 +45,21 @@ internal val PlayerGlassTint = Color(0xFF101014).copy(alpha = 0.52f)
 /** Light blur so the video stays readable through the glass. */
 internal val PlayerGlassBlur: Dp = 6.dp
 
-/** Near-clear: a faint white sheen instead of a dark fill. */
-internal val PlayerGlassSurfaceTint = Color.White.copy(alpha = 0.05f)
+/** The smoke of the control glass: as dark as the player around it. */
+internal val PlayerGlassSmoke = Color(0xFF101014)
+
+/**
+ * What sits on the control glass: labels and times in white at 90% (4.5:1) and white icons (3:1).
+ * The video behind can be a fully white frame (a bright anime scene), so the glass is tinted just
+ * enough for those to read on it.
+ */
+internal val PlayerGlassTexts = listOf(
+    GlassText(Color.White.copy(alpha = 0.9f), NormalTextContrast),
+    GlassText(Color.White, LargeTextContrast),
+)
+
+/** The smoke at the lowest alpha that keeps [PlayerGlassTexts] readable over a white frame. */
+internal val PlayerGlassSurfaceTint = PlayerGlassSmoke.copy(alpha = minimumReadableAlpha(PlayerGlassSmoke, Color.White, PlayerGlassTexts))
 
 /**
  * How strongly the blurred video copy is drawn inside the glass. Below 1 the live video shows through,
@@ -50,8 +67,8 @@ internal val PlayerGlassSurfaceTint = Color.White.copy(alpha = 0.05f)
  */
 internal const val PlayerGlassBackdropOpacity = 0.55f
 
-/** Used when there is no live backdrop (Android < 12, protected/DRM video, glass turned off). */
-internal val PlayerGlassFallback = Color.White.copy(alpha = 0.08f)
+/** Used when there is no live backdrop (Android < 12, protected/DRM video, glass turned off): the same smoke. */
+internal val PlayerGlassFallback = PlayerGlassSurfaceTint
 
 /** Hairline rim that sells the glass edge on top of Kyant's highlight. */
 internal val PlayerGlassRim = Color.White.copy(alpha = 0.22f)
