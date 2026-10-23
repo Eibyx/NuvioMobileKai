@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.zIndex
 import com.nuvio.app.core.ui.glass.ambientLiquidGlass
 import com.nuvio.app.core.ui.glass.detailCardGlass
+import com.nuvio.app.core.ui.glass.detailCardSecondaryText
 import androidx.compose.ui.graphics.compositeOver
 import com.nuvio.app.core.ui.isDarkAppearance
 import com.nuvio.app.core.ui.glass.isAmbientLiquidGlassActive
@@ -224,7 +225,7 @@ internal fun EpisodeNavigatorBar(
                 Icon(
                     imageVector = Icons.Default.Search,
                     contentDescription = null,
-                    tint = tokens.colors.textMuted,
+                    tint = detailCardSecondaryText(),
                     modifier = Modifier.size(18.dp),
                 )
                 Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
@@ -232,7 +233,7 @@ internal fun EpisodeNavigatorBar(
                         Text(
                             text = stringResource(Res.string.episode_navigator_search_hint),
                             style = MaterialTheme.typography.bodyMedium,
-                            color = tokens.colors.textMuted,
+                            color = detailCardSecondaryText(),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -254,7 +255,7 @@ internal fun EpisodeNavigatorBar(
                     Icon(
                         imageVector = Icons.Default.Close,
                         contentDescription = stringResource(Res.string.episode_navigator_clear_search),
-                        tint = tokens.colors.textMuted,
+                        tint = detailCardSecondaryText(),
                         modifier = Modifier
                             .size(18.dp)
                             .clickable { state.query = "" },
@@ -274,13 +275,13 @@ internal fun EpisodeNavigatorBar(
             Text(
                 text = stringResource(Res.string.episode_navigator_count, shownCount, totalCount),
                 style = MaterialTheme.typography.labelMedium,
-                color = tokens.colors.textMuted,
+                color = detailCardSecondaryText(),
                 modifier = Modifier.weight(1f),
             )
             Text(
                 text = stringResource(state.sort.labelRes()),
                 style = MaterialTheme.typography.labelMedium,
-                color = tokens.colors.textMuted,
+                color = detailCardSecondaryText(),
             )
         }
     }
@@ -322,7 +323,7 @@ internal fun EpisodeNavigatorEmptyState(query: String, onClear: () -> Unit, modi
         Text(
             text = stringResource(Res.string.episode_navigator_no_match, query.trim()),
             style = MaterialTheme.typography.bodyMedium,
-            color = tokens.colors.textMuted,
+            color = detailCardSecondaryText(),
             textAlign = TextAlign.Center,
         )
         EpisodeNavigatorChip(text = stringResource(Res.string.episode_navigator_clear_search), onClick = onClear)
@@ -405,7 +406,7 @@ internal fun EpisodeGoToSheet(
                         Text(
                             text = stringResource(Res.string.episode_navigator_episode_number),
                             style = MaterialTheme.typography.bodyLarge,
-                            color = tokens.colors.textMuted,
+                            color = detailCardSecondaryText(),
                         )
                     }
                     BasicTextField(
@@ -445,7 +446,7 @@ internal fun EpisodeGoToSheet(
                     stringResource(Res.string.episode_navigator_go_to_help)
                 },
                 style = MaterialTheme.typography.bodySmall,
-                color = if (outOfRange) tokens.colors.danger else tokens.colors.textMuted,
+                color = if (outOfRange) tokens.colors.danger else detailCardSecondaryText(),
             )
             FlowRow(
                 modifier = Modifier.fillMaxWidth(),
@@ -483,7 +484,7 @@ internal fun EpisodeGoToSheet(
                         Text(
                             text = episode.episode.toString(),
                             style = MaterialTheme.typography.bodyMedium,
-                            color = if (watched) tokens.colors.textMuted else tokens.colors.textPrimary,
+                            color = if (watched) detailCardSecondaryText() else tokens.colors.textPrimary,
                         )
                     }
                 }

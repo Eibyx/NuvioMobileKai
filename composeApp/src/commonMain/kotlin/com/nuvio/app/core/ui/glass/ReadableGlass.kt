@@ -3,12 +3,15 @@ package com.nuvio.app.core.ui.glass
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
+import com.nuvio.app.core.ui.LocalNuvioThemeTokens
 import com.nuvio.app.core.ui.isDarkAppearance
+import com.nuvio.app.core.ui.nuvio
 import kotlin.math.pow
 
 /**
@@ -73,12 +76,52 @@ fun worstGlassBackdrop(dark: Boolean): Color = if (dark) Color.White else Color.
 fun glassBase(colors: ColorScheme): Color = colors.surface
 
 /**
- * The episode cards' and the episode finder bar's glass: titles in onSurface, dates and synopses
- * in onSurfaceVariant. One value for both, so they look the same.
+ * The episode cards' and the finder bar's glass alpha: low enough to still look like glass. Their
+ * secondary text is adjusted to read at this alpha (see [glassSecondaryText]).
  */
-fun detailCardGlassTexts(colors: ColorScheme): List<GlassText> = listOf(
+const val GlassTargetAlpha = 0.7f
+
+/** The detail page's Cinematic veil: the page colour at this alpha over the blurred artwork. */
+const val CinematicVeilAlpha = 0.72f
+
+/**
+ * This colour moved towards [target] just enough to reach [minimumContrast] over [backdrop]
+ * (opaque), in steps of 1%. Unchanged when it already reads.
+ */
+fun Color.raisedTowards(target: Color, backdrop: Color, minimumContrast: Double): Color {
+    for (step in 0..100) {
+        val candidate = androidx.compose.ui.graphics.lerp(this, target, step / 100f)
+        if (contrastRatio(candidate, backdrop) >= minimumContrast) return candidate
+    }
+    return target
+}
+
+/**
+ * Dates and synopses on the episode cards' glass: the muted colour moved towards the title colour
+ * until it reads at 4.5:1 on glass of [GlassTargetAlpha] over the worst artwork. It stays dimmer
+ * than the title.
+ */
+fun glassSecondaryText(colors: ColorScheme, dark: Boolean): Color {
+    val glass = glassBase(colors).copy(alpha = GlassTargetAlpha).compositeOver(worstGlassBackdrop(dark))
+    return colors.onSurfaceVariant.raisedTowards(colors.onSurface, glass, NormalTextContrast)
+}
+
+/**
+ * Secondary text on the Cinematic page veil ("Director:", genres, "Show more"): [muted] moved
+ * towards [main] until it reads at 4.5:1 on the veil over the worst artwork.
+ */
+fun veilSecondaryText(muted: Color, main: Color, background: Color, dark: Boolean): Color {
+    val veil = background.copy(alpha = CinematicVeilAlpha).compositeOver(worstGlassBackdrop(dark))
+    return muted.raisedTowards(main, veil, NormalTextContrast)
+}
+
+/**
+ * The episode cards' and the episode finder bar's glass: titles in onSurface, dates and synopses
+ * in [glassSecondaryText]. One value for both, so they look the same.
+ */
+fun detailCardGlassTexts(colors: ColorScheme, dark: Boolean): List<GlassText> = listOf(
     GlassText(colors.onSurface, LargeTextContrast),
-    GlassText(colors.onSurfaceVariant, NormalTextContrast),
+    GlassText(glassSecondaryText(colors, dark), NormalTextContrast),
 )
 
 /** The detail page's round action buttons and the download button: icons and labels in onSurface. */
@@ -111,8 +154,18 @@ fun readableGlass(texts: List<GlassText>, plainFill: Color): ReadableGlass {
 @Composable
 fun detailCardGlass(plainFill: Color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)): ReadableGlass {
     val colors = MaterialTheme.colorScheme
-    val texts = remember(colors.onSurface, colors.onSurfaceVariant) { detailCardGlassTexts(colors) }
+    val dark = MaterialTheme.isDarkAppearance
+    val texts = remember(colors.onSurface, colors.onSurfaceVariant, colors.surface, dark) { detailCardGlassTexts(colors, dark) }
     return readableGlass(texts, plainFill)
+}
+
+/** Dates, synopses and counters on the episode cards and the finder bar. */
+@Composable
+fun detailCardSecondaryText(): Color {
+    val colors = MaterialTheme.colorScheme
+    if (!LocalGlassOverArtwork.current) return colors.onSurfaceVariant
+    val dark = MaterialTheme.isDarkAppearance
+    return remember(colors.onSurface, colors.onSurfaceVariant, colors.surface, dark) { glassSecondaryText(colors, dark) }
 }
 
 @Composable
@@ -120,4 +173,40 @@ fun detailControlGlass(plainFill: Color): ReadableGlass {
     val colors = MaterialTheme.colorScheme
     val texts = remember(colors.onSurface) { detailControlGlassTexts(colors) }
     return readableGlass(texts, plainFill)
+}
+
+/**
+ * With artwork behind the page (the Cinematic veil), secondary text ("Director:", genres,
+ * "Show more", muted labels) is moved towards the primary text until it reads at 4.5:1 over the
+ * worst artwork: lighter in the dark appearance, darker in the light one. It stays dimmer than the
+ * primary text. The veil itself is left as it is.
+ */
+@Composable
+fun SecondaryTextOverArtwork(enabled: Boolean, content: @Composable () -> Unit) {
+    if (!enabled) {
+        content()
+        return
+    }
+    val colors = MaterialTheme.colorScheme
+    val tokens = MaterialTheme.nuvio
+    val dark = MaterialTheme.isDarkAppearance
+    val adjustedColors = remember(colors, dark) {
+        colors.copy(onSurfaceVariant = veilSecondaryText(colors.onSurfaceVariant, colors.onSurface, colors.background, dark))
+    }
+    val adjustedTokens = remember(tokens, colors.background, dark) {
+        tokens.copy(
+            colors = tokens.colors.copy(
+                textSecondary = veilSecondaryText(tokens.colors.textSecondary, tokens.colors.textPrimary, colors.background, dark),
+                textMuted = veilSecondaryText(tokens.colors.textMuted, tokens.colors.textPrimary, colors.background, dark),
+            ),
+        )
+    }
+    CompositionLocalProvider(LocalNuvioThemeTokens provides adjustedTokens) {
+        MaterialTheme(
+            colorScheme = adjustedColors,
+            typography = MaterialTheme.typography,
+            shapes = MaterialTheme.shapes,
+            content = content,
+        )
+    }
 }

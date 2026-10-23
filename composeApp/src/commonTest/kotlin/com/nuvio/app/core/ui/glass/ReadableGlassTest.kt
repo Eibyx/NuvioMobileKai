@@ -30,9 +30,11 @@ class ReadableGlassTest {
                 val colors = nuvioColorScheme(theme, dark)
                 val base = glassBase(colors)
                 val backdrop = worstGlassBackdrop(dark)
-                val texts = detailCardGlassTexts(colors)
+                val texts = detailCardGlassTexts(colors, dark)
                 val alpha = minimumReadableAlpha(base, backdrop, texts)
                 val label = "$theme ${if (dark) "dark" else "light"} alpha=$alpha"
+                // Still glass: the secondary text is adjusted so 0.7 is enough.
+                assertTrue(alpha <= GlassTargetAlpha, "$label is above $GlassTargetAlpha")
                 texts.forEach { text ->
                     val ratio = glassContrast(base, alpha, backdrop, text.color)
                     assertTrue(ratio >= text.minimumContrast, "$label: ${text.color} reaches $ratio, needs ${text.minimumContrast}")
@@ -48,8 +50,8 @@ class ReadableGlassTest {
                 val glass = base.copy(alpha = alpha).compositeOver(backdrop)
                 val control = colors.surfaceVariant.copy(alpha = 0.45f).compositeOver(glass)
                 assertTrue(
-                    contrastRatio(colors.onSurfaceVariant, control) >= NormalTextContrast,
-                    "$label: finder field text reaches ${contrastRatio(colors.onSurfaceVariant, control)}",
+                    contrastRatio(glassSecondaryText(colors, dark), control) >= NormalTextContrast,
+                    "$label: finder field text reaches ${contrastRatio(glassSecondaryText(colors, dark), control)}",
                 )
             }
         }
@@ -90,7 +92,7 @@ class ReadableGlassTest {
     fun theDefaultThemeNeedsNoNearlyOpaqueGlass() {
         appearances.forEach { dark ->
             val colors = nuvioColorScheme(AppTheme.WHITE, dark)
-            val detail = minimumReadableAlpha(glassBase(colors), worstGlassBackdrop(dark), detailCardGlassTexts(colors))
+            val detail = minimumReadableAlpha(glassBase(colors), worstGlassBackdrop(dark), detailCardGlassTexts(colors, dark))
             val streams = minimumReadableAlpha(
                 glassBase(colors),
                 worstGlassBackdrop(dark),
@@ -98,6 +100,45 @@ class ReadableGlassTest {
             )
             println("Readable glass (${if (dark) "dark" else "light"}): detail cards and finder bar $detail, streams $streams")
             assertTrue(detail < 0.95f && streams < 0.95f)
+        }
+    }
+
+    @Test
+    fun secondaryTextStaysDimmerThanThePrimaryText() {
+        AppTheme.entries.forEach { theme ->
+            appearances.forEach { dark ->
+                val colors = nuvioColorScheme(theme, dark)
+                val glass = glassBase(colors).copy(alpha = GlassTargetAlpha).compositeOver(worstGlassBackdrop(dark))
+                val secondary = glassSecondaryText(colors, dark)
+                assertTrue(contrastRatio(secondary, glass) >= NormalTextContrast, "$theme dark=$dark")
+                assertTrue(contrastRatio(secondary, glass) < contrastRatio(colors.onSurface, glass), "$theme dark=$dark: as strong as the title")
+            }
+        }
+    }
+
+    @Test
+    fun secondaryTextOnTheCinematicVeilReadsWithoutAHeavierVeil() {
+        AppTheme.entries.forEach { theme ->
+            appearances.forEach { dark ->
+                val colors = nuvioColorScheme(theme, dark)
+                val veil = colors.background.copy(alpha = CinematicVeilAlpha).compositeOver(worstGlassBackdrop(dark))
+                val secondary = veilSecondaryText(colors.onSurfaceVariant, colors.onSurface, colors.background, dark)
+                val label = "$theme ${if (dark) "dark" else "light"}"
+                assertTrue(contrastRatio(secondary, veil) >= NormalTextContrast, "$label: ${contrastRatio(secondary, veil)}")
+                assertTrue(contrastRatio(secondary, veil) < contrastRatio(colors.onSurface, veil), "$label: as strong as the primary text")
+                // Lighter in the dark appearance, darker in the light one.
+                if (dark) assertTrue(relativeLuminance(secondary) >= relativeLuminance(colors.onSurfaceVariant), label)
+                else assertTrue(relativeLuminance(secondary) <= relativeLuminance(colors.onSurfaceVariant), label)
+            }
+        }
+        appearances.forEach { dark ->
+            val colors = nuvioColorScheme(AppTheme.WHITE, dark)
+            val veil = colors.background.copy(alpha = CinematicVeilAlpha).compositeOver(worstGlassBackdrop(dark))
+            println(
+                "Cinematic veil (${if (dark) "dark" else "light"}): secondary text " +
+                    "${contrastRatio(colors.onSurfaceVariant, veil)} -> " +
+                    "${contrastRatio(veilSecondaryText(colors.onSurfaceVariant, colors.onSurface, colors.background, dark), veil)}",
+            )
         }
     }
 }

@@ -107,6 +107,7 @@ import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
 import com.nuvio.app.core.ui.glass.ambientLiquidGlass
 import com.nuvio.app.core.ui.glass.detailCardGlass
+import com.nuvio.app.core.ui.glass.detailCardSecondaryText
 
 private val log = Logger.withTag("SeriesContent")
 
@@ -1539,8 +1540,8 @@ private fun EpisodeListCard(
                                     fontSize = sizing.metaTextSize,
                                     fontWeight = FontWeight.Medium,
                                 ),
-                                // Full strength: the glass alpha is computed for this colour (4.5:1).
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                // Reads at 4.5:1 on the cards' glass over any artwork.
+                                color = detailCardSecondaryText(),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
@@ -1562,7 +1563,7 @@ private fun EpisodeListCard(
                             fontSize = sizing.bodyTextSize,
                             lineHeight = sizing.bodyLineHeight,
                         ),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = detailCardSecondaryText(),
                         maxLines = sizing.overviewMaxLines,
                         overflow = TextOverflow.Ellipsis,
                     )
