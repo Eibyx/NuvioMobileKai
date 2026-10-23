@@ -172,6 +172,7 @@ import com.nuvio.app.features.settings.ThemeSettingsRepository
 import com.nuvio.app.features.whatsnew.WhatsNewSettingsScreen
 import com.nuvio.app.features.streams.BingeGroupCacheRepository
 import com.nuvio.app.features.streams.StreamAutoPlayPolicy
+import com.nuvio.app.features.streams.StreamLinkCacheRepository
 import com.nuvio.app.features.streams.StreamLaunch
 import com.nuvio.app.features.streams.PlaybackAvailability
 import com.nuvio.app.features.streams.rememberPlaybackAvailability
@@ -1080,6 +1081,8 @@ internal fun MainAppContent(
             startFromBeginning: Boolean,
             downloadMode: Boolean = false,
             forceExternalPlayer: Boolean = false,
+            // Downloads still play directly; only the stream page skips automatic selection.
+            skipAutoPlay: Boolean = false,
         ) {
             val targetResumePositionMs = if (startFromBeginning) 0L else (resumePositionMs ?: 0L)
             val targetResumeProgressFraction = if (startFromBeginning) null else resumeProgressFraction
@@ -1154,7 +1157,7 @@ internal fun MainAppContent(
                     pauseDescription = pauseDescription,
                     resumePositionMs = if (startFromBeginning) 0L else resumePositionMs,
                     resumeProgressFraction = targetResumeProgressFraction,
-                    manualSelection = manualSelection,
+                    manualSelection = manualSelection || skipAutoPlay,
                     startFromBeginning = startFromBeginning,
                     downloadMode = downloadMode,
                     forceExternalPlayer = forceExternalPlayer,
@@ -1405,6 +1408,29 @@ internal fun MainAppContent(
             !item.isCloudLibraryContinueWatchingItem() &&
                 playbackAvailability.canStream(item.parentMetaType, item.videoId)
 
+        /** A saved link or binge group the auto-play screen could try for [item] (see StreamAutoPlayPolicy). */
+        fun continueWatchingHasAutoPlayTarget(item: ContinueWatchingItem): Boolean {
+            val settings = playerSettingsUiState
+            val savedLink = settings.streamReuseLastLinkEnabled && StreamLinkCacheRepository.getValid(
+                contentKey = StreamLinkCacheRepository.contentKey(
+                    type = item.parentMetaType,
+                    videoId = item.videoId,
+                    parentMetaId = item.parentMetaId,
+                    season = item.seasonNumber,
+                    episode = item.episodeNumber,
+                ),
+                maxAgeMs = settings.streamReuseLastLinkCacheHours * 60L * 60L * 1000L,
+            ) != null
+            val bingeGroup = item.parentMetaId.isNotBlank() && BingeGroupCacheRepository.get(item.parentMetaId) != null
+            val hasTarget = StreamAutoPlayPolicy.continueWatchingHasAutoPlayTarget(settings, savedLink, bingeGroup)
+            InAppLogger.info(
+                "ContinueWatching",
+                "open ${item.parentMetaId} savedLink=$savedLink bingeGroup=$bingeGroup -> " +
+                    if (hasTarget) "auto-play" else "stream list",
+            )
+            return hasTarget
+        }
+
         val openContinueWatching: (ContinueWatchingItem, Boolean, Boolean) -> Unit = { item, manualSelection, startFromBeginning ->
             resumePromptItem = null
             if (item.isCloudLibraryContinueWatchingItem()) {
@@ -1466,6 +1492,7 @@ internal fun MainAppContent(
                     resumeProgressFraction = item.resumeProgressFraction,
                     manualSelection = manualSelection,
                     startFromBeginning = startFromBeginning,
+                    skipAutoPlay = !manualSelection && !continueWatchingHasAutoPlayTarget(item),
                 )
             }
         }
