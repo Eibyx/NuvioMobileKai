@@ -71,6 +71,12 @@ class AniListTrackingWrites internal constructor(
 
     override suspend fun addToHistory(profileId: Int, items: Collection<TrackingHistoryItem>): TrackingMutationResult {
         scope(profileId)
+        // A whole season marked at once: bind each title and season first, so every episode is
+        // queued under its own AniList part (Part 1 gets E11, Part 2 gets E23) and the queue keeps
+        // only the highest episode of each part, one update per entry.
+        if (items.size > 1) {
+            items.map { it.media }.distinctBy { it.toPendingSend().key }.forEach { media -> bindQuietly(media) }
+        }
         items.forEach { item -> enqueueWatched(profileId, item.media) }
         // Delivery is asynchronous; failures and unknown titles surface in the AniList status.
         return TrackingMutationResult(attemptedCount = items.size, notFoundCount = 0)
@@ -114,6 +120,18 @@ class AniListTrackingWrites internal constructor(
         }
     }
 
+    /** Binds [media]'s title and season if it can; failures are left for delivery to retry. */
+    private suspend fun bindQuietly(media: TrackingMediaReference) {
+        val pending = media.toPendingSend()
+        try {
+            bindLink(pending.key, media)
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Throwable) {
+            InAppLogger.info(TAG, "Could not link ${pending.title} before queueing: ${error.toDelivery().reasonText()}")
+        }
+    }
+
     private sealed interface LinkOutcome {
         data class Linked(val link: AniListLink) : LinkOutcome
         data object Missing : LinkOutcome
@@ -147,7 +165,17 @@ class AniListTrackingWrites internal constructor(
         val reference = item.toReference()
         val target = try {
             when (val outcome = bindLink(item.key, reference)) {
-                is LinkOutcome.Linked -> resolver.targetFor(outcome.link, reference)
+                is LinkOutcome.Linked -> {
+                    val link = outcome.link
+                    val episode = item.episode ?: 1
+                    // Past every part AniList had for this season (a part ARM does not know yet):
+                    // never pile it onto the last part.
+                    if (!link.absolute && reference.kind != TrackingMediaKind.MOVIE && link.parts.endsBefore(episode)) {
+                        InAppLogger.info(TAG, "Not sending ${item.title} episode $episode: past the linked AniList parts")
+                        return@withContext AniListDelivery.Skipped
+                    }
+                    resolver.targetFor(link, reference)
+                }
                 LinkOutcome.Missing -> return@withContext if (looksLikeAnime(reference)) {
                     AniListDelivery.NotFound("no AniList entry matches this title and season")
                 } else {
@@ -163,7 +191,12 @@ class AniListTrackingWrites internal constructor(
             writeLock.withLock {
                 val (media, saved) = updateProgress(scope, target.mediaId, target.episode, onlyIfGreater = true, fresh = true)
                     ?: return@withLock AniListDelivery.NotFound("AniList has no entry ${target.mediaId}")
-                if (saved == null) AniListDelivery.AlreadyUpToDate else AniListDelivery.Sent(media.displayTitle(), saved.progress)
+                if (saved == null) {
+                    InAppLogger.info(TAG, "Nothing to send for ${media.displayTitle()} episode ${target.episode}: AniList already has it")
+                    AniListDelivery.AlreadyUpToDate
+                } else {
+                    AniListDelivery.Sent(media.displayTitle(), saved.progress)
+                }
             }
         } catch (error: CancellationException) {
             throw error

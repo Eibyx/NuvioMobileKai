@@ -147,15 +147,22 @@ internal data class AniListProgressUpdate(val status: String, val progress: Int)
  * The list rules for a watched episode:
  * - no entry, Planning or any other status becomes Watching;
  * - the last episode makes it Completed;
- * - Rewatching stays Rewatching until the last episode;
- * - progress never goes back: an earlier episode than the saved progress changes nothing.
+ * - Rewatching stays Rewatching until the last episode; nothing ever turns an entry into
+ *   Rewatching;
+ * - a Completed entry is never written again: saving it again shows up on AniList as watched again;
+ * - progress never goes back, and the comparison uses the progress as it would be saved (cut to
+ *   the entry's episode count): episode 23 of a season reaching an 11-episode entry at 11 is no
+ *   change. Null means "send nothing".
  */
 internal fun aniListProgressUpdate(current: AniListEntry?, episode: Int, totalEpisodes: Int): AniListProgressUpdate? {
     if (episode <= 0) return null
-    if (current != null && current.progress >= episode) return null
     val progress = if (totalEpisodes > 0) episode.coerceAtMost(totalEpisodes) else episode
+    if (current != null) {
+        if (current.status == AniListListStatus.COMPLETED) return null
+        if (current.progress >= progress) return null
+    }
     val status = when {
-        totalEpisodes > 0 && episode >= totalEpisodes -> AniListListStatus.COMPLETED
+        totalEpisodes > 0 && progress >= totalEpisodes -> AniListListStatus.COMPLETED
         current?.status == AniListListStatus.REPEATING -> AniListListStatus.REPEATING
         else -> AniListListStatus.CURRENT
     }

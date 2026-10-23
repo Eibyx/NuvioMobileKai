@@ -104,6 +104,17 @@ class AniListSeasonMappingTest {
         // Never lowers progress.
         assertNull(aniListProgressUpdate(entry(AniListListStatus.CURRENT, 7), 5, 12))
         assertNull(aniListProgressUpdate(entry(AniListListStatus.COMPLETED, 12), 3, 12))
+        // The comparison uses the progress as saved: episode 23 of a season reaching an entry of 11
+        // that is already at 11 is no change.
+        assertNull(aniListProgressUpdate(entry(AniListListStatus.CURRENT, 11), 23, 11))
+        assertEquals(AniListProgressUpdate(AniListListStatus.COMPLETED, 11), aniListProgressUpdate(entry(AniListListStatus.CURRENT, 10), 23, 11))
+        // A Completed entry is never written again (AniList would log it as watched again), and
+        // nothing turns an entry into Rewatching.
+        assertNull(aniListProgressUpdate(entry(AniListListStatus.COMPLETED, 11), 23, 11))
+        assertNull(aniListProgressUpdate(entry(AniListListStatus.COMPLETED, 11), 11, 11))
+        assertNull(aniListProgressUpdate(entry(AniListListStatus.COMPLETED, 5), 7, 12))
+        assertEquals(AniListProgressUpdate(AniListListStatus.CURRENT, 6), aniListProgressUpdate(entry(AniListListStatus.PAUSED, 5), 6, 12))
+        assertEquals(AniListProgressUpdate(AniListListStatus.CURRENT, 3), aniListProgressUpdate(entry(AniListListStatus.DROPPED, 2), 3, 12))
         // Airing shows have no total yet.
         assertEquals(AniListProgressUpdate(AniListListStatus.CURRENT, 1100), aniListProgressUpdate(entry(AniListListStatus.CURRENT, 1099), 1100, -1))
     }
