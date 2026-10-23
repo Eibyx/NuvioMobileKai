@@ -18,6 +18,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -26,6 +27,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,6 +42,7 @@ import coil3.compose.AsyncImage
 import com.nuvio.app.core.logging.InAppLogger
 import com.nuvio.app.core.ui.NuvioInputField
 import com.nuvio.app.core.ui.NuvioModalBottomSheet
+import com.nuvio.app.core.ui.NuvioToastController
 import com.nuvio.app.core.ui.nuvio
 import com.nuvio.app.features.details.MetaDetails
 import com.nuvio.app.features.details.components.DetailActionBadge
@@ -49,6 +52,13 @@ import androidx.compose.material.icons.rounded.Link
 import com.nuvio.app.features.tracking.parseAnimeIdRef
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import nuvio.composeapp.generated.resources.anilist_part_not_on_list
+import nuvio.composeapp.generated.resources.anilist_part_progress
+import nuvio.composeapp.generated.resources.anilist_part_progress_unknown
+import nuvio.composeapp.generated.resources.anilist_sync_now
+import nuvio.composeapp.generated.resources.anilist_sync_now_started
+import org.jetbrains.compose.resources.getString
 import nuvio.composeapp.generated.resources.Res
 import nuvio.composeapp.generated.resources.anilist_icon_linked
 import nuvio.composeapp.generated.resources.anilist_icon_not_found
@@ -162,7 +172,10 @@ fun AniListLinkSheet(meta: MetaDetails, initialSeason: Int?, onDismiss: () -> Un
     val queueState by AniListTracker.queue.state.collectAsStateWithLifecycle()
     val key = AniListTracker.linkKey(meta.id, meta.type, season)
     val currentLink = queueState.links.firstOrNull { it.key == key }
+    val imports by AniListTracker.importer.imports.collectAsStateWithLifecycle()
+    val seasonImport = imports[key]
     val tokens = MaterialTheme.nuvio
+    val scope = rememberCoroutineScope()
     val colors = MaterialTheme.colorScheme
 
     LaunchedEffect(query) {
@@ -218,6 +231,27 @@ fun AniListLinkSheet(meta: MetaDetails, initialSeason: Int?, onDismiss: () -> Un
                     fontWeight = FontWeight.Medium,
                     color = colors.onSurfaceVariant,
                 )
+            }
+            seasonImport?.parts?.forEach { part ->
+                Text(
+                    text = when {
+                        part.status == null -> stringResource(Res.string.anilist_part_not_on_list, part.title)
+                        part.total != null -> stringResource(Res.string.anilist_part_progress, part.title, part.watched, part.total)
+                        else -> stringResource(Res.string.anilist_part_progress_unknown, part.title, part.watched)
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = tokens.colors.textSecondary,
+                )
+            }
+            if (!isMovie) {
+                OutlinedButton(
+                    onClick = {
+                        AniListTracker.syncTitle(meta)
+                        scope.launch { NuvioToastController.show(getString(Res.string.anilist_sync_now_started, meta.name)) }
+                    },
+                ) {
+                    Text(stringResource(Res.string.anilist_sync_now), color = colors.primary)
+                }
             }
             NuvioInputField(
                 value = query,

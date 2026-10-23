@@ -40,4 +40,9 @@
     <string name="anilist_icon_linked">AniList: linked to %1$s</string>
     <string name="anilist_icon_pending">AniList: links itself when you start watching</string>
     <string name="anilist_icon_not_found">AniList: no entry found. Tap to link it</string>
+    <string name="anilist_sync_now">Sync now</string>
+    <string name="anilist_sync_now_started">Reading %1$s from AniList…</string>
+    <string name="anilist_part_progress">%1$s · AniList: %2$d of %3$d watched</string>
+    <string name="anilist_part_progress_unknown">%1$s · AniList: %2$d watched</string>
+    <string name="anilist_part_not_on_list">%1$s · not on your AniList list</string>
 </resources>

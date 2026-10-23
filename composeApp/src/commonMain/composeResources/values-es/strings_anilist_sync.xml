@@ -40,4 +40,9 @@
     <string name="anilist_icon_linked">AniList: vinculado a %1$s</string>
     <string name="anilist_icon_pending">AniList: se vinculará solo al empezar a verlo</string>
     <string name="anilist_icon_not_found">AniList: no se encontró la entrada. Toca para vincularla</string>
+    <string name="anilist_sync_now">Sincronizar ahora</string>
+    <string name="anilist_sync_now_started">Leyendo %1$s desde AniList…</string>
+    <string name="anilist_part_progress">%1$s · AniList: %2$d de %3$d vistos</string>
+    <string name="anilist_part_progress_unknown">%1$s · AniList: %2$d vistos</string>
+    <string name="anilist_part_not_on_list">%1$s · no está en tu lista de AniList</string>
 </resources>
