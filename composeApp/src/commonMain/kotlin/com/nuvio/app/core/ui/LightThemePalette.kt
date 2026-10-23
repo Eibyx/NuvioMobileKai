@@ -1,5 +1,6 @@
 package com.nuvio.app.core.ui
 
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.graphics.Color
@@ -17,7 +18,7 @@ internal val LightTextMuted = Color(0xFF5D646C)
 internal val LightOutline = Color(0xFFD3D8DE)
 
 // Accents are drawn on near-white surfaces, so they need more contrast than on the dark ones.
-private const val ACCENT_MIN_CONTRAST = 3f
+internal const val ACCENT_MIN_CONTRAST = 3f
 // Greys and whites (the White and Graphite themes) read as an accent only when nearly black.
 private const val NEUTRAL_ACCENT_MIN_CONTRAST = 12f
 private const val NEUTRAL_SATURATION = 0.12f
@@ -48,15 +49,39 @@ internal fun ThemeColorPalette.toLightPalette(): ThemeColorPalette {
 }
 
 /**
- * A brand or rating colour used as text or an icon on the theme background: unchanged when dark,
- * darkened just enough to read on white when light (IMDb yellow, Letterboxd green and the like).
+ * A brand or rating colour used as text or an icon on the theme background, at 3:1 or more:
+ * darkened just enough to read on white when light (IMDb yellow, Letterboxd green), lightened just
+ * enough to read on the dark background when dark (MyAnimeList blue). Colours that already read are
+ * left as they are.
  */
 @Composable
 @ReadOnlyComposable
 fun Color.readableOnBackground(): Color =
-    if (LocalNuvioAppearance.current.isDark) this else darkenedForWhite(ACCENT_MIN_CONTRAST)
+    if (LocalNuvioAppearance.current.isDark) {
+        lightenedFor(MaterialTheme.colorScheme.background, ACCENT_MIN_CONTRAST)
+    } else {
+        darkenedForWhite(ACCENT_MIN_CONTRAST)
+    }
 
-private fun Color.darkenedForWhite(minContrast: Float): Color =
+/** This colour moved towards white just enough to reach [minContrast] against [background]. */
+internal fun Color.lightenedFor(background: Color, minContrast: Float): Color {
+    if (contrastWith(background) >= minContrast) return this
+    var low = 0f
+    var high = 1f
+    repeat(16) {
+        val mid = (low + high) / 2f
+        if (lerp(this, Color.White, mid).contrastWith(background) >= minContrast) high = mid else low = mid
+    }
+    return lerp(this, Color.White, high)
+}
+
+internal fun Color.contrastWith(other: Color): Float {
+    val a = luminance()
+    val b = other.luminance()
+    return (max(a, b) + 0.05f) / (min(a, b) + 0.05f)
+}
+
+internal fun Color.darkenedForWhite(minContrast: Float): Color =
     lerp(this, Color.Black, darkeningForWhite(minContrast))
 
 /** How far towards black this colour must move to reach [minContrast] against white. */

@@ -475,6 +475,36 @@ class AppearanceScreenshotTest(private val appearance: AppearanceMode) {
     fun streamsCinematicOverBlackArtwork() = renderCinematicStreams(BLACK_BACKDROP, "streams_cinematic_black_artwork")
 
     @Test
+    fun detailRatingBrands() {
+        setScreen {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background)
+                    .padding(vertical = 24.dp),
+            ) {
+                com.nuvio.app.features.details.components.DetailMetaInfo(
+                    meta = sampleSeries.copy(
+                        externalRatings = listOf(
+                            MetaExternalRating(source = "imdb", value = 7.5),
+                            MetaExternalRating(source = "tmdb", value = 81.0),
+                            MetaExternalRating(source = "mal", value = 8.3),
+                            MetaExternalRating(source = "letterboxd", value = 3.9),
+                            MetaExternalRating(source = "trakt", value = 84.0),
+                            MetaExternalRating(source = "tomatoes", value = 92.0),
+                            MetaExternalRating(source = "metacritic", value = 74.0),
+                        ),
+                    ),
+                    isMdbListActive = true,
+                )
+            }
+        }
+        compose.mainClock.advanceTimeBy(1_000L)
+        compose.waitForIdle()
+        capture("detail_rating_brands")
+    }
+
+    @Test
     fun detailDirectorAndWriter() {
         showDetail(MetaEpisodeCardStyle.List)
         scrollToText("Writer", substring = true)
