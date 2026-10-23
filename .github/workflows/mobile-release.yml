@@ -32,7 +32,7 @@ on:
         required: false
         type: string
       notes_from:
-        description: Optional commit to start the release notes after (default - the last "chore(store) publish" commit on this branch)
+        description: Optional commit to start the release notes after (default - the previous release tag)
         required: false
         type: string
 
