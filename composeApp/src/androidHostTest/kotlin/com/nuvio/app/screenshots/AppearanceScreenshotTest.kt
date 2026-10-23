@@ -60,9 +60,8 @@ import com.nuvio.app.core.ui.AppearanceMode
 import com.nuvio.app.core.ui.FloatingNavigationBar
 import com.nuvio.app.core.ui.FloatingNavigationItem
 import com.nuvio.app.core.ui.NuvioTheme
-import com.nuvio.app.features.anilist.AniListLink
-import com.nuvio.app.features.anilist.AniListLinkPart
-import com.nuvio.app.features.anilist.AniListLinkRowContent
+import com.nuvio.app.features.anilist.AniListLinkStatus
+import com.nuvio.app.features.anilist.aniListAction
 import com.nuvio.app.features.anilist.AniListPendingSend
 import com.nuvio.app.features.anilist.AniListQueueState
 import com.nuvio.app.features.anilist.AniListSendFailure
@@ -340,18 +339,6 @@ class AppearanceScreenshotTest(private val appearance: AppearanceMode) {
                 AniListSendFailure("Attack on Titan", "network error", now - 60_000L, notFound = false),
             ),
         )
-        val links = listOf<Pair<Int?, AniListLink>>(
-            1 to AniListLink("tt2560140|s1", listOf(AniListLinkPart(16498, "Attack on Titan")), manual = false),
-            3 to AniListLink(
-                "tt2560140|s3",
-                listOf(
-                    AniListLinkPart(99147, "Attack on Titan Season 3", 1, 12),
-                    AniListLinkPart(104578, "Attack on Titan Season 3 Part 2", 13, 10),
-                ),
-                manual = false,
-            ),
-            4 to AniListLink("tt2560140|s4", listOf(AniListLinkPart(110277, "Attack on Titan Final Season")), manual = true),
-        )
         setScreen {
             Column(
                 modifier = Modifier
@@ -361,8 +348,30 @@ class AppearanceScreenshotTest(private val appearance: AppearanceMode) {
                     .padding(16.dp),
                 verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(16.dp),
             ) {
-                AniListLinkRowContent(links = emptyList(), showSeasons = false, onClick = {})
-                AniListLinkRowContent(links = links, showSeasons = true, onClick = {})
+                listOf(
+                    AniListLinkStatus.Linked(listOf("Attack on Titan Season 3", "Attack on Titan Season 3 Part 2")),
+                    AniListLinkStatus.Pending,
+                    AniListLinkStatus.NotFound,
+                ).forEach { status ->
+                    com.nuvio.app.features.details.components.DetailActions(
+                        playLabel = "Play S3E13",
+                        playEnabled = true,
+                        isSaved = false,
+                        isWatched = false,
+                        isTablet = false,
+                        shuffleEnabled = false,
+                        onPlayClick = {},
+                        onPlayLongClick = null,
+                        onShuffleClick = null,
+                        onWatchedClick = {},
+                        onSaveClick = {},
+                        onSaveLongClick = null,
+                        onDownloadClick = {},
+                        onPlayExternallyClick = {},
+                        iconActionRow = true,
+                        trackerAction = aniListAction(status, onClick = {}),
+                    )
+                }
                 AniListSyncStatusContent(state = state, onRetryNow = {}, onNotifyChange = {})
                 AniListSyncStatusContent(
                     state = state.copy(

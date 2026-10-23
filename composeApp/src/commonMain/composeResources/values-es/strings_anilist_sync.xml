@@ -15,9 +15,7 @@
     <string name="anilist_sync_retry_now">Reintentar ahora</string>
     <string name="anilist_sync_notify">Avisar al sincronizar</string>
     <string name="anilist_sync_notify_description">Muestra «Sincronizado con AniList: episodio N» cada vez que un episodio llega a AniList.</string>
-    <string name="anilist_link_action">Vincular con AniList</string>
     <string name="anilist_link_current">AniList: %1$s</string>
-    <string name="anilist_link_change">Cambiar</string>
     <string name="anilist_link_title">Vincular con AniList</string>
     <string name="anilist_link_description">Elige la entrada de AniList para este título y temporada. Se guarda y todas las sincronizaciones la usan; tiene prioridad sobre la vinculación automática.</string>
     <string name="anilist_link_search_hint">Buscar en AniList</string>
@@ -29,10 +27,8 @@
     <string name="anilist_link_remove">Quitar vínculo</string>
     <string name="anilist_link_saved">Vinculado con %1$s</string>
     <string name="anilist_sync_toast_link_needed">No encontré «%1$s» en AniList. Vincúlalo desde su ficha antes de terminar el episodio.</string>
-    <string name="anilist_link_season_short">T%1$d</string>
     <string name="anilist_link_manual">elegida a mano</string>
     <string name="anilist_link_auto">automática</string>
-    <string name="anilist_link_pending_hint">Se vincula sola al empezar a verla.</string>
     <string name="anilist_sync_reconnect">La sesión de AniList caducó. Vuelve a conectar AniList y los pendientes se enviarán solos.</string>
     <string name="anilist_sync_reason_auth">sesión de AniList caducada</string>
     <string name="anilist_sync_reason_rate_limit">límite de peticiones de AniList</string>
@@ -41,4 +37,7 @@
     <string name="anilist_sync_reason_not_found">no hay entrada de AniList para este título y temporada</string>
     <string name="anilist_sync_reason_profile">se cambió de perfil</string>
     <string name="anilist_sync_reason_network">error de red</string>
+    <string name="anilist_icon_linked">AniList: vinculado a %1$s</string>
+    <string name="anilist_icon_pending">AniList: se vinculará solo al empezar a verlo</string>
+    <string name="anilist_icon_not_found">AniList: no se encontró la entrada. Toca para vincularla</string>
 </resources>

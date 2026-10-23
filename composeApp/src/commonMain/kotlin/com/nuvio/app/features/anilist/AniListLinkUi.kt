@@ -42,16 +42,20 @@ import com.nuvio.app.core.ui.NuvioInputField
 import com.nuvio.app.core.ui.NuvioModalBottomSheet
 import com.nuvio.app.core.ui.nuvio
 import com.nuvio.app.features.details.MetaDetails
+import com.nuvio.app.features.details.components.DetailActionBadge
+import com.nuvio.app.features.details.components.DetailSecondaryAction
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Link
 import com.nuvio.app.features.tracking.parseAnimeIdRef
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import nuvio.composeapp.generated.resources.Res
-import nuvio.composeapp.generated.resources.anilist_link_action
+import nuvio.composeapp.generated.resources.anilist_icon_linked
+import nuvio.composeapp.generated.resources.anilist_icon_not_found
+import nuvio.composeapp.generated.resources.anilist_icon_pending
 import nuvio.composeapp.generated.resources.anilist_link_auto
+import nuvio.composeapp.generated.resources.anilist_logo
 import nuvio.composeapp.generated.resources.anilist_link_manual
-import nuvio.composeapp.generated.resources.anilist_link_pending_hint
-import nuvio.composeapp.generated.resources.anilist_link_season_short
-import nuvio.composeapp.generated.resources.anilist_link_change
 import nuvio.composeapp.generated.resources.anilist_link_current
 import nuvio.composeapp.generated.resources.anilist_link_description
 import nuvio.composeapp.generated.resources.anilist_link_episodes
@@ -74,94 +78,72 @@ fun MetaDetails.isAniListCandidate(): Boolean =
 private fun MetaDetails.linkSeasons(): List<Int> =
     videos.mapNotNull { it.season }.filter { it > 0 }.distinct().sorted().ifEmpty { listOf(1) }
 
+/** What the AniList icon on the detail page shows for a title. */
+internal sealed interface AniListLinkStatus {
+    /** Linked (automatically or by hand): [titles] are the AniList entries, one per linked season. */
+    data class Linked(val titles: List<String>) : AniListLinkStatus
+    /** Not linked yet: it links itself when the user starts watching. */
+    data object Pending : AniListLinkStatus
+    /** A season could not be matched: the user should link it by hand. */
+    data object NotFound : AniListLinkStatus
+}
+
+/** The status of [keys] (one per season, or the movie): a missing match wins, then any link. */
+internal fun aniListLinkStatus(keys: List<String>, state: AniListQueueState): AniListLinkStatus {
+    if (keys.any { it in state.unmatched }) return AniListLinkStatus.NotFound
+    val titles = keys.mapNotNull { key -> state.links.firstOrNull { it.key == key }?.title }.distinct()
+    return if (titles.isEmpty()) AniListLinkStatus.Pending else AniListLinkStatus.Linked(titles)
+}
+
 /**
- * On the detail page, when AniList is connected and the title looks like anime: the AniList entry
- * each season is linked to (automatic or chosen by hand), or "Link with AniList". Opens
- * [AniListLinkSheet] to change it.
+ * The AniList button of the detail page's action row (or its "more" menu): the AniList logo, with
+ * a check when linked and a warning mark when no entry was found. It opens [AniListLinkSheet].
+ * Null when AniList is not connected or the title does not look like anime.
  */
 @Composable
-fun AniListLinkRow(meta: MetaDetails, modifier: Modifier = Modifier) {
+fun aniListDetailAction(meta: MetaDetails): DetailSecondaryAction? {
     val auth by AniListTracker.authState.collectAsStateWithLifecycle()
-    if (!auth.isAuthenticated) return
+    val candidate = remember(meta) { meta.isAniListCandidate() }
+    if (!auth.isAuthenticated || !candidate) return null
     val queueState by AniListTracker.queue.state.collectAsStateWithLifecycle()
     val isMovie = meta.type.equals("movie", ignoreCase = true)
     val seasons: List<Int?> = if (isMovie) listOf(null) else meta.linkSeasons()
-    val links = seasons.mapNotNull { season ->
-        val key = AniListTracker.linkKey(meta.id, meta.type, season)
-        queueState.links.firstOrNull { it.key == key }?.let { season to it }
-    }
+    val keys = seasons.map { AniListTracker.linkKey(meta.id, meta.type, it) }
+    val status = aniListLinkStatus(keys, queueState)
     var showSheet by remember(meta.id) { mutableStateOf(false) }
-
-    AniListLinkRowContent(
-        links = links,
-        showSeasons = seasons.size > 1,
-        onClick = { showSheet = true },
-        modifier = modifier,
-    )
-
     if (showSheet) {
+        val firstUnmatched = seasons.firstOrNull { AniListTracker.linkKey(meta.id, meta.type, it) in queueState.unmatched }
+        val firstLinked = seasons.firstOrNull { season ->
+            queueState.links.any { it.key == AniListTracker.linkKey(meta.id, meta.type, season) }
+        }
         AniListLinkSheet(
             meta = meta,
-            initialSeason = links.firstOrNull()?.first ?: seasons.firstOrNull(),
+            initialSeason = firstUnmatched ?: firstLinked ?: seasons.firstOrNull(),
             onDismiss = { showSheet = false },
         )
     }
+    return aniListAction(status, onClick = { showSheet = true })
 }
 
+/** The action for [status]; kept apart from the tracker so screenshots can show every state. */
 @Composable
-internal fun AniListLinkRowContent(
-    links: List<Pair<Int?, AniListLink>>,
-    showSeasons: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val colors = MaterialTheme.colorScheme
-    val tokens = MaterialTheme.nuvio
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .clickable(onClick = onClick)
-            .padding(horizontal = 4.dp, vertical = 6.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(2.dp),
-    ) {
-        if (links.isEmpty()) {
-            Text(
-                text = stringResource(Res.string.anilist_link_action),
-                style = MaterialTheme.typography.bodyMedium,
-                color = colors.primary,
-                fontWeight = FontWeight.SemiBold,
-            )
-            Text(
-                text = stringResource(Res.string.anilist_link_pending_hint),
-                style = MaterialTheme.typography.bodySmall,
-                color = tokens.colors.textMuted,
-            )
-            return@Column
-        }
-        links.take(MAX_ROW_LINKS).forEach { (season, link) ->
-            val prefix = if (showSeasons && season != null) stringResource(Res.string.anilist_link_season_short, season) + " · " else ""
-            val origin = stringResource(if (link.manual) Res.string.anilist_link_manual else Res.string.anilist_link_auto)
-            Text(
-                text = prefix + stringResource(Res.string.anilist_link_current, link.title) + " ($origin)",
-                style = MaterialTheme.typography.bodyMedium,
-                color = colors.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-        Text(
-            text = stringResource(Res.string.anilist_link_change),
-            style = MaterialTheme.typography.bodyMedium,
-            color = colors.primary,
-            fontWeight = FontWeight.SemiBold,
-        )
-    }
-}
-
-private const val MAX_ROW_LINKS = 4
+internal fun aniListAction(status: AniListLinkStatus, onClick: () -> Unit): DetailSecondaryAction =
+    DetailSecondaryAction(
+        label = when (status) {
+            is AniListLinkStatus.Linked -> stringResource(Res.string.anilist_icon_linked, status.titles.joinToString(", "))
+            AniListLinkStatus.Pending -> stringResource(Res.string.anilist_icon_pending)
+            AniListLinkStatus.NotFound -> stringResource(Res.string.anilist_icon_not_found)
+        },
+        icon = Icons.Rounded.Link,
+        drawable = Res.drawable.anilist_logo,
+        keepDrawableColors = true,
+        badge = when (status) {
+            is AniListLinkStatus.Linked -> DetailActionBadge.Linked
+            AniListLinkStatus.Pending -> DetailActionBadge.None
+            AniListLinkStatus.NotFound -> DetailActionBadge.Warning
+        },
+        onClick = onClick,
+    )
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

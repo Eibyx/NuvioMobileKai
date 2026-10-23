@@ -15,9 +15,7 @@
     <string name="anilist_sync_retry_now">Retry now</string>
     <string name="anilist_sync_notify">Notify when synced</string>
     <string name="anilist_sync_notify_description">Shows “Synced with AniList: episode N” each time an episode reaches AniList.</string>
-    <string name="anilist_link_action">Link with AniList</string>
     <string name="anilist_link_current">AniList: %1$s</string>
-    <string name="anilist_link_change">Change</string>
     <string name="anilist_link_title">Link with AniList</string>
     <string name="anilist_link_description">Pick the AniList entry for this title and season. It is saved and every sync uses it; it wins over the automatic link.</string>
     <string name="anilist_link_search_hint">Search AniList</string>
@@ -29,10 +27,8 @@
     <string name="anilist_link_remove">Remove link</string>
     <string name="anilist_link_saved">Linked with %1$s</string>
     <string name="anilist_sync_toast_link_needed">Couldn’t find “%1$s” on AniList. Link it from its detail page before the episode ends.</string>
-    <string name="anilist_link_season_short">S%1$d</string>
     <string name="anilist_link_manual">chosen by hand</string>
     <string name="anilist_link_auto">automatic</string>
-    <string name="anilist_link_pending_hint">It links itself when you start watching.</string>
     <string name="anilist_sync_reconnect">The AniList sign-in expired. Connect AniList again and pending sends go out on their own.</string>
     <string name="anilist_sync_reason_auth">AniList sign-in expired</string>
     <string name="anilist_sync_reason_rate_limit">AniList rate limit</string>
@@ -41,4 +37,7 @@
     <string name="anilist_sync_reason_not_found">no AniList entry for this title and season</string>
     <string name="anilist_sync_reason_profile">profile changed</string>
     <string name="anilist_sync_reason_network">network error</string>
+    <string name="anilist_icon_linked">AniList: linked to %1$s</string>
+    <string name="anilist_icon_pending">AniList: links itself when you start watching</string>
+    <string name="anilist_icon_not_found">AniList: no entry found. Tap to link it</string>
 </resources>

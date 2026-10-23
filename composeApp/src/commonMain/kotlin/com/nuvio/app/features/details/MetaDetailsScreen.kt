@@ -4,9 +4,8 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.text.style.TextAlign
 import com.nuvio.app.core.logging.InAppLogger
-import com.nuvio.app.features.anilist.AniListLinkRow
+import com.nuvio.app.features.anilist.aniListDetailAction
 import com.nuvio.app.features.anilist.AniListTracker
-import com.nuvio.app.features.anilist.isAniListCandidate
 import com.nuvio.app.features.tracking.TrackerMediaLookup
 import com.nuvio.app.features.tracking.parseAnimeIdRef
 import androidx.compose.animation.AnimatedVisibilityScope
@@ -1309,8 +1308,6 @@ fun MetaDetailsScreen(
                                         )
                                     }
                                 }
-                                val aniListAuth by AniListTracker.authState.collectAsStateWithLifecycle()
-                                val showAniListLink = aniListAuth.isAuthenticated && remember(meta) { meta.isAniListCandidate() }
                                 LazyColumn(
                                     state = listState,
                                     modifier = Modifier
@@ -1352,6 +1349,7 @@ fun MetaDetailsScreen(
                                                             onPlayExternallyClick = onPlayExternallyClick,
                                                             userRating = titleUserRating,
                                                             onRateClick = openTitleRating,
+                                                            trackerAction = aniListDetailAction(meta),
                                                         )
                                                     }
                                                 } else {
@@ -1378,17 +1376,6 @@ fun MetaDetailsScreen(
                                                 onHeroTrailerEnded = onHeroTrailerFinished,
                                                 onHeroTrailerError = onHeroTrailerFinished,
                                             )
-                                        }
-                                    }
-
-                                    if (showAniListLink) {
-                                        item(key = "detail-anilist-link") {
-                                            DetailSectionContainer(
-                                                horizontalPadding = contentHorizontalPadding,
-                                                contentMaxWidth = contentMaxWidth,
-                                            ) {
-                                                AniListLinkRow(meta = meta)
-                                            }
                                         }
                                     }
 
@@ -1487,7 +1474,7 @@ fun MetaDetailsScreen(
                                         animatedVisibilityScope = animatedVisibilityScope,
                                         episodeNavigator = episodeNavigator,
                                         listState = listState,
-                                        leadingItemCount = if (showAniListLink) 2 else 1,
+                                        leadingItemCount = 1,
                                         stickyBackground = heroGradientColor ?: colorScheme.background,
                                     )
 
@@ -2569,6 +2556,7 @@ private fun ConfiguredMetaSections(
                     iconActionRow = settings.iconActionRow,
                     userRating = userRating,
                     onRateClick = onRateClick,
+                    trackerAction = aniListDetailAction(meta),
                 )
             }
             MetaScreenSectionKey.OVERVIEW -> {

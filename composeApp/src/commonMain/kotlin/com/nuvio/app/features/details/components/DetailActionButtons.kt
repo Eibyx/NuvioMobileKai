@@ -53,7 +53,11 @@ import androidx.compose.ui.graphics.lerp
 import androidx.compose.foundation.BorderStroke
 import com.nuvio.app.core.ui.isDarkAppearance
 import androidx.compose.foundation.layout.Column
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Download
+import androidx.compose.material.icons.rounded.PriorityHigh
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.LocalContentColor
 import com.nuvio.app.core.ui.AppIconResource
 import com.nuvio.app.core.ui.accentBrush
 import com.nuvio.app.core.ui.nuvio
@@ -83,6 +87,9 @@ import org.jetbrains.compose.resources.stringResource
 import com.nuvio.app.core.ui.glass.ambientLiquidGlass
 import com.nuvio.app.core.ui.glass.isAmbientLiquidGlassActive
 
+/** A small mark on an action icon's corner. */
+enum class DetailActionBadge { None, Linked, Warning }
+
 data class DetailSecondaryAction(
     val label: String,
     val icon: ImageVector,
@@ -90,6 +97,9 @@ data class DetailSecondaryAction(
     val isActive: Boolean = false,
     val onClick: () -> Unit = {},
     val onLongClick: (() -> Unit)? = null,
+    /** Draws [drawable] in its own colours (a brand logo) instead of the content colour. */
+    val keepDrawableColors: Boolean = false,
+    val badge: DetailActionBadge = DetailActionBadge.None,
 )
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -215,6 +225,8 @@ fun DetailActionButtons(
                                 label = action.label,
                                 icon = action.icon,
                                 drawable = action.drawable,
+                                keepDrawableColors = action.keepDrawableColors,
+                                badge = action.badge,
                                 active = action.isActive,
                                 progress = menuProgress,
                                 size = iconButtonSize,
@@ -382,6 +394,7 @@ fun DetailActions(
     iconActionRow: Boolean = false,
     userRating: Int? = null,
     onRateClick: (() -> Unit)? = null,
+    trackerAction: DetailSecondaryAction? = null,
 ) {
     val actionSet = detailActionSet(
         isSaved = isSaved,
@@ -394,6 +407,7 @@ fun DetailActions(
         onDownloadClick = onDownloadClick,
         onPlayFromStartClick = onPlayFromStartClick,
         onPlayExternallyClick = onPlayExternallyClick,
+        trackerAction = trackerAction,
     )
     val shuffleAction = actionSet.shuffle
     val watchedAction = actionSet.watched
@@ -409,6 +423,8 @@ fun DetailActions(
             if (!shuffleEnabled) shuffleAction?.let(::add)
             add(watchedAction)
             add(saveAction)
+            // Without the icon row, the tracker link lives in the "more" menu.
+            trackerAction?.let(::add)
         },
         isTablet = isTablet,
         onPlayClick = onPlayClick,
@@ -438,6 +454,7 @@ private fun detailActionSet(
     onDownloadClick: (() -> Unit)?,
     onPlayFromStartClick: (() -> Unit)?,
     onPlayExternallyClick: (() -> Unit)?,
+    trackerAction: DetailSecondaryAction? = null,
 ): DetailActionSet {
     val shuffleAction = onShuffleClick?.let { onClick ->
         DetailSecondaryAction(
@@ -481,6 +498,7 @@ private fun detailActionSet(
                 ),
             )
         }
+        trackerAction?.let(::add)
         add(watchedAction)
         add(saveAction)
     }
@@ -507,6 +525,7 @@ fun TabletDetailHeroActions(
     onPlayExternallyClick: (() -> Unit)? = null,
     userRating: Int? = null,
     onRateClick: (() -> Unit)? = null,
+    trackerAction: DetailSecondaryAction? = null,
 ) {
     val actionSet = detailActionSet(
         isSaved = isSaved,
@@ -519,6 +538,7 @@ fun TabletDetailHeroActions(
         onDownloadClick = onDownloadClick,
         onPlayFromStartClick = onPlayFromStartClick,
         onPlayExternallyClick = onPlayExternallyClick,
+        trackerAction = trackerAction,
     )
     val playPainter = appIconPainter(AppIconResource.PlayerPlay)
     val buttonHeight = 56.dp
@@ -637,6 +657,8 @@ private fun DetailIconActionRow(
                     label = action.label,
                     icon = action.icon,
                     drawable = action.drawable,
+                    keepDrawableColors = action.keepDrawableColors,
+                    badge = action.badge,
                     active = action.isActive,
                     progress = 1f,
                     size = layout.size,
@@ -660,68 +682,104 @@ internal fun DetailIconAction(
     size: Dp,
     drawable: DrawableResource? = null,
     onLongClick: (() -> Unit)? = null,
+    keepDrawableColors: Boolean = false,
+    badge: DetailActionBadge = DetailActionBadge.None,
 ) {
     val glassActive = !active && isAmbientLiquidGlassActive()
-    Surface(
-        modifier = modifier
-            .graphicsLayer {
-                alpha = progress
-                scaleX = 0.86f + (0.14f * progress)
-                scaleY = 0.86f + (0.14f * progress)
-            }
-            .then(
-                if (glassActive) {
-                    Modifier.ambientLiquidGlass(
-                        shape = CircleShape,
-                        tint = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
-                        fallback = Color.Transparent,
+    Box(modifier = modifier) {
+        Surface(
+            modifier = Modifier
+                .graphicsLayer {
+                    alpha = progress
+                    scaleX = 0.86f + (0.14f * progress)
+                    scaleY = 0.86f + (0.14f * progress)
+                }
+                .then(
+                    if (glassActive) {
+                        Modifier.ambientLiquidGlass(
+                            shape = CircleShape,
+                            tint = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
+                            fallback = Color.Transparent,
+                        )
+                    } else {
+                        Modifier
+                    },
+                ),
+            shape = CircleShape,
+            color = if (active) {
+                MaterialTheme.colorScheme.onBackground
+            } else if (glassActive) {
+                Color.Transparent
+            } else if (!MaterialTheme.isDarkAppearance) {
+                lightSecondaryActionFill()
+            } else {
+                MaterialTheme.colorScheme.surfaceVariant
+            },
+            border = if (active) null else lightSecondaryActionBorder(),
+            contentColor = if (active) {
+                MaterialTheme.colorScheme.background
+            } else {
+                MaterialTheme.colorScheme.onSurface
+            },
+            tonalElevation = 6.dp,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(size)
+                    .combinedClickable(
+                        onClick = onClick,
+                        onLongClick = onLongClick,
+                        role = Role.Button,
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                if (drawable != null) {
+                    Icon(
+                        painter = painterResource(drawable),
+                        contentDescription = label,
+                        tint = if (keepDrawableColors) Color.Unspecified else LocalContentColor.current,
+                        modifier = Modifier.size(21.dp),
                     )
                 } else {
-                    Modifier
-                },
-            ),
-        shape = CircleShape,
-        color = if (active) {
-            MaterialTheme.colorScheme.onBackground
-        } else if (glassActive) {
-            Color.Transparent
-        } else if (!MaterialTheme.isDarkAppearance) {
-            lightSecondaryActionFill()
-        } else {
-            MaterialTheme.colorScheme.surfaceVariant
-        },
-        border = if (active) null else lightSecondaryActionBorder(),
-        contentColor = if (active) {
-            MaterialTheme.colorScheme.background
-        } else {
-            MaterialTheme.colorScheme.onSurface
-        },
-        tonalElevation = 6.dp,
-    ) {
-        Box(
-            modifier = Modifier
-                .size(size)
-                .combinedClickable(
-                    onClick = onClick,
-                    onLongClick = onLongClick,
-                    role = Role.Button,
-                ),
-            contentAlignment = Alignment.Center,
-        ) {
-            if (drawable != null) {
-                Icon(
-                    painter = painterResource(drawable),
-                    contentDescription = label,
-                    modifier = Modifier.size(21.dp),
-                )
-            } else {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = label,
-                    modifier = Modifier.size(21.dp),
-                )
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = label,
+                        modifier = Modifier.size(21.dp),
+                    )
+                }
             }
         }
+        if (badge != DetailActionBadge.None) {
+            DetailActionBadgeMark(
+                badge = badge,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .graphicsLayer { alpha = progress },
+            )
+        }
+    }
+}
+
+/** The corner mark: a check when linked, an exclamation when something needs the user. */
+@Composable
+private fun DetailActionBadgeMark(badge: DetailActionBadge, modifier: Modifier = Modifier) {
+    val colors = MaterialTheme.colorScheme
+    val (fill, content, icon) = when (badge) {
+        DetailActionBadge.Linked -> Triple(colors.primary, colors.onPrimary, Icons.Rounded.Check)
+        DetailActionBadge.Warning -> Triple(colors.error, colors.onError, Icons.Rounded.PriorityHigh)
+        DetailActionBadge.None -> return
+    }
+    Box(
+        modifier = modifier
+            .size(18.dp)
+            .clip(CircleShape)
+            .background(colors.background)
+            .padding(2.dp)
+            .clip(CircleShape)
+            .background(fill),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(imageVector = icon, contentDescription = null, tint = content, modifier = Modifier.size(11.dp))
     }
 }
 

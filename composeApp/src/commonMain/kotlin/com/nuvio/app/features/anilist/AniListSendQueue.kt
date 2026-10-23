@@ -112,6 +112,8 @@ internal data class AniListQueueState(
     /** Newest first. */
     val failures: List<AniListSendFailure> = emptyList(),
     val notifyOnSync: Boolean = true,
+    /** Titles and seasons (see [aniListSendKey]) no AniList entry matched; cleared by linking. */
+    val unmatched: List<String> = emptyList(),
 )
 
 internal sealed interface AniListDelivery {
@@ -235,6 +237,7 @@ internal class AniListSendQueue(
             profile,
             current.copy(
                 links = current.links.filterNot { it.key == link.key } + link.copy(linkedAtMs = now()),
+                unmatched = current.unmatched - link.key,
                 delivered = if (previous?.parts == link.parts) current.delivered else current.delivered.withoutTitle(link.key),
             ),
         )
@@ -263,6 +266,7 @@ internal class AniListSendQueue(
                 current.copy(
                     failures = (listOf(AniListSendFailure(title, reason, now(), notFound = true)) +
                         current.failures.filterNot { it.notFound && it.title == title }).take(MAX_FAILURES),
+                    unmatched = (current.unmatched - key + key).takeLast(MAX_UNMATCHED),
                 ),
             )
         }
@@ -341,6 +345,7 @@ internal class AniListSendQueue(
                         profile,
                         current.copy(
                             pending = rest,
+                            unmatched = (current.unmatched - item.key + item.key).takeLast(MAX_UNMATCHED),
                             failures = (listOf(AniListSendFailure(item.title, outcome.reason, now(), notFound = true)) +
                                 current.failures).take(MAX_FAILURES),
                         ),
@@ -402,6 +407,7 @@ internal class AniListSendQueue(
     companion object {
         private const val TAG = "Sync/AniList"
         private const val MAX_FAILURES = 10
+        private const val MAX_UNMATCHED = 200
         private const val MAX_DELIVERED = 300
         private const val FIRST_RETRY_MS = 30_000L
         private const val MAX_RETRY_MS = 6L * 60L * 60L * 1_000L

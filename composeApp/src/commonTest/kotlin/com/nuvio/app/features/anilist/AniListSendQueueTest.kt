@@ -270,4 +270,17 @@ class AniListSendQueueTest {
         assertEquals(2, delivered.size)
         assertTrue(queue.state.value.pending.isEmpty())
     }
+
+    @Test
+    fun unmatchedTitlesAreRememberedUntilLinked() = runTest {
+        answer = { AniListDelivery.NotFound("no AniList entry matches") }
+        val queue = queue()
+        queue.open(1)
+        queue.enqueue(send(episode = 1, contentId = "tt0000001", title = "Obscure"))
+        runCurrent()
+        val key = aniListSendKey("tt0000001", "series", 1)
+        assertEquals(listOf(key), queue.state.value.unmatched)
+        queue.setLink(AniListLink(key, listOf(AniListLinkPart(1, "Obscure")), manual = true))
+        assertTrue(queue.state.value.unmatched.isEmpty())
+    }
 }
