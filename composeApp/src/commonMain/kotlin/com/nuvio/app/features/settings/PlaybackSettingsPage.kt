@@ -849,6 +849,8 @@ private fun PlaybackSettingsSection(
 
         SubtitleFontDirectorySection(isTablet = isTablet)
 
+        ShaderSettingsSection(isTablet = isTablet)
+
         if (P2pSettingsRepository.isVisible) {
             SettingsSection(
                 title = stringResource(Res.string.settings_playback_section_p2p),

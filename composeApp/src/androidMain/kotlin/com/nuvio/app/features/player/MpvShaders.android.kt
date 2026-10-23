@@ -6,6 +6,8 @@ import android.os.Build
 import com.nuvio.app.core.logging.InAppLogger
 import com.nuvio.app.features.player.shaders.ActiveRenderBackend
 import com.nuvio.app.features.player.shaders.ChainShader
+import com.nuvio.app.features.player.shaders.DebandLevel
+import com.nuvio.app.features.player.shaders.MpvVideoOptions
 import com.nuvio.app.features.player.shaders.MpvRenderBackend
 import com.nuvio.app.features.player.shaders.MpvRenderBackendPolicy
 import com.nuvio.app.features.player.shaders.MpvRenderPass
@@ -57,6 +59,7 @@ internal object MpvRenderer {
  */
 internal class MpvShaderController(private val mpv: MPVLib, private var backend: MpvRenderBackend) {
     private var applied: List<ChainShader>? = null
+    private var appliedOptions: MpvVideoOptions? = null
     private var unattributedError: String? = null
     private var backendLogged = false
     private var fellBackToOpenGl = false
@@ -82,6 +85,31 @@ internal class MpvShaderController(private val mpv: MPVLib, private var backend:
         applied = chain
         ShaderPlaybackSession.onChainApplied(chain)
         InAppLogger.info(TAG, "chain applied: ${if (chain.isEmpty()) "none" else chain.joinToString(" → ") { it.title }}")
+    }
+
+    /**
+     * Deband and the main scalers. Without shaders, mpv's "fast" profile values (bilinear, no
+     * deband). With a chroma shader (KrigBilateral, CfL) cscale is what default-shader-pack uses.
+     */
+    fun syncOptions() {
+        val options = ShaderPlaybackSession.requestedOptions.value
+        if (options == appliedOptions) return
+        val deband = options.deband
+        val scale = options.scale?.mpvValue ?: "bilinear"
+        runCatching {
+            mpv.setPropertyString("deband", if (deband == DebandLevel.Off) "no" else "yes")
+            if (deband != DebandLevel.Off) {
+                mpv.setPropertyString("deband-iterations", deband.iterations.toString())
+                mpv.setPropertyString("deband-threshold", deband.threshold.toString())
+                mpv.setPropertyString("deband-range", deband.range.toString())
+                mpv.setPropertyString("deband-grain", "0")
+            }
+            mpv.setPropertyString("scale", scale)
+            mpv.setPropertyString("cscale", if (options.chromaShader) "mitchell" else scale)
+            mpv.setPropertyString("dscale", if (options.scale != null) "mitchell" else "bilinear")
+        }.onFailure { InAppLogger.warn(TAG, "video options could not be set: ${InAppLogger.throwableSummary(it)}") }
+        appliedOptions = options
+        InAppLogger.info(TAG, "video options: deband=$deband scale=$scale chromaShader=${options.chromaShader}")
     }
 
     fun onFileLoaded() {

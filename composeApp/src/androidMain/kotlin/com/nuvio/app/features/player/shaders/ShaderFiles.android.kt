@@ -16,7 +16,7 @@ private const val PREFERENCES = "nuvio_shader_files"
 private const val KEY_INSTALLED = "installed"
 
 /** Bump when the install processing (precision pass, forced variants) changes. */
-private const val INSTALL_VERSION = 1
+private const val INSTALL_VERSION = 2
 
 /**
  * Copies the bundled shaders out of the APK's assets, each optimized for mobile GPUs, with the
@@ -67,7 +67,7 @@ internal actual object ShaderFiles {
         for (shader in ShaderCatalog.shaders) {
             runCatching {
                 val content = context.assets.open("${ShaderCatalog.ASSET_FOLDER}/${shader.file}").use { it.readBytes().decodeToString() }
-                val prepared = ShaderInstall.prepare(content, shader.upscaler)
+                val prepared = ShaderInstall.prepare(content, shader.upscaler, shader.toScreen)
                 File(bundled, shader.file).writeText(prepared.content)
                 prepared.forced?.let {
                     File(forced, shader.file).writeText(it)

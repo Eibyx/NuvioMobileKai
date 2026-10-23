@@ -40,6 +40,8 @@ data class BundledShader(
     val compute: Boolean,
     val project: ShaderProject,
     val pin: ShaderPin,
+    /** Gets a variant that takes an upscaled image down to the screen ("Apply always"). */
+    val toScreen: Boolean = false,
 )
 
 /**
@@ -131,7 +133,7 @@ object ShaderCatalog {
         BundledShader("krigbilateral", "KrigBilateral.glsl", "KrigBilateral", ShaderCategory.Color, ShaderStage.Color, upscaler = false, doublesResolution = false, chroma = true, compute = false, project = krigBilateral, pin = defaultShaderPack),
         BundledShader("cfl", "CfL_Prediction.glsl", "Chroma From Luma", ShaderCategory.Color, ShaderStage.Color, upscaler = false, doublesResolution = false, chroma = true, compute = false, project = cfl, pin = chromaFromLuma),
         BundledShader("cfl_lite", "CfL_Prediction_Lite.glsl", "Chroma From Luma Lite", ShaderCategory.Color, ShaderStage.Color, upscaler = false, doublesResolution = false, chroma = true, compute = false, project = cfl, pin = chromaFromLuma),
-        BundledShader("ssimdownscaler", "SSimDownscaler.glsl", "SSimDownscaler", ShaderCategory.Downscaling, ShaderStage.Downscaling, upscaler = false, doublesResolution = false, chroma = false, compute = false, project = ssimDownscaler, pin = defaultShaderPack),
+        BundledShader("ssimdownscaler", "SSimDownscaler.glsl", "SSimDownscaler", ShaderCategory.Downscaling, ShaderStage.Downscaling, upscaler = false, doublesResolution = false, chroma = false, compute = false, project = ssimDownscaler, pin = defaultShaderPack, toScreen = true),
     )
 
     private val byId = shaders.associateBy { it.id }

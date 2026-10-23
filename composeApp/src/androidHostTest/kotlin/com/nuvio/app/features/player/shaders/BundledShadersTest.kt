@@ -111,7 +111,18 @@ class BundledShadersTest {
     @Test
     fun forcedVariantsRunAt1080pOnThePhoneButNeverOnLargerVideo() {
         ShaderCatalog.shaders.forEach { shader ->
-            val prepared = ShaderInstall.prepare(content(shader), shader.upscaler)
+            val prepared = ShaderInstall.prepare(content(shader), shader.upscaler, shader.toScreen)
+            if (shader.toScreen) {
+                val toScreen = assertNotNull(prepared.forced, shader.file)
+                assertFalse(toScreen.contains("NATIVE_CROPPED"), shader.file)
+                assertFalse(Regex("\\binput_size\\b").containsMatchIn(toScreen), shader.file)
+                // 1080p doubled to 2160 lines, shown on 1220: it runs; on the plain 1080p (no upscale) it does not.
+                val upscaled = mapOf("PREKERNEL.w" to 3840.0, "PREKERNEL.h" to 2160.0, "POSTKERNEL.w" to 2169.0, "POSTKERNEL.h" to 1220.0)
+                whenLines(toScreen).forEach { assertEquals(true, ShaderScaleCondition.evaluate(it, upscaled), it) }
+                val plain = mapOf("PREKERNEL.w" to 1920.0, "PREKERNEL.h" to 1080.0, "POSTKERNEL.w" to 2169.0, "POSTKERNEL.h" to 1220.0)
+                whenLines(toScreen).forEach { assertEquals(false, ShaderScaleCondition.evaluate(it, plain), it) }
+                return@forEach
+            }
             if (!shader.upscaler) {
                 assertNull(prepared.forced, shader.file)
                 return@forEach
@@ -134,10 +145,10 @@ class BundledShadersTest {
 
     @Test
     fun anime4kDownscalersAreNeverForced() {
-        listOf("anime4k_autodownscale_x2", "anime4k_autodownscale_x4", "nvsharpen", "ssimdownscaler").forEach { id ->
+        listOf("anime4k_autodownscale_x2", "anime4k_autodownscale_x4", "nvsharpen", "krigbilateral").forEach { id ->
             val shader = ShaderCatalog.shader(id)!!
             assertFalse(shader.upscaler, id)
-            assertNull(ShaderInstall.prepare(content(shader), shader.upscaler).forced, id)
+            assertNull(ShaderInstall.prepare(content(shader), shader.upscaler, shader.toScreen).forced, id)
         }
     }
 }

@@ -62,6 +62,14 @@ object ShaderPlaybackSession {
     private val requested = MutableStateFlow<List<ChainShader>>(emptyList())
     val requestedChain: StateFlow<List<ChainShader>> = requested.asStateFlow()
 
+    private val options = MutableStateFlow(MpvVideoOptions())
+    val requestedOptions: StateFlow<MpvVideoOptions> = options.asStateFlow()
+
+    /** Deband and scaler options that go with the chain. */
+    fun requestOptions(requested: MpvVideoOptions) {
+        options.value = requested
+    }
+
     private val mutableState = MutableStateFlow(ShaderPlaybackState())
     val state: StateFlow<ShaderPlaybackState> = mutableState.asStateFlow()
 

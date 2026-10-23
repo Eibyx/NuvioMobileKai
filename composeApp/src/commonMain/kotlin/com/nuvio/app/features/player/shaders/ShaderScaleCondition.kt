@@ -35,6 +35,24 @@ object ShaderScaleCondition {
             }
         }
 
+    /**
+     * SSimDownscaler only runs when the native video is larger than the output, and reads the
+     * image at the native size. This copy measures the image the main scaler gets (PREKERNEL)
+     * instead, so it also takes an upscaled image (Anime4K x2 of a 1080p video: 2160 lines) down
+     * to the screen. Without an upscale before it, PREKERNEL is the native image and it behaves
+     * as the original.
+     */
+    fun downscaleFromScalerInput(content: String): String =
+        content.lines().joinToString("\n") { line ->
+            val trimmed = line.trimStart()
+            when {
+                trimmed.startsWith("//!WHEN") || trimmed.startsWith("//!WIDTH") || trimmed.startsWith("//!HEIGHT") ->
+                    line.replace("NATIVE_CROPPED", "PREKERNEL")
+                trimmed.startsWith("//") -> line
+                else -> line.replace(Regex("\\binput_size\\b"), "PREKERNEL_size")
+            }
+        }
+
     private fun isWhen(line: String) = line.trimStart().startsWith("//!WHEN")
 
     private fun expression(line: String) = line.substringAfter("//!WHEN").trim()

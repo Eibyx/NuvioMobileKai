@@ -1651,6 +1651,11 @@ private fun LibmpvPlayerSurface(
 
     LaunchedEffect(playerViewRef) {
         val view = playerViewRef ?: return@LaunchedEffect
+        ShaderPlaybackSession.requestedOptions.collect { view.syncShaders() }
+    }
+
+    LaunchedEffect(playerViewRef) {
+        val view = playerViewRef ?: return@LaunchedEffect
         while (isActive) {
             delay(1_000L)
             view.pollShaders()
@@ -2466,7 +2471,10 @@ private class NuvioLibmpvView(
         }
     }
 
-    fun syncShaders() = executeMpv { shaders.syncChain() }
+    fun syncShaders() = executeMpv {
+        shaders.syncChain()
+        shaders.syncOptions()
+    }
 
     fun pollShaders() = executeMpv { shaders.poll() }
 

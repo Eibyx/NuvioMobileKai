@@ -50,6 +50,7 @@ internal fun PlayerScreenRuntime.BindPlayerRuntimeEffects() {
             NuvioToastController.show(com.nuvio.app.features.player.shaders.shaderWarningText(warning), 4_000L)
         }
     }
+    BindShaderEffects()
     val currentFeedback = liveGestureFeedback ?: gestureFeedback
     LaunchedEffect(currentFeedback) {
         if (currentFeedback != null) {
