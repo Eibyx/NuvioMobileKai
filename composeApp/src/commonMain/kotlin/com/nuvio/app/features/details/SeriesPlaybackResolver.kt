@@ -200,6 +200,28 @@ internal fun MetaDetails.seriesPrimaryAction(
         allowRewatch = allowRewatch,
     )?.toLegacySeriesPrimaryAction()
 
+/**
+ * Rewatching on AniList: the episode the rewatch is at, unless Nuvio is already resuming that
+ * episode (then its position is kept).
+ */
+internal fun MetaDetails.rewatchPrimaryAction(
+    seasonNumber: Int,
+    episodeNumber: Int,
+    current: SeriesPrimaryAction?,
+): SeriesPrimaryAction? {
+    if (current?.resumePositionMs != null && current.seasonNumber == seasonNumber && current.episodeNumber == episodeNumber) return current
+    val video = videos.firstOrNull { it.season == seasonNumber && it.episode == episodeNumber } ?: return current
+    return SeriesPrimaryAction(
+        label = video.upNextLabel(),
+        videoId = com.nuvio.app.features.watchprogress.buildPlaybackVideoId(parentMetaId = id, seasonNumber = seasonNumber, episodeNumber = episodeNumber, fallbackVideoId = video.id),
+        seasonNumber = seasonNumber,
+        episodeNumber = episodeNumber,
+        episodeTitle = video.title,
+        episodeThumbnail = video.thumbnail,
+        resumePositionMs = null,
+    )
+}
+
 internal fun MetaVideo.playLabel(): String =
     playLabel(seasonNumber = season, episodeNumber = episode)
 

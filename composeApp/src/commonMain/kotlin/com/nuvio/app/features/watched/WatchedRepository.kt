@@ -147,6 +147,12 @@ object WatchedRepository {
     private var providerFullyWatchedSeriesKeys: MutableMap<TrackingProviderId, Set<String>> = mutableMapOf()
     private var expandedSiblingKeys: Set<String> = emptySet()
     private var providerExtraWatchedKeys: MutableMap<TrackingProviderId, Set<String>> = mutableMapOf()
+    /**
+     * Episodes a connected tracker reports as watched whatever the watched source is (AniList for
+     * anime). They show as watched and count for "next episode", but they are not Nuvio's items:
+     * nothing marks them, so nothing sends them back to the tracker.
+     */
+    private var importedWatchedKeys: Map<TrackingProviderId, Set<String>> = emptyMap()
     private var nuvioHasLoaded: Boolean = false
     private var loadedProviders: MutableSet<TrackingProviderId> = mutableSetOf()
     private var nuvioHasLoadedRemote: Boolean = false
@@ -202,6 +208,7 @@ object WatchedRepository {
         providerFullyWatchedSeriesKeys.clear()
         expandedSiblingKeys = emptySet()
         providerExtraWatchedKeys.clear()
+        importedWatchedKeys = emptyMap()
         nuvioHasLoaded = false
         loadedProviders.clear()
         nuvioHasLoadedRemote = false
@@ -880,10 +887,15 @@ object WatchedRepository {
             }
             removed to extraKeysChanged
         }
+        // Unmarking by hand also takes back what a tracker reported (AniList), and tells it.
+        val importedHits = removeImportedKeys(items)
         if (removedItems.isNotEmpty()) {
             publish()
             persist()
-            if (syncRemote) pushDeleteToServer(items = removedItems, source = source)
+            if (syncRemote) pushDeleteToServer(items = (removedItems + importedHits).distinctBy { watchedItemKey(it.type, it.id, it.season, it.episode) }, source = source)
+        } else if (importedHits.isNotEmpty()) {
+            publish()
+            if (syncRemote) pushDeleteToServer(items = importedHits, source = source)
         } else if (source.providerId != null) {
             if (removedExtraKeys) {
                 publish()
@@ -891,6 +903,15 @@ object WatchedRepository {
             }
             if (syncRemote) pushDeleteToServer(items = items.toList(), source = source)
         }
+    }
+
+    /** Replaces what [providerId] reports as watched outside the watched source; see [importedWatchedKeys]. */
+    internal fun importedWatchedKeys(providerId: TrackingProviderId): Set<String> = importedWatchedKeys[providerId].orEmpty()
+
+    internal fun setImportedWatchedKeys(providerId: TrackingProviderId, keys: Set<String>) {
+        if (importedWatchedKeys[providerId].orEmpty() == keys) return
+        importedWatchedKeys = if (keys.isEmpty()) importedWatchedKeys - providerId else importedWatchedKeys + (providerId to keys)
+        publish()
     }
 
     fun isWatched(
@@ -902,6 +923,7 @@ object WatchedRepository {
         ensureLoaded()
         val source = activeSource
         val keys = watchedItemKeys(type = type, id = id, season = season, episode = episode)
+        if (importedWatchedKeys.values.any { imported -> keys.any(imported::contains) }) return true
         val stored = itemsStore.read { nuvioItems, providerItems, _, _ ->
             source.providerId?.let { providerId ->
                 providerItems[providerId]?.let { itemsByKey -> keys.any(itemsByKey::containsKey) } == true
@@ -1094,6 +1116,24 @@ object WatchedRepository {
         }
     }
 
+    /** Drops [items] from every tracker's imported keys; returns the items that were there. */
+    private fun removeImportedKeys(items: Collection<WatchedItem>): List<WatchedItem> {
+        if (importedWatchedKeys.isEmpty()) return emptyList()
+        val hits = mutableListOf<WatchedItem>()
+        importedWatchedKeys = importedWatchedKeys.mapValues { (_, imported) ->
+            var remaining = imported
+            items.forEach { item ->
+                val keys = watchedItemKeys(type = item.type, id = item.id, season = item.season, episode = item.episode)
+                if (keys.any(remaining::contains)) {
+                    remaining = remaining - keys
+                    hits += item
+                }
+            }
+            remaining
+        }
+        return hits.distinctBy { watchedItemKey(it.type, it.id, it.season, it.episode) }
+    }
+
     private fun publish() {
         val (nuvioItems, providerItems) = itemsStore.read { storedNuvioItems, storedProviderItems, _, _ ->
             storedNuvioItems.values.toList() to storedProviderItems.mapValues { (_, itemsByKey) ->
@@ -1115,6 +1155,7 @@ object WatchedRepository {
         activeSource.providerId?.let { providerId ->
             providerExtraWatchedKeys[providerId]?.let { extraKeys -> watchedKeys += extraKeys }
         }
+        importedWatchedKeys.values.forEach { imported -> watchedKeys += imported }
         val isLoaded = hasLoadedSource(activeSource)
         val hasLoadedRemoteItems = activeSource.providerId
             ?.let(providersLoadedFromRemote::contains)

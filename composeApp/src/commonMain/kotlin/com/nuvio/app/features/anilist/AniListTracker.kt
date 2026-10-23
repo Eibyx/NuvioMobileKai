@@ -27,6 +27,7 @@ import com.nuvio.app.features.tracking.buildTrackingMediaReference
 import com.nuvio.app.features.details.MetaDetailsRepository
 import com.nuvio.app.features.tracking.TrackingMediaReference
 import com.nuvio.app.features.tracking.parseAnimeIdRef
+import com.nuvio.app.features.watched.WatchedRepository
 import com.nuvio.app.features.watchprogress.WatchProgressEntry
 import nuvio.composeapp.generated.resources.Res
 import nuvio.composeapp.generated.resources.anilist_link_saved
@@ -76,6 +77,9 @@ object AniListTracker : TrackingAuthProvider {
         background = { delayMs -> PlatformAniListSyncScheduler.schedule(delayMs) },
     )
 
+    /** AniList → Nuvio for anime; see [AniListWatchedImporter]. */
+    internal val importer = AniListWatchedImporter(sync, api, queue, resolver, coroutineScope)
+
     init {
         writes.queue = queue
         writes.looksLikeAnime = ::looksLikeAnime
@@ -88,6 +92,12 @@ object AniListTracker : TrackingAuthProvider {
                     queue.open(state.scope.profileId, process = false)
                     queue.retryNow("App opened or AniList connected")
                 }
+            }
+        }
+        importer.start()
+        coroutineScope.launch {
+            importer.keys.collect { keys ->
+                WatchedRepository.setImportedWatchedKeys(TrackingProviderId.ANILIST, keys)
             }
         }
         coroutineScope.launch {
@@ -138,6 +148,34 @@ object AniListTracker : TrackingAuthProvider {
 
     /** For "Link with AniList": anime matching [query], best match first. */
     suspend fun searchAnime(query: String): List<AniListMedia> = api.searchAnime(query)
+
+    /** Opening an anime's page: its AniList entries are read again and imported; see [AniListWatchedImporter.refreshTitle]. */
+    fun refreshTitle(meta: com.nuvio.app.features.details.MetaDetails) {
+        if (!store.state.value.isAuthenticated) return
+        coroutineScope.launch {
+            try {
+                importer.refreshTitle(meta)
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Throwable) {
+                InAppLogger.info("Sync/AniList", "AniList refresh of ${meta.name} failed: ${InAppLogger.throwableSummary(error)}")
+            }
+        }
+    }
+
+    /** "Sync now" in the AniList sheet. */
+    fun syncTitle(meta: com.nuvio.app.features.details.MetaDetails) {
+        if (!store.state.value.isAuthenticated) return
+        coroutineScope.launch {
+            try {
+                importer.syncTitle(meta)
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Throwable) {
+                InAppLogger.info("Sync/AniList", "AniList sync of ${meta.name} failed: ${InAppLogger.throwableSummary(error)}")
+            }
+        }
+    }
 
     fun linkKey(contentId: String, contentType: String, season: Int?): String =
         aniListSendKey(contentId, contentType, season)

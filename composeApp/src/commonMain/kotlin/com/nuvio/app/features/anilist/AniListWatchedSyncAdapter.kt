@@ -5,7 +5,10 @@ import com.nuvio.app.features.tracking.TrackingProviderId
 import com.nuvio.app.features.tracking.TrackingRefreshIntent
 import com.nuvio.app.features.tracking.TrackingWatchedProvider
 import com.nuvio.app.features.tracking.buildTrackingMediaReference
+import com.nuvio.app.core.logging.InAppLogger
 import com.nuvio.app.features.watched.WatchedItem
+import com.nuvio.app.features.watched.WatchedRepository
+import com.nuvio.app.features.watched.watchedItemKeys
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
@@ -41,8 +44,13 @@ class AniListWatchedSyncAdapter internal constructor(
         }.distinctUntilChanged()
 
     override suspend fun push(profileId: Int, items: Collection<WatchedItem>) {
-        if (items.isEmpty()) return
-        writes.addToHistory(profileId, items.map { TrackingHistoryItem(it.reference(), it.markedAtEpochMs) })
+        // What came from AniList (imported keys) is not sent back to AniList: no echoes.
+        val fresh = withoutImported(items, WatchedRepository.importedWatchedKeys(TrackingProviderId.ANILIST))
+        if (fresh.size != items.size) {
+            InAppLogger.info("Sync/AniList", "Not sending ${items.size - fresh.size} episodes back to AniList: they came from AniList")
+        }
+        if (fresh.isEmpty()) return
+        writes.addToHistory(profileId, fresh.map { TrackingHistoryItem(it.reference(), it.markedAtEpochMs) })
     }
 
     override suspend fun delete(profileId: Int, items: Collection<WatchedItem>) {
@@ -64,3 +72,11 @@ class AniListWatchedSyncAdapter internal constructor(
         episodeNumber = episode,
     )
 }
+
+/** [items] without the episodes AniList itself reported as watched ([imported] keys). */
+internal fun withoutImported(items: Collection<WatchedItem>, imported: Set<String>): List<WatchedItem> =
+    if (imported.isEmpty()) {
+        items.toList()
+    } else {
+        items.filterNot { item -> watchedItemKeys(item.type, item.id, item.season, item.episode).any(imported::contains) }
+    }
