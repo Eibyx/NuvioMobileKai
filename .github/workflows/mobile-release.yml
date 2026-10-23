@@ -134,6 +134,8 @@ jobs:
       - name: Generate release notes
         env:
           PREVIOUS_BUMP: ${{ steps.release.outputs.previous_bump }}
+          PREVIOUS_VERSION: ${{ steps.release.outputs.previous_version }}
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
           EXCLUDE_COMMITS: ${{ inputs.exclude_commits }}
           NOTES_FROM: ${{ inputs.notes_from }}
           RELEASE_VERSION: ${{ steps.release.outputs.version }}
@@ -155,12 +157,22 @@ jobs:
             fi
             echo "Release notes start after the given commit ${notes_from}."
           else
-            notes_from="$(git log "${notes_to}" -n 1 --format=%H --grep='^chore(store): publish ')"
-            if [[ -n "${notes_from}" ]]; then
-              echo "Release notes start after the last store publish commit ${notes_from}."
+            # Start after the last published release, so earlier releases' commits are not repeated:
+            # the previous version's tag, else the newest release tag on this branch. The store
+            # publish commits on this branch come from upstream and are far older than Kai's releases.
+            git fetch --tags --force --quiet origin || echo "::warning::Could not fetch tags."
+            previous_tag="${PREVIOUS_VERSION%-beta}-beta"
+            latest_tag="$(git tag --merged "${notes_to}" --sort=-creatordate --list '*-beta' | grep -vxF "${RELEASE_TAG}" | head -n 1 || true)"
+            if [[ -n "${PREVIOUS_VERSION}" ]] && git rev-parse --verify --quiet "refs/tags/${previous_tag}" >/dev/null \
+              && git merge-base --is-ancestor "${previous_tag}" "${notes_to}"; then
+              notes_from="$(git rev-parse "${previous_tag}^{commit}")"
+              echo "Release notes start after the previous release ${previous_tag} (${notes_from})."
+            elif [[ -n "${latest_tag}" ]]; then
+              notes_from="$(git rev-parse "${latest_tag}^{commit}")"
+              echo "Release notes start after the latest release tag on this branch, ${latest_tag} (${notes_from})."
             else
               notes_from="${PREVIOUS_BUMP}"
-              echo "No store publish commit on this branch; starting after the previous version bump ${notes_from}."
+              echo "No release tag on this branch; starting after the previous version bump ${notes_from}."
             fi
           fi
 
