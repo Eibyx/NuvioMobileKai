@@ -2,4 +2,11 @@
 <resources>
     <string name="shader_warning_failed">The shader “%1$s” could not run on this device and was turned off. Playback goes on.</string>
     <string name="shader_warning_failed_unknown">A shader could not run on this device. Playback goes on.</string>
+    <string name="settings_licenses_attributions_section_shaders">MPV SHADERS</string>
+    <string name="settings_licenses_shaders_note">Shaders that ship with the app for the mpv engine. On install they get precision tuned for phone GPUs, and upscalers get an “Apply always” copy with a lower scale threshold.</string>
+    <string name="settings_licenses_shaders_license">License: %1$s</string>
+    <string name="settings_licenses_shaders_pinned">From:\n%1$s</string>
+    <string name="settings_licenses_shaders_show">Show license</string>
+    <string name="settings_licenses_shaders_hide">Hide license</string>
+    <string name="settings_licenses_shaders_open">Open project</string>
 </resources>

@@ -39,8 +39,16 @@ object ShaderPrecision {
         "APrxMedRcpF1",
     )
 
-    /** Pass descriptions whose maths (variance, kriging, regression) lose too much at FP16. */
-    private val highpDescriptions = listOf("KrigBilateral", "SSimDownscaler", "CfL", "Chroma From Luma")
+    /**
+     * Pass descriptions whose maths lose too much at FP16: variance, kriging and regression, and
+     * NVIDIA Image Scaling's source positions in pixels (FP16 has no fraction left above 1024).
+     */
+    private val highpDescriptions = listOf("KrigBilateral", "SSimDownscaler", "CfL", "Chroma From Luma", "NVIDIA Image")
+
+    /** Texture coordinates and sizes: a variable holding one needs FP32 unless it keeps only the fraction. */
+    private val coordinateTokens = listOf("_pos", "_pt", "_size", "gl_FragCoord", "gl_GlobalInvocationID")
+
+    private val dataBlockHeaders = listOf("//!TEXTURE", "//!BUFFER", "//!PARAM")
 
     private val floatTypes = listOf("mat4", "mat3", "mat2", "vec4", "vec3", "vec2", "float")
 
@@ -70,8 +78,9 @@ object ShaderPrecision {
                     passDescription = ""
                 }
                 if (trimmed.startsWith("//!DESC")) passDescription = trimmed
-                // A //!TEXTURE or //!BUFFER block holds data (RAVU's lookup tables), not code.
-                if (trimmed.startsWith("//!TEXTURE") || trimmed.startsWith("//!BUFFER")) dataBlock = true
+                // //!TEXTURE and //!BUFFER blocks hold data (RAVU's lookup tables) and //!PARAM
+                // blocks a default value (CfL), not code.
+                if (dataBlockHeaders.any { trimmed.startsWith(it) }) dataBlock = true
                 out += line
                 continue
             }
@@ -117,13 +126,22 @@ object ShaderPrecision {
 
     /**
      * `vec4 x = ...` becomes `mediump vec4 x = ...`. Comments, macros, already qualified
-     * declarations, constructors and function signatures (`vec4 hook() {`) are left alone.
+     * declarations, constructors and function signatures (`vec4 hook() {`) are left alone. A
+     * variable that holds a texture coordinate (`vec2 base = HOOKED_pos + ...`) is always highp:
+     * at FP16 a coordinate on a 1080p texture is off by about a pixel. Only `fract(...)` of one
+     * is safe at medium precision.
      */
     internal fun explicitPrecision(line: String, precision: String): String {
         val trimmed = line.trim()
         if (trimmed.isEmpty() || trimmed.startsWith("//") || trimmed.startsWith("#")) return line
         if (trimmed.startsWith("mediump ") || trimmed.startsWith("highp ") || trimmed.startsWith("lowp ")) return line
         val indent = line.take(line.length - line.trimStart().length)
+        if (trimmed.startsWith("const ")) {
+            val declaration = trimmed.removePrefix("const ").trimStart()
+            val isFloat = floatTypes.any { declaration.startsWith("$it ") }
+            return if (precision == "mediump" && isFloat && holdsCoordinate(declaration)) "${indent}const highp $declaration" else line
+        }
+        val chosen = if (precision == "mediump" && holdsCoordinate(trimmed)) "highp" else precision
         for (type in floatTypes) {
             // `mat4(...)` at the start of a line is a constructor in an expression, not a declaration.
             if (trimmed.startsWith("$type ")) {
@@ -132,10 +150,16 @@ object ShaderPrecision {
                     !afterType.substringBefore("(").contains("=") &&
                     afterType.first() != '('
                 if (isFunction) return line
-                return "$indent$precision $trimmed"
+                return "$indent$chosen $trimmed"
             }
         }
         return line
+    }
+
+    private fun holdsCoordinate(declaration: String): Boolean {
+        val initializer = declaration.substringAfter('=', "").trim()
+        if (initializer.isEmpty() || initializer.startsWith("fract(")) return false
+        return coordinateTokens.any { initializer.contains(it) }
     }
 
     /**

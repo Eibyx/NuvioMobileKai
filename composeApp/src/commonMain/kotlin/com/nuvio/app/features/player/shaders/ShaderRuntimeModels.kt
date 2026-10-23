@@ -70,7 +70,9 @@ object ShaderPassReport {
     /**
      * Matches the passes mpv ran on the last fresh frame to the [chain]. A pass belongs to a
      * shader when its description contains one of the shader's `//!DESC` names (vo_gpu prefixes
-     * "user shader:" and libplacebo appends the bound textures).
+     * "user shader:" and libplacebo appends the bound textures). When the same shader is in the
+     * chain twice (Anime4K's second upscale at the same size), each run of a pass goes to the
+     * copy that has had the fewest runs of it so far, in chain order.
      */
     fun statuses(
         chain: List<ChainShader>,
@@ -80,12 +82,34 @@ object ShaderPassReport {
         outputWidth: Int,
         outputHeight: Int,
         failedIds: Set<String> = emptySet(),
-    ): List<ShaderPassStatus> = chain.map { shader ->
-        if (shader.id in failedIds) {
-            return@map ShaderPassStatus(shader.id, shader.title, active = false, costMs = 0.0, inactiveReason = ShaderInactiveReason.Failed)
+    ): List<ShaderPassStatus> {
+        val assigned = chain.indices.associateWith { mutableListOf<MpvRenderPass>() }
+        val runs = HashMap<Pair<Int, String>, Int>()
+        for (pass in passes) {
+            val matches = chain.indices.mapNotNull { index ->
+                if (chain[index].id in failedIds) return@mapNotNull null
+                chain[index].passDescriptions.filter { pass.description.contains(it) }.maxByOrNull { it.length }?.let { index to it }
+            }
+            val pick = matches.minByOrNull { runs[it] ?: 0 } ?: continue
+            runs[pick] = (runs[pick] ?: 0) + 1
+            assigned.getValue(pick.first) += pass
         }
-        val own = passes.filter { pass -> shader.passDescriptions.any { pass.description.contains(it) } }
-        if (own.isNotEmpty()) {
+        return chain.mapIndexed { index, shader -> status(shader, assigned.getValue(index), videoWidth, videoHeight, outputWidth, outputHeight, failedIds) }
+    }
+
+    private fun status(
+        shader: ChainShader,
+        own: List<MpvRenderPass>,
+        videoWidth: Int,
+        videoHeight: Int,
+        outputWidth: Int,
+        outputHeight: Int,
+        failedIds: Set<String>,
+    ): ShaderPassStatus {
+        if (shader.id in failedIds) {
+            return ShaderPassStatus(shader.id, shader.title, active = false, costMs = 0.0, inactiveReason = ShaderInactiveReason.Failed)
+        }
+        return if (own.isNotEmpty()) {
             ShaderPassStatus(shader.id, shader.title, active = true, costMs = own.sumOf { it.averageNs } / 1_000_000.0)
         } else {
             ShaderPassStatus(

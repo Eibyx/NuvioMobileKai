@@ -151,6 +151,7 @@ open class MainActivity : AppCompatActivity() {
         com.nuvio.app.features.player.SubtitleFontFiles.initialize(applicationContext)
         com.nuvio.app.features.player.SubtitleFontDirectoryPlatform.initialize(applicationContext)
         com.nuvio.app.features.player.MpvRenderer.initialize(applicationContext)
+        com.nuvio.app.features.player.shaders.ShaderFiles.initialize(applicationContext)
         com.nuvio.app.features.player.seekpreview.SeekPreviewAndroid.initialize(applicationContext)
         PlayerTrackPreferenceStorage.initialize(applicationContext)
         P2pSettingsStorage.initialize(applicationContext)

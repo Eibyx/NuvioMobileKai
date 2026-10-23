@@ -2,4 +2,11 @@
 <resources>
     <string name="shader_warning_failed">El shader «%1$s» no pudo ejecutarse en este dispositivo y se desactivó. La reproducción continúa.</string>
     <string name="shader_warning_failed_unknown">Un shader no pudo ejecutarse en este dispositivo. La reproducción continúa.</string>
+    <string name="settings_licenses_attributions_section_shaders">SHADERS DE MPV</string>
+    <string name="settings_licenses_shaders_note">Shaders incluidos con la app para el motor mpv. Al instalarlos se ajusta su precisión para GPU de móvil, y los upscalers reciben una copia «Aplicar siempre» con un umbral de escala más bajo.</string>
+    <string name="settings_licenses_shaders_license">Licencia: %1$s</string>
+    <string name="settings_licenses_shaders_pinned">Origen:\n%1$s</string>
+    <string name="settings_licenses_shaders_show">Ver licencia</string>
+    <string name="settings_licenses_shaders_hide">Ocultar licencia</string>
+    <string name="settings_licenses_shaders_open">Abrir proyecto</string>
 </resources>

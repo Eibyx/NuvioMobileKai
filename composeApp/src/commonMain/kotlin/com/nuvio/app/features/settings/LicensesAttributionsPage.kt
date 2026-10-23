@@ -19,6 +19,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -34,6 +39,9 @@ import com.nuvio.app.core.ui.NuvioScreenHeader
 import com.nuvio.app.features.cloud.PremiumizeCloudLibraryPosterUrl
 import com.nuvio.app.features.cloud.TorboxCloudLibraryPosterUrl
 import com.nuvio.app.features.cloud.cloudLibraryDisplayArtworkUrl
+import com.nuvio.app.features.player.shaders.ShaderCatalog
+import com.nuvio.app.features.player.shaders.ShaderLicenses
+import com.nuvio.app.features.player.shaders.ShaderProject
 import com.nuvio.app.isIos
 import nuvio.composeapp.generated.resources.*
 import org.jetbrains.compose.resources.StringResource
@@ -136,6 +144,23 @@ private fun LicensesAttributionsBody(
             )
         }
 
+        if (ShaderLicenses.isShown) {
+            PlainSettingsStack(
+                title = stringResource(Res.string.settings_licenses_attributions_section_shaders),
+                isTablet = isTablet,
+            ) {
+                Text(
+                    text = stringResource(Res.string.settings_licenses_shaders_note),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                ShaderCatalog.projects.forEachIndexed { index, project ->
+                    ShaderLicenseRow(project = project, isTablet = isTablet)
+                    if (index != ShaderCatalog.projects.lastIndex) PlainStackDivider()
+                }
+            }
+        }
+
         PlainSettingsStack(
             title = stringResource(Res.string.settings_licenses_attributions_section_ui),
             isTablet = isTablet,
@@ -234,6 +259,63 @@ private fun LicenseRow(
         isTablet = isTablet,
         onOpen = { uriHandler.openUri(item.link) },
     )
+}
+
+/** A bundled shader project: its notice, the commits it was taken from, and its license text on demand. */
+@Composable
+private fun ShaderLicenseRow(
+    project: ShaderProject,
+    isTablet: Boolean,
+) {
+    val uriHandler = LocalUriHandler.current
+    var expanded by remember(project.id) { mutableStateOf(false) }
+    var licenseText by remember(project.id) { mutableStateOf<String?>(null) }
+    LaunchedEffect(expanded) {
+        if (expanded && licenseText == null) {
+            licenseText = runCatching { ShaderLicenses.text(project) }.getOrNull()
+        }
+    }
+    val pins = ShaderLicenses.pins(project).joinToString("\n") { "${it.repository} @ ${it.commit.take(12)}" }
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = if (isTablet) 4.dp else 0.dp, vertical = if (isTablet) 18.dp else 16.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Text(
+            text = project.name,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Text(
+            text = "${project.copyright}\n${stringResource(Res.string.settings_licenses_shaders_license, project.license)}\n" +
+                stringResource(Res.string.settings_licenses_shaders_pinned, pins),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+            Text(
+                text = stringResource(if (expanded) Res.string.settings_licenses_shaders_hide else Res.string.settings_licenses_shaders_show),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.clickable { expanded = !expanded }.padding(vertical = 6.dp),
+            )
+            Text(
+                text = stringResource(Res.string.settings_licenses_shaders_open),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.clickable { uriHandler.openUri(project.url) }.padding(vertical = 6.dp),
+            )
+        }
+        if (expanded) {
+            Text(
+                text = licenseText.orEmpty(),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
 }
 
 @Composable

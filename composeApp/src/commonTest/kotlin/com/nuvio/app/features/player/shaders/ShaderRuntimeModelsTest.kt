@@ -55,6 +55,19 @@ class ShaderRuntimeModelsTest {
     }
 
     @Test
+    fun theSameShaderTwiceSharesItsPassesInOrder() {
+        val first = upscale.copy(id = "anime4k_upscale_s#forced", forced = true)
+        val second = upscale.copy(id = "anime4k_upscale_s")
+        val run = MpvRenderPass("Anime4K-v4.0-Upscale-CNN-x2-(M)-Conv-4x3x3x3", 0, 1_000_000, 0)
+        val both = ShaderPassReport.statuses(listOf(first, second), listOf(run, run.copy(averageNs = 3_000_000)), 480, 360, 2169, 1220)
+        assertEquals(listOf(1.0, 3.0), both.map { it.costMs })
+        // Only the forced first copy ran (1080p): the second reports why it did not.
+        val one = ShaderPassReport.statuses(listOf(first, second), listOf(run), 1920, 1080, 2169, 1220)
+        assertTrue(one[0].active)
+        assertEquals(ShaderInactiveReason.VideoMatchesScreen, one[1].inactiveReason)
+    }
+
+    @Test
     fun skippedShadersExplainWhy() {
         fun reason(shader: ChainShader, width: Int, height: Int, failed: Set<String> = emptySet()) =
             ShaderPassReport.statuses(listOf(shader), emptyList(), width, height, 2169, 1220, failed).single().inactiveReason

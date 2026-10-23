@@ -51,6 +51,28 @@ class ShaderPrecisionTest {
     }
 
     @Test
+    fun textureCoordinatesKeepFullPrecision() {
+        // FSRCNNX's aggregation pass: the fraction is fine at FP16, the coordinate is not.
+        assertEquals("mediump vec2 fcoord = fract(SUBCONV1_pos * SUBCONV1_size);", ShaderPrecision.explicitPrecision("vec2 fcoord = fract(SUBCONV1_pos * SUBCONV1_size);", "mediump"))
+        assertEquals(
+            "highp vec2 base = SUBCONV1_pos + (vec2(0.5) - fcoord) * SUBCONV1_pt;",
+            ShaderPrecision.explicitPrecision("vec2 base = SUBCONV1_pos + (vec2(0.5) - fcoord) * SUBCONV1_pt;", "mediump"),
+        )
+        assertEquals("  const highp vec2 p = HOOKED_pos * 2.0;", ShaderPrecision.explicitPrecision("  const vec2 p = HOOKED_pos * 2.0;", "mediump"))
+        assertEquals("  const float k = 0.5;", ShaderPrecision.explicitPrecision("  const float k = 0.5;", "mediump"))
+        // NVIDIA Image Scaling works in source pixels: the whole pass stays highp.
+        val nvScaler = """
+            //!DESC NVIDIA Image Scaling and Sharpening v1.0.2
+            //!HOOK LUMA
+            //!COMPUTE 32 24 256 1
+            void hook() {
+                const float srcX = (0.5f + dstX) * kScaleX - 0.5f;
+            }
+        """.trimIndent()
+        assertTrue(ShaderPrecision.optimize(nvScaler).contains("precision highp float;"))
+    }
+
+    @Test
     fun extensionsAndTheirIfBlocksStayFirst() {
         val artCnn = """
             //!DESC ArtCNN C4F16 (Conv2D)
@@ -117,6 +139,27 @@ class ShaderPrecisionTest {
         assertEquals("3c003c003c003c00", lines.last())
         assertEquals(1, lines.count { it == "precision mediump float;" })
         assertEquals("//!FILTER NEAREST", lines[lines.size - 2])
+    }
+
+    @Test
+    fun parameterDefaultsAreNotCode() {
+        val cfl = """
+            //!PARAM distance_coeff
+            //!TYPE float
+            //!MINIMUM 0.0
+            2.0
+
+            //!HOOK CHROMA
+            //!DESC Chroma From Luma Prediction (Smoothing Chroma)
+            vec4 hook() {
+                float weight = distance_coeff;
+                return vec4(weight);
+            }
+        """.trimIndent()
+        val lines = ShaderPrecision.optimize(cfl).lines()
+        assertEquals("2.0", lines[lines.indexOf("//!MINIMUM 0.0") + 1])
+        assertEquals(1, lines.count { it.startsWith("precision ") && it.endsWith("float;") })
+        assertTrue(lines.indexOf("precision highp float;") > lines.indexOf("//!DESC Chroma From Luma Prediction (Smoothing Chroma)"))
     }
 
     @Test
