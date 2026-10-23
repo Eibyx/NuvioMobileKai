@@ -27,6 +27,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ListAlt
 import androidx.compose.material.icons.automirrored.rounded.OpenInNew
+import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Build
 import androidx.compose.material.icons.rounded.Flag
 import androidx.compose.material.icons.rounded.Groups
@@ -77,6 +78,9 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -135,6 +139,8 @@ internal fun PlayerControlsShell(
     onSpeedPickerDismiss: () -> Unit = {},
     onSubtitleClick: (() -> Unit)? = null,
     onAudioClick: (() -> Unit)? = null,
+    onShadersClick: (() -> Unit)? = null,
+    shadersActive: Boolean = false,
     onVideoSettingsClick: (() -> Unit)? = null,
     onCastClick: (() -> Unit)? = null,
     isCasting: Boolean = false,
@@ -265,6 +271,7 @@ internal fun PlayerControlsShell(
                         onOrientationToggleClick = onOrientationToggleClick,
                         isPortraitPlayback = isPortraitPlayback,
                         onPictureInPictureClick = onPictureInPictureClick,
+                        showShaderCompare = shadersActive,
                         modifier = Modifier
                             .align(Alignment.TopEnd)
                             .windowInsetsPadding(playerToolbarTopInsets(metrics))
@@ -321,6 +328,8 @@ internal fun PlayerControlsShell(
                     onSpeedPickerDismiss = onSpeedPickerDismiss,
                     onSubtitleClick = onSubtitleClick,
                     onAudioClick = onAudioClick,
+                    onShadersClick = onShadersClick,
+                    shadersActive = shadersActive,
                     onSourcesClick = onSourcesClick,
                     onEpisodesClick = onEpisodesClick,
                     onChaptersClick = onChaptersClick,
@@ -398,6 +407,8 @@ internal fun PlayerControlsShell(
                         onChaptersClick = onChaptersClick,
                         onNextEpisodeClick = onNextEpisodeClick,
                         onSpeedClick = { onSpeedClick?.invoke() },
+                        onShadersClick = onShadersClick,
+                        shadersActive = shadersActive,
                         speedPickerVisible = speedPickerVisible,
                         onSpeedSelected = onSpeedSelected,
                         onSpeedPickerDismiss = onSpeedPickerDismiss,
@@ -808,6 +819,8 @@ private fun ProgressControls(
     onSpeedPickerDismiss: () -> Unit = {},
     onSubtitleClick: (() -> Unit)? = null,
     onAudioClick: (() -> Unit)? = null,
+    onShadersClick: (() -> Unit)? = null,
+    shadersActive: Boolean = false,
     onSourcesClick: (() -> Unit)? = null,
     onEpisodesClick: (() -> Unit)? = null,
     onChaptersClick: (() -> Unit)? = null,
@@ -857,17 +870,23 @@ private fun ProgressControls(
                 modifier = Modifier.align(Alignment.TopEnd),
             )
             // Legacy bottom bar: same compact pill as before, now liquid glass.
+            // Kept clear of the time pills; it scrolls sideways when the actions do not fit.
             Surface(
                 color = Color.Transparent,
                 shape = RoundedCornerShape(24.dp),
-                modifier = Modifier.align(Alignment.TopCenter).playerLiquidGlass(
-                    shape = RoundedCornerShape(24.dp),
-                    refractionHeight = 10.dp,
-                    refractionAmount = 14.dp,
-                ),
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(horizontal = LegacyTimePillReserve)
+                    .playerLiquidGlass(
+                        shape = RoundedCornerShape(24.dp),
+                        refractionHeight = 10.dp,
+                        refractionAmount = 14.dp,
+                    ),
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
+                    modifier = Modifier
+                        .horizontalScroll(rememberScrollState())
+                        .padding(horizontal = 4.dp, vertical = 2.dp),
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -904,6 +923,17 @@ private fun ProgressControls(
                             painter = audioPainter,
                             onClick = onAudioClick,
                         )
+                    }
+                    if (onShadersClick != null) {
+                        Box {
+                            PlayerActionPillButton(
+                                label = stringResource(Res.string.compose_player_shaders),
+                                icon = Icons.Rounded.AutoAwesome,
+                                onClick = onShadersClick,
+                                stateDescription = if (shadersActive) stringResource(Res.string.compose_player_shaders_active) else null,
+                            )
+                            if (shadersActive) ActiveDot(Modifier.align(Alignment.TopStart).padding(start = 22.dp, top = 8.dp))
+                        }
                     }
                     if (onSourcesClick != null) {
                         PlayerActionPillButton(
@@ -944,6 +974,9 @@ private fun ProgressControls(
         }
     }
 }
+
+/** Room for the legacy bar's time pills on each side of its action pill. */
+private val LegacyTimePillReserve = 76.dp
 
 private val PlayerTimelineThumbInset = 2.dp
 
@@ -1334,11 +1367,13 @@ private fun PlayerActionPillButton(
     onClick: () -> Unit,
     icon: ImageVector? = null,
     painter: Painter? = null,
+    stateDescription: String? = null,
 ) {
     Row(
         modifier = Modifier
             .clip(RoundedCornerShape(22.dp))
             .clickable(onClick = onClick)
+            .then(if (stateDescription != null) Modifier.semantics { this.stateDescription = stateDescription } else Modifier)
             .padding(horizontal = 12.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,

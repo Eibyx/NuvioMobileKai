@@ -35,6 +35,8 @@ data class ShaderRuntimeInputs(
     val suspension: ShaderSuspension? = null,
     /** Hold-to-compare: the original picture while held. */
     val comparing: Boolean = false,
+    /** The chain being put together in the player's "Combine" tab, in order. */
+    val liveChain: List<String>? = null,
 )
 
 /** mpv options that go with the shaders. */
@@ -59,6 +61,9 @@ data class ShaderPlan(
 object ShaderController {
     /** The preset id that means "follow the settings" (Automatic or the manual preset). */
     const val AUTOMATIC = "auto"
+
+    /** The chain of the "Combine" tab while it is being made. */
+    const val LIVE_CHAIN_ID = "__live__"
 
     private val mutableInputs = MutableStateFlow(ShaderRuntimeInputs())
     val inputs: StateFlow<ShaderRuntimeInputs> = mutableInputs.asStateFlow()
@@ -89,13 +94,20 @@ object ShaderController {
 
     /** Picks a preset in the player; remembered for the series when that setting is on. */
     fun pickPreset(presetId: String) {
-        updateInputs { it.copy(presetOverride = presetId) }
+        updateInputs { it.copy(presetOverride = presetId, liveChain = null) }
         val seriesId = mutableInputs.value.content.seriesId
         if (seriesId != null && presetId != AUTOMATIC) ShaderSettingsRepository.rememberForSeries(seriesId, presetId)
         InAppLogger.info(TAG, "preset picked in the player: $presetId")
     }
 
-    fun setComparing(comparing: Boolean) = updateInputs { it.copy(comparing = comparing) }
+    fun setComparing(comparing: Boolean) {
+        if (mutableInputs.value.comparing == comparing) return
+        updateInputs { it.copy(comparing = comparing) }
+        InAppLogger.info(TAG, if (comparing) "compare: original picture" else "compare: shaders back")
+    }
+
+    /** Runs [ids] as made in the "Combine" tab, live. */
+    fun setLiveChain(ids: List<String>) = updateInputs { it.copy(liveChain = ids) }
 
     /** Recomputes the plan and hands the chain and options to the engine. */
     fun refresh() {
@@ -140,13 +152,29 @@ object ShaderController {
         }
     }
 
+    /** A shader's name for the panel; imported shaders are added in part 6. */
+    var titleOf: (String) -> String = { id -> ShaderCatalog.shader(id)?.title ?: id }
+
+    /** Bundled shaders, then the imported ones (part 6). */
+    var traitsOf: (String) -> ShaderPresets.ShaderTraits? = ShaderPresets::bundledTraits
+
     fun plan(settings: ShaderSettings, inputs: ShaderRuntimeInputs): ShaderPlan {
         val enabled = (inputs.enabledOverride ?: settings.enabled) && ShaderFiles.isSupported
         val quality = listOfNotNull(settings.quality, inputs.qualityCap).minByOrNull { it.ordinal } ?: settings.quality
         val applyAlways = (inputs.applyAlwaysOverride ?: settings.applyAlways) && !inputs.applyAlwaysSuspended
         val active = enabled && inputs.suspension == null && !inputs.comparing
-        val presetId = if (enabled) presetFor(settings, inputs) else null
-        val entries = presetId?.let { ShaderPresets.resolve(it, settings, quality, applyAlways) }.orEmpty()
+        val live = inputs.liveChain
+        val presetId = when {
+            !enabled -> null
+            live != null -> ShaderPresets.CHAIN_PREFIX + LIVE_CHAIN_ID
+            else -> presetFor(settings, inputs)
+        }
+        val resolveSettings = if (live != null) {
+            settings.copy(chains = settings.chains + ShaderChainDefinition(LIVE_CHAIN_ID, "", live))
+        } else {
+            settings
+        }
+        val entries = presetId?.let { ShaderPresets.resolve(it, resolveSettings, quality, applyAlways, traits = traitsOf) }.orEmpty()
         val options = if (active) {
             MpvVideoOptions(
                 deband = settings.deband,

@@ -87,6 +87,8 @@ object ShaderPresets {
      *   modes the second upscale and AutoDownscalePre keep their thresholds);
      * - with [applyAlways] at Balanced or High, a chain that doubles the resolution ends with
      *   SSimDownscaler taking the upscaled image down to the screen.
+     * An own chain ("chain:<id>") is run exactly as made: no extras and nothing appended, only
+     * the "Apply always" variants of its first upscaler and of its SSimDownscaler.
      */
     fun resolve(
         presetId: String,
@@ -101,7 +103,8 @@ object ShaderPresets {
             baseChain(presetId, quality)
         } ?: return emptyList()
         val ids = base.filter { traits(it) != null }.toMutableList()
-        val colorExtra = when (settings.color) {
+        val exact = presetId.startsWith(CHAIN_PREFIX)
+        val colorExtra = if (exact) null else when (settings.color) {
             ColorExtra.None -> null
             ColorExtra.KrigBilateral -> "krigbilateral"
             ColorExtra.ChromaFromLuma -> "cfl"
@@ -111,14 +114,14 @@ object ShaderPresets {
             ids.removeAll { traits(it)?.stage == ShaderStage.Color }
             insertAtStage(ids, colorExtra, traits)
         }
-        val sharpenExtra = when (settings.sharpen) {
+        val sharpenExtra = if (exact) null else when (settings.sharpen) {
             SharpenExtra.None -> null
             SharpenExtra.Cas -> "cas_scaled"
             SharpenExtra.NvSharpen -> "nvsharpen"
         }
         if (sharpenExtra != null && sharpenExtra !in ids) insertAtStage(ids, sharpenExtra, traits)
         val toScreen = applyAlways && quality != ShaderQuality.Fast && ids.any { traits(it)?.doublesResolution == true }
-        if (toScreen && SSIM !in ids) ids += SSIM
+        if (toScreen && SSIM !in ids && !exact) ids += SSIM
         val firstUpscaler = if (applyAlways) ids.indexOfFirst { traits(it)?.upscaler == true } else -1
         return ids.mapIndexed { index, id ->
             ChainEntry(id, forced = index == firstUpscaler || (id == SSIM && toScreen))

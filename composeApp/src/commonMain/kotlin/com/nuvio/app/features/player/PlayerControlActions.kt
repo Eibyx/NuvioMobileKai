@@ -1,5 +1,7 @@
 package com.nuvio.app.features.player
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -20,6 +22,7 @@ import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.rounded.ListAlt
 import androidx.compose.material.icons.automirrored.rounded.OpenInNew
+import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Build
 import androidx.compose.material.icons.rounded.Cast
 import androidx.compose.material.icons.rounded.CastConnected
@@ -86,9 +89,19 @@ internal fun PlayerToolbar(
     onOrientationToggleClick: (() -> Unit)? = null,
     isPortraitPlayback: Boolean = false,
     onPictureInPictureClick: (() -> Unit)? = null,
+    /** Hold-to-compare with the original picture; shown while shaders run. */
+    showShaderCompare: Boolean = false,
 ) {
     Row(modifier = modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Spacer(Modifier.weight(1f))
+        if (showShaderCompare) {
+            HoldToCompareButton(
+                enabled = true,
+                tint = Color.White,
+                modifier = Modifier.playerLiquidGlass(CircleShape, refractionHeight = 8.dp, refractionAmount = 12.dp),
+            )
+            Spacer(Modifier.width(8.dp))
+        }
         // Toolbar actions share one liquid-glass capsule; close sits in its own glass circle.
         Row(
             modifier = Modifier.playerLiquidGlass(
@@ -166,6 +179,8 @@ internal fun PlayerControlActions(
     onChaptersClick: (() -> Unit)? = null,
     onNextEpisodeClick: (() -> Unit)?,
     onSpeedClick: () -> Unit,
+    onShadersClick: (() -> Unit)? = null,
+    shadersActive: Boolean = false,
     speedPickerVisible: Boolean = false,
     onSpeedSelected: (Float) -> Unit = {},
     onSpeedPickerDismiss: () -> Unit = {},
@@ -209,6 +224,13 @@ internal fun PlayerControlActions(
             stringResource(Res.string.compose_player_subtitles), onSubtitleClick,
             painter = appIconPainter(AppIconResource.PlayerSubtitles),
         ),
+        onShadersClick?.let {
+            PlayerControlAction(
+                stringResource(if (shadersActive) Res.string.compose_player_shaders_active else Res.string.compose_player_shaders), it,
+                icon = Icons.Rounded.AutoAwesome,
+                active = shadersActive,
+            )
+        },
         onChaptersClick?.let {
             PlayerControlAction(
                 stringResource(Res.string.player_chapters), it,
@@ -319,6 +341,7 @@ internal fun PlayerControlActions(
                                 painter = action.painter,
                                 iconSize = action.iconSize,
                             )
+                            if (action.active) ActiveDot(Modifier.align(Alignment.TopEnd).padding(top = 9.dp, end = 9.dp))
                             action.popup?.invoke()
                         }
                     }
@@ -389,6 +412,17 @@ private fun PlayerAction(
 
 internal val PlayerGlassCapsule = RoundedCornerShape(percent = 50)
 
+/** Marks a control whose feature is on (shaders running). */
+@Composable
+internal fun ActiveDot(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .size(8.dp)
+            .background(MaterialTheme.colorScheme.primary, CircleShape)
+            .border(1.dp, Color.Black.copy(alpha = 0.6f), CircleShape),
+    )
+}
+
 private data class PlayerControlAction(
     val description: String,
     val onClick: () -> Unit,
@@ -396,4 +430,5 @@ private data class PlayerControlAction(
     val painter: Painter? = null,
     val iconSize: Dp = 24.dp,
     val popup: (@Composable () -> Unit)? = null,
+    val active: Boolean = false,
 )

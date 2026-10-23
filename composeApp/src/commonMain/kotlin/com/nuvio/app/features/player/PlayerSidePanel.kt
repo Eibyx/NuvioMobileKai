@@ -67,6 +67,8 @@ internal fun PlayerSidePanel(
     onDismiss: () -> Unit,
     width: Dp = 520.dp,
     modifier: Modifier = Modifier,
+    /** The glass tint; panels with a computed readable tint pass it here. */
+    tint: Color? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val tokens = MaterialTheme.nuvio
@@ -107,8 +109,8 @@ internal fun PlayerSidePanel(
                         .clip(shape)
                         .ambientLiquidGlass(
                             shape = shape,
-                            tint = tokens.colors.surfaceElevated.copy(alpha = tokens.colors.surfaceElevated.alpha * 0.72f),
-                            fallback = tokens.colors.surfaceElevated,
+                            tint = tint ?: tokens.colors.surfaceElevated.copy(alpha = tokens.colors.surfaceElevated.alpha * 0.72f),
+                            fallback = tint ?: tokens.colors.surfaceElevated,
                             blurRadius = 28.dp,
                             refractionHeight = 10.dp,
                             refractionAmount = 18.dp,

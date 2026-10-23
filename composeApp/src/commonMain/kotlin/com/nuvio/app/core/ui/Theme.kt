@@ -92,6 +92,18 @@ internal fun nuvioColorScheme(
     return if (dark) buildColorScheme(darkPalette, amoled = amoled) else buildLightColorScheme(darkPalette.toLightPalette())
 }
 
+/** The app's tokens for a theme, as NuvioTheme builds them; for readability checks. */
+internal fun nuvioThemeTokens(
+    appTheme: AppTheme,
+    dark: Boolean,
+    amoled: Boolean = false,
+    customThemeColors: CustomThemeColors = CustomThemeColors.Default,
+): NuvioThemeTokens {
+    val darkPalette = ThemeColors.getColorPalette(appTheme, customThemeColors)
+    val palette = if (dark) darkPalette else darkPalette.toLightPalette()
+    return defaultNuvioThemeTokens(palette, amoled = amoled, colorScheme = nuvioColorScheme(appTheme, dark, amoled, customThemeColors), dark = dark)
+}
+
 private val JetBrainsSans: FontFamily
     @Composable
     get() = FontFamily(

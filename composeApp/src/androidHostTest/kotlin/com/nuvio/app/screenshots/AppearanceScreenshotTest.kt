@@ -213,6 +213,53 @@ class AppearanceScreenshotTest(private val appearance: AppearanceMode) {
         capture("unexpected_exit_notice")
     }
 
+    private fun showShaderPanel() {
+        val shaders = com.nuvio.app.features.player.shaders.ShaderPlaybackSession
+        com.nuvio.app.features.player.shaders.ShaderSettingsRepository.update { it.copy(enabled = true) }
+        com.nuvio.app.features.player.shaders.ShaderController.startPlayback(
+            com.nuvio.app.features.player.shaders.ShaderContent("tt0", "tt0", isAnime = true),
+        )
+        shaders.onMpvStarted()
+        shaders.onBackend(com.nuvio.app.features.player.shaders.ActiveRenderBackend("gpu-next", "vulkan", "androidvk", "mediacodec-copy"))
+        shaders.onStatuses(
+            listOf(
+                com.nuvio.app.features.player.shaders.ShaderPassStatus("clamp", "Anime4K Clamp Highlights", true, 0.4),
+                com.nuvio.app.features.player.shaders.ShaderPassStatus("restore", "Anime4K Restore (M)", true, 2.6),
+                com.nuvio.app.features.player.shaders.ShaderPassStatus("up#forced", "Anime4K Upscale x2 (M)", true, 3.1),
+                com.nuvio.app.features.player.shaders.ShaderPassStatus(
+                    "up2", "Anime4K Upscale x2 (S)", false, 0.0,
+                    com.nuvio.app.features.player.shaders.ShaderInactiveReason.ConditionNotMet,
+                ),
+            ),
+            7.4,
+        )
+        setScreen {
+            // The worst frame behind the glass: pure white.
+            Box(modifier = Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Color.White)) {
+                com.nuvio.app.features.player.ShaderPanel(visible = true, onDismiss = {})
+            }
+        }
+        compose.mainClock.advanceTimeBy(1_000L)
+        compose.waitForIdle()
+    }
+
+    @Test
+    @Config(sdk = [GLASS_SDK], qualifiers = "w915dp-h412dp-xhdpi")
+    fun playerShaderPanel() {
+        showShaderPanel()
+        capture("player_shader_panel")
+    }
+
+    @Test
+    @Config(sdk = [GLASS_SDK], qualifiers = "es-w915dp-h412dp-xhdpi")
+    fun playerShaderPanelCombineInSpanish() {
+        showShaderPanel()
+        compose.onNode(hasText("Combinar")).performSemanticsAction(SemanticsActions.OnClick)
+        compose.mainClock.advanceTimeBy(800L)
+        compose.waitForIdle()
+        capture("player_shader_panel_combine_es")
+    }
+
     @Test
     @Config(qualifiers = "w915dp-h412dp-xhdpi")
     fun playerSubtitlesWithAnExternalFile() {

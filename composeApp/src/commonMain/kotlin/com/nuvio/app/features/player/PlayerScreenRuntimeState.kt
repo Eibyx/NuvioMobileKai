@@ -227,6 +227,7 @@ internal class PlayerScreenRuntime(
     var credentialRefreshAttemptedSourceUrl by mutableStateOf<String?>(null)
 
     var showAudioModal by mutableStateOf(false)
+    var showShaderPanel by mutableStateOf(false)
     var showSubtitleModal by mutableStateOf(false)
     var showVideoSettingsModal by mutableStateOf(false)
     var showStreamInfoModal by mutableStateOf(false)
@@ -277,6 +278,7 @@ internal class PlayerScreenRuntime(
 
     val isAnyOverlayVisible: Boolean
         get() = showAudioModal ||
+            showShaderPanel ||
             showSubtitleModal ||
             showVideoSettingsModal ||
             showStreamInfoModal ||
