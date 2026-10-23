@@ -102,6 +102,7 @@ internal fun aniListLinkStatus(keys: List<String>, state: AniListQueueState): An
  */
 @Composable
 fun aniListDetailAction(meta: MetaDetails): DetailSecondaryAction? {
+    aniListPreviewStatus?.let { return aniListAction(it, onClick = {}) }
     val auth by AniListTracker.authState.collectAsStateWithLifecycle()
     val candidate = remember(meta) { meta.isAniListCandidate() }
     if (!auth.isAuthenticated || !candidate) return null
@@ -124,6 +125,9 @@ fun aniListDetailAction(meta: MetaDetails): DetailSecondaryAction? {
     }
     return aniListAction(status, onClick = { showSheet = true })
 }
+
+/** Screenshot tests only: shows the button in this state without a connected account. */
+internal var aniListPreviewStatus: AniListLinkStatus? = null
 
 /** The action for [status]; kept apart from the tracker so screenshots can show every state. */
 @Composable

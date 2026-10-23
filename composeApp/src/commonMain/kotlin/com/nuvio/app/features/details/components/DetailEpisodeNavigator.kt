@@ -14,6 +14,8 @@ import androidx.compose.ui.layout.layout
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.zIndex
 import com.nuvio.app.core.ui.glass.ambientLiquidGlass
+import com.nuvio.app.core.ui.glass.detailCardGlass
+import androidx.compose.ui.graphics.compositeOver
 import com.nuvio.app.core.ui.isDarkAppearance
 import com.nuvio.app.core.ui.glass.isAmbientLiquidGlassActive
 import kotlin.math.roundToInt
@@ -739,7 +741,9 @@ private fun EpisodeNavigatorStickyBar(
         (floatingHeaderPx - offset).coerceIn(0f, floatingHeaderPx)
     }
     val glass = isAmbientLiquidGlassActive()
-    val pageColor = MaterialTheme.colorScheme.background
+    // The cards' fill seen over the page, made opaque: the same colour, without cards showing through.
+    val cardGlass = detailCardGlass(plainFill = background)
+    val barFallback = cardGlass.fallback.compositeOver(background)
 
     Box(
         modifier = Modifier
@@ -763,17 +767,16 @@ private fun EpisodeNavigatorStickyBar(
                 }
                 .then(
                     if (glass) {
-                        // Cinematic: the episode cards' glass over the artwork rather than the list, with a
-                        // denser page tint than the cards so the muted counter stays readable on any artwork.
+                        // Cinematic: exactly the episode cards' glass, over the artwork rather than the list.
                         Modifier.ambientLiquidGlass(
                             shape = RectangleShape,
-                            tint = pageColor.copy(alpha = if (MaterialTheme.isDarkAppearance) 0.62f else 0.5f),
-                            fallback = pageColor.copy(alpha = 0.94f),
-                            blurRadius = 18.dp,
+                            tint = cardGlass.tint,
+                            fallback = barFallback,
+                            blurRadius = EpisodeCardGlassBlur,
                             withHighlight = false,
                         )
                     } else {
-                        Modifier.background(background)
+                        Modifier.background(barFallback)
                     },
                 ),
         )

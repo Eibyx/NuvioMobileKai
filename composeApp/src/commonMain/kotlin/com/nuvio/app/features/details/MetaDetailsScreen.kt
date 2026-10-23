@@ -109,6 +109,7 @@ import com.nuvio.app.core.ui.TrackingListPickerDialog
 import com.nuvio.app.core.ui.nuvioSafeBottomPadding
 import com.nuvio.app.core.ui.rememberHeroStretchState
 import com.kyant.backdrop.Backdrop
+import com.nuvio.app.core.ui.glass.LocalGlassOverArtwork
 import com.nuvio.app.core.ui.glass.LocalLiquidGlassBackdrop
 import com.nuvio.app.core.ui.glass.nuvioBackdropSource
 import com.nuvio.app.core.ui.glass.rememberNuvioBackdrop
@@ -1248,6 +1249,10 @@ fun MetaDetailsScreen(
                         ) {
                             CompositionLocalProvider(
                                 LocalLiquidGlassBackdrop provides if (cinematicGlassEnabled) cinematicArtworkBackdrop else null,
+                                // Artwork (or its colour) behind the cards: their glass keeps text readable on it.
+                                LocalGlassOverArtwork provides (
+                                    (cinematicGlassEnabled && backdropUrl != null) || dominantColorEnabled
+                                ),
                             ) {
                                 if (useTabletLayout) {
                                     Box(

@@ -81,6 +81,17 @@ private fun buildColorScheme(palette: ThemeColorPalette, amoled: Boolean = false
     onError = Color(0xFFFCE5EC),
 )
 
+/** The colour scheme [NuvioTheme] builds, for contrast checks outside composition. */
+internal fun nuvioColorScheme(
+    appTheme: AppTheme,
+    dark: Boolean,
+    amoled: Boolean = false,
+    customThemeColors: CustomThemeColors = CustomThemeColors.Default,
+): androidx.compose.material3.ColorScheme {
+    val darkPalette = ThemeColors.getColorPalette(appTheme, customThemeColors)
+    return if (dark) buildColorScheme(darkPalette, amoled = amoled) else buildLightColorScheme(darkPalette.toLightPalette())
+}
+
 private val JetBrainsSans: FontFamily
     @Composable
     get() = FontFamily(

@@ -62,6 +62,7 @@ import com.nuvio.app.core.ui.FloatingNavigationItem
 import com.nuvio.app.core.ui.NuvioTheme
 import com.nuvio.app.features.anilist.AniListLinkStatus
 import com.nuvio.app.features.anilist.aniListAction
+import com.nuvio.app.features.anilist.aniListPreviewStatus
 import com.nuvio.app.features.anilist.AniListPendingSend
 import com.nuvio.app.features.anilist.AniListQueueState
 import com.nuvio.app.features.anilist.AniListSendFailure
@@ -433,6 +434,47 @@ class AppearanceScreenshotTest(private val appearance: AppearanceMode) {
     }
 
     @Test
+    @Config(sdk = [GLASS_SDK])
+    fun detailCinematicOverWhiteArtwork() = cinematicOverSolidArtwork(WHITE_BACKDROP, "white")
+
+    @Test
+    @Config(sdk = [GLASS_SDK])
+    fun detailCinematicOverBlackArtwork() = cinematicOverSolidArtwork(BLACK_BACKDROP, "black")
+
+    /**
+     * The detail page in Cinematic over a pure white or black picture: the action row with the AniList
+     * button, then the episode cards under the pinned finder bar.
+     */
+    private fun cinematicOverSolidArtwork(artwork: String, name: String) {
+        aniListPreviewStatus = AniListLinkStatus.Linked(listOf("Sample Series"))
+        try {
+            showDetail(
+                MetaEpisodeCardStyle.List,
+                backgroundMode = MetaScreenBackgroundMode.Cinematic,
+                meta = singleSeasonSeries.copy(
+                    id = "tt-sample-$name",
+                    background = artwork,
+                    poster = artwork,
+                    videos = singleSeasonSeries.videos.map { it.copy(id = it.id.replace("tt-sample-single", "tt-sample-$name")) },
+                ),
+            )
+            capture("detail_cinematic_${name}_artwork_actions")
+            scrollToText("Episode Title 9")
+            capture("detail_cinematic_${name}_artwork_episodes")
+        } finally {
+            aniListPreviewStatus = null
+        }
+    }
+
+    @Test
+    @Config(sdk = [GLASS_SDK])
+    fun streamsCinematicOverWhiteArtwork() = renderCinematicStreams(WHITE_BACKDROP, "streams_cinematic_white_artwork")
+
+    @Test
+    @Config(sdk = [GLASS_SDK])
+    fun streamsCinematicOverBlackArtwork() = renderCinematicStreams(BLACK_BACKDROP, "streams_cinematic_black_artwork")
+
+    @Test
     fun detailDirectorAndWriter() {
         showDetail(MetaEpisodeCardStyle.List)
         scrollToText("Writer", substring = true)
@@ -441,7 +483,9 @@ class AppearanceScreenshotTest(private val appearance: AppearanceMode) {
 
     @Test
     @Config(sdk = [GLASS_SDK])
-    fun streamsCinematicEpisode() {
+    fun streamsCinematicEpisode() = renderCinematicStreams(LIGHT_THUMB, "streams_cinematic_episode")
+
+    private fun renderCinematicStreams(artwork: String, name: String) {
         val streams = listOf(
             "Torbox" to "torbox",
             "Comet" to "comet",
@@ -470,7 +514,7 @@ class AppearanceScreenshotTest(private val appearance: AppearanceMode) {
                 backgroundMode = StreamBackgroundMode.Cinematic,
                 title = "Sample Series",
                 logo = LOGO,
-                heroArtwork = LIGHT_THUMB,
+                heroArtwork = artwork,
                 seasonNumber = 1,
                 episodeNumber = 3,
                 episodeTitle = "Episode Title 3",
@@ -487,7 +531,7 @@ class AppearanceScreenshotTest(private val appearance: AppearanceMode) {
         }
         compose.mainClock.advanceTimeBy(1_500L)
         compose.waitForIdle()
-        capture("streams_cinematic_episode")
+        capture(name)
     }
 
     @Test
@@ -740,6 +784,9 @@ class AppearanceScreenshotTest(private val appearance: AppearanceMode) {
         const val DARK_BACKDROP = "sample://dark-backdrop"
         const val LIGHT_THUMB = "sample://light-thumb"
         const val DARK_THUMB = "sample://dark-thumb"
+        /** The worst artwork for glass: pure white (dark appearance) and pure black (light). */
+        const val WHITE_BACKDROP = "sample://white-backdrop"
+        const val BLACK_BACKDROP = "sample://black-backdrop"
         const val LOGO = "sample://logo"
         const val WHITE_LOGO = "sample://white-logo"
 
@@ -751,11 +798,16 @@ class AppearanceScreenshotTest(private val appearance: AppearanceMode) {
                 DARK_BACKDROP -> artwork(1280, 1920, light = false)
                 LIGHT_THUMB -> artwork(640, 360, light = true)
                 DARK_THUMB -> artwork(640, 360, light = false)
+                WHITE_BACKDROP -> solid(1280, 1920, 0xFFFFFFFF.toInt())
+                BLACK_BACKDROP -> solid(1280, 1920, 0xFF000000.toInt())
                 LOGO -> logo(0xFFE5338F.toInt())
                 WHITE_LOGO -> logo(0xFFF4F4F4.toInt())
                 else -> return null
             }
         }
+
+        private fun solid(width: Int, height: Int, color: Int): Bitmap =
+            Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888).apply { eraseColor(color) }
 
         /** A sky with a sun and a figure: pale and bright, or a night scene. */
         private fun artwork(width: Int, height: Int, light: Boolean): Bitmap {

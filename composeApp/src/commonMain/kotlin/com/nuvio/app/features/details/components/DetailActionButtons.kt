@@ -85,6 +85,7 @@ import nuvio.composeapp.generated.resources.sidebar_library
 import nuvio.composeapp.generated.resources.streams_open_external_player
 import org.jetbrains.compose.resources.stringResource
 import com.nuvio.app.core.ui.glass.ambientLiquidGlass
+import com.nuvio.app.core.ui.glass.detailControlGlass
 import com.nuvio.app.core.ui.glass.isAmbientLiquidGlassActive
 
 /** A small mark on an action icon's corner. */
@@ -260,7 +261,9 @@ fun DetailActionButtons(
                             if (moreGlassActive) {
                                 Modifier.ambientLiquidGlass(
                                     shape = CircleShape,
-                                    tint = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                    tint = detailControlGlass(
+                                        plainFill = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                    ).tint,
                                     fallback = Color.Transparent,
                                 )
                             } else {
@@ -318,7 +321,9 @@ fun DetailActionButtons(
                         if (downloadGlassActive) {
                             Modifier.ambientLiquidGlass(
                                 shape = playShape,
-                                tint = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
+                                tint = detailControlGlass(
+                                    plainFill = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
+                                ).tint,
                                 fallback = Color.Transparent,
                             )
                         } else {
@@ -698,7 +703,9 @@ internal fun DetailIconAction(
                     if (glassActive) {
                         Modifier.ambientLiquidGlass(
                             shape = CircleShape,
-                            tint = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
+                            tint = detailControlGlass(
+                                plainFill = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
+                            ).tint,
                             fallback = Color.Transparent,
                         )
                     } else {

@@ -47,7 +47,11 @@ import coil3.compose.AsyncImage
 import com.nuvio.app.core.ui.SkeletonBlock
 import com.nuvio.app.features.debrid.DebridProviders
 import androidx.compose.ui.graphics.compositeOver
+import com.nuvio.app.core.ui.glass.LocalGlassOverArtwork
+import com.nuvio.app.core.ui.glass.ReadableGlass
 import com.nuvio.app.core.ui.glass.ambientLiquidGlass
+import com.nuvio.app.core.ui.glass.readableGlass
+import com.nuvio.app.core.ui.glass.streamGlassTexts
 import com.nuvio.app.core.ui.glass.isAmbientLiquidGlassActive
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Shadow
@@ -96,11 +100,14 @@ internal fun StreamCard(
                 tint = streamGlassTint(
                     highlight = if (isCurrent) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else null,
                 ),
-                fallback = if (isCurrent) {
-                    MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-                } else {
-                    MaterialTheme.surfaceOverlay(0.05f)
-                },
+                fallback = streamGlassFallback(
+                    plain = if (isCurrent) {
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                    } else {
+                        MaterialTheme.surfaceOverlay(0.05f)
+                    },
+                    highlight = if (isCurrent) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else null,
+                ),
                 blurRadius = 18.dp,
             )
             .then(
@@ -328,17 +335,35 @@ private val StreamGlassTextShadow = Shadow(
 )
 
 /**
- * The stream cards' glass tint: a dark smoke in the dark appearance, the episode cards' translucent
- * surface in the light one, where the text is dark.
+ * The stream cards' and filters' glass over the Cinematic artwork, with the alpha that keeps their
+ * text readable on any picture (see [readableGlass]). [highlight] marks the current stream.
  */
 @Composable
-internal fun streamGlassTint(highlight: Color? = null): Color =
-    if (MaterialTheme.isDarkAppearance) {
-        (highlight ?: Color.White.copy(alpha = 0.05f)).compositeOver(Color.Black.copy(alpha = StreamGlassTintAlpha))
+internal fun streamGlassTint(highlight: Color? = null): Color {
+    val glass = streamCardGlass()
+    return highlight?.compositeOver(glass.tint) ?: glass.tint
+}
+
+/** The same glass without blur; [plain] where no artwork is behind (the Normal background). */
+@Composable
+internal fun streamGlassFallback(plain: Color, highlight: Color? = null): Color {
+    if (!LocalGlassOverArtwork.current) return plain
+    val glass = streamCardGlass()
+    return highlight?.compositeOver(glass.fallback) ?: glass.fallback
+}
+
+@Composable
+internal fun streamCardGlass(): ReadableGlass {
+    val colors = MaterialTheme.colorScheme
+    val content = MaterialTheme.contentOnSurface
+    val texts = remember(colors.onSurface, content) { streamGlassTexts(colors, content) }
+    val plain = if (MaterialTheme.isDarkAppearance) {
+        Color.White.copy(alpha = 0.05f).compositeOver(Color.Black.copy(alpha = StreamGlassTintAlpha))
     } else {
-        val surface = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
-        highlight?.compositeOver(surface) ?: surface
+        colors.surfaceVariant.copy(alpha = 0.45f)
     }
+    return readableGlass(texts, plainFill = plain)
+}
 
 /** A shadow under light text on dark glass; dark text on light glass needs none. */
 @Composable

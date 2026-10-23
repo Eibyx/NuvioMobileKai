@@ -103,6 +103,7 @@ import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 import nuvio.composeapp.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
+import com.nuvio.app.core.ui.glass.LocalGlassOverArtwork
 import com.nuvio.app.core.ui.glass.LocalLiquidGlassBackdrop
 import com.nuvio.app.core.ui.glass.ambientLiquidGlass
 import com.nuvio.app.core.ui.glass.isAmbientLiquidGlassActive
@@ -552,6 +553,7 @@ private fun MobileStreamsLayoutContent(
 
         CompositionLocalProvider(
             LocalLiquidGlassBackdrop provides if (streamsGlassEnabled) streamsGlassBackdrop else null,
+            LocalGlassOverArtwork provides streamsGlassEnabled,
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
                 if (isEpisode && seasonNumber != null && episodeNumber != null) {
@@ -683,8 +685,8 @@ internal fun ResumeBanner(
             .clip(RoundedCornerShape(18.dp))
             .ambientLiquidGlass(
                 shape = RoundedCornerShape(18.dp),
-                tint = MaterialTheme.colorScheme.surface.copy(alpha = 0.55f),
-                fallback = MaterialTheme.colorScheme.surface.copy(alpha = 0.72f),
+                tint = streamGlassTint(),
+                fallback = streamGlassFallback(MaterialTheme.colorScheme.surface.copy(alpha = 0.72f)),
             )
             .padding(horizontal = 14.dp, vertical = 10.dp),
     ) {
@@ -1673,7 +1675,7 @@ internal fun StreamSearchField(
             .ambientLiquidGlass(
                 shape = fieldShape,
                 tint = streamGlassTint(),
-                fallback = tokens.colors.surfaceCard,
+                fallback = streamGlassFallback(tokens.colors.surfaceCard),
                 blurRadius = 14.dp,
                 refractionHeight = 8.dp,
             ),

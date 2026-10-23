@@ -64,6 +64,7 @@ import nuvio.composeapp.generated.resources.streams_pinned_source
 import nuvio.composeapp.generated.resources.streams_refresh
 import nuvio.composeapp.generated.resources.streams_unpin_source
 import org.jetbrains.compose.resources.stringResource
+import com.nuvio.app.core.ui.glass.LocalGlassOverArtwork
 import com.nuvio.app.core.ui.glass.ambientLiquidGlass
 
 @Composable
@@ -259,6 +260,9 @@ private fun FilterChip(
     val containerColor by animateColorAsState(
         targetValue = if (isSelected) {
             MaterialTheme.colorScheme.primary
+        } else if (LocalGlassOverArtwork.current) {
+            // Over the Cinematic artwork: the stream cards' glass.
+            streamGlassTint()
         } else {
             MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
         },

@@ -106,6 +106,7 @@ import org.jetbrains.compose.resources.stringResource
 import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
 import com.nuvio.app.core.ui.glass.ambientLiquidGlass
+import com.nuvio.app.core.ui.glass.detailCardGlass
 
 private val log = Logger.withTag("SeriesContent")
 
@@ -966,6 +967,7 @@ private fun EpisodeHorizontalCard(
     } else {
         metrics.contentBottomPadding
     }
+    val cardGlass = detailCardGlass()
     Box(
         modifier = Modifier
             .width(metrics.cardWidth)
@@ -973,9 +975,9 @@ private fun EpisodeHorizontalCard(
             .clip(cardShape)
             .ambientLiquidGlass(
                 shape = cardShape,
-                tint = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
-                fallback = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
-                blurRadius = 18.dp,
+                tint = cardGlass.tint,
+                fallback = cardGlass.fallback,
+                blurRadius = EpisodeCardGlassBlur,
             )
             .nuvioCardDepth(
                 shape = cardShape,
@@ -1429,6 +1431,7 @@ private fun EpisodeListCard(
     }
     val hasAnyRating = tmdbRatingLabel != null || imdbRatingLabel != null || userRating != null
     val formattedDate = remember(video.released) { video.released?.let { formatReleaseDateForDisplay(it) } }
+    val cardGlass = detailCardGlass()
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -1436,9 +1439,9 @@ private fun EpisodeListCard(
             .clip(cardShape)
             .ambientLiquidGlass(
                 shape = cardShape,
-                tint = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
-                fallback = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
-                blurRadius = 18.dp,
+                tint = cardGlass.tint,
+                fallback = cardGlass.fallback,
+                blurRadius = EpisodeCardGlassBlur,
             )
             .border(
                 width = 1.dp,
@@ -1536,7 +1539,8 @@ private fun EpisodeListCard(
                                     fontSize = sizing.metaTextSize,
                                     fontWeight = FontWeight.Medium,
                                 ),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                                // Full strength: the glass alpha is computed for this colour (4.5:1).
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
@@ -1759,3 +1763,6 @@ private fun formatEpisodeRating(rating: Double): String {
     val tenth = (roundedTenths % 10).absoluteValue
     return "$whole.$tenth"
 }
+
+/** The episode cards' and the episode finder bar's glass blur. */
+internal val EpisodeCardGlassBlur = 18.dp
