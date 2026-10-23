@@ -433,7 +433,8 @@ internal class AniListIdResolver(
         return if (index >= 0) index + 1 else null
     }
 
-    private suspend fun imdbSeasonEntries(imdb: String): List<ArmImdbEntry> {
+    /** ARM's season table of [imdb] (cached): which AniList entries each TVDB season has. */
+    internal suspend fun imdbSeasonEntries(imdb: String): List<ArmImdbEntry> {
         val key = imdb.lowercase()
         cacheLock.withLock { imdbSeasonCache[key]?.let { return it } }
         val element = getJsonStrict("${AniListConfig.ARM_BASE_URL}/imdb?id=$imdb")

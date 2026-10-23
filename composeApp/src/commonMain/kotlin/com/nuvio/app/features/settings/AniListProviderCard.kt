@@ -22,6 +22,7 @@ import org.jetbrains.compose.resources.stringResource
 internal fun AniListProviderCard(modifier: Modifier = Modifier) {
     val auth by remember { AniListTracker.ensureLoaded(); AniListTracker.authState }.collectAsStateWithLifecycle()
     val sync by AniListTracker.sync.state.collectAsStateWithLifecycle()
+    val listLink by AniListTracker.listLinkProgress.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     val syncStatus = sync.takeIf { it.scope == auth.scope }
     TrackingProviderCard(
@@ -47,14 +48,21 @@ internal fun AniListProviderCard(modifier: Modifier = Modifier) {
         missingCredentialsMessage = stringResource(Res.string.settings_anilist_missing_credentials),
         syncLabel = stringResource(Res.string.settings_anilist_sync_now),
         isSyncing = syncStatus?.isLoading == true,
-        statusMessage = when {
-            syncStatus?.isLoading == true -> stringResource(Res.string.settings_anilist_syncing)
-            auth.isAuthenticated && syncStatus?.snapshot?.checkedAtEpochMs != null -> stringResource(
-                Res.string.settings_anilist_last_synced,
-                formatLocalDateTime(syncStatus.snapshot.checkedAtEpochMs),
-            )
-            else -> null
-        },
+        statusMessage = listOfNotNull(
+            when {
+                syncStatus?.isLoading == true -> stringResource(Res.string.settings_anilist_syncing)
+                auth.isAuthenticated && syncStatus?.snapshot?.checkedAtEpochMs != null -> stringResource(
+                    Res.string.settings_anilist_last_synced,
+                    formatLocalDateTime(syncStatus.snapshot.checkedAtEpochMs),
+                )
+                else -> null
+            },
+            when {
+                !auth.isAuthenticated || listLink.total == 0 -> null
+                listLink.running -> stringResource(Res.string.settings_anilist_list_linking, listLink.done, listLink.total)
+                else -> stringResource(Res.string.settings_anilist_list_linked, listLink.linked, listLink.total)
+            },
+        ).joinToString("\n").ifEmpty { null },
         errorMessage = aniListAccountError(auth.error, syncStatus?.error),
         websiteLabel = stringResource(Res.string.settings_anilist_visit),
         websiteUrl = AniListConfig.WEBSITE_URL,

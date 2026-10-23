@@ -23,6 +23,8 @@
     <string name="settings_anilist_account_fallback">Usuario de AniList</string>
     <string name="settings_anilist_syncing">Sincronizando tus listas de AniList…</string>
     <string name="settings_anilist_last_synced">Última sincronización: %1$s</string>
+    <string name="settings_anilist_list_linking">Importando tu lista de AniList: %1$d de %2$d títulos</string>
+    <string name="settings_anilist_list_linked">%1$d de %2$d títulos de tu lista vinculados: lo que viste aparece en Nuvio</string>
     <string name="settings_anilist_auth_denied">Se rechazó la conexión. Vuelve a intentarlo para conectar tu cuenta.</string>
     <string name="settings_anilist_auth_invalid">AniList devolvió una respuesta de inicio de sesión no válida. Inténtalo de nuevo.</string>
     <string name="settings_anilist_auth_revoked">Tu conexión con AniList ha caducado o se ha revocado. Vuelve a conectarla para seguir sincronizando.</string>

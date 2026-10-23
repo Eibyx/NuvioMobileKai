@@ -114,6 +114,8 @@ internal data class AniListQueueState(
     val notifyOnSync: Boolean = true,
     /** Titles and seasons (see [aniListSendKey]) no AniList entry matched; cleared by linking. */
     val unmatched: List<String> = emptyList(),
+    /** List entries the background linking already looked up, and when (see [AniListListLinker]). */
+    val listChecked: Map<Long, Long> = emptyMap(),
 )
 
 internal sealed interface AniListDelivery {
@@ -249,6 +251,30 @@ internal class AniListSendQueue(
         )
     }
 
+    /**
+     * The background linking of the AniList list: saves [links] for titles and seasons that have
+     * none yet (never over one already there) and what was looked up, in one write. Nothing when
+     * [profile] is no longer the open one.
+     */
+    suspend fun addListLinks(profile: Int, links: List<AniListLink>, checked: Map<Long, Long>, keepChecked: Set<Long>): Unit = stateLock.withLock {
+        if (profileId != profile) return@withLock
+        val current = mutableState.value
+        val existing = current.links.mapTo(mutableSetOf(), AniListLink::key)
+        val added = links.filter { it.key !in existing }.distinctBy(AniListLink::key).map { it.copy(linkedAtMs = now()) }
+        val addedKeys = added.mapTo(mutableSetOf(), AniListLink::key)
+        update(
+            profile,
+            current.copy(
+                links = current.links + added,
+                unmatched = current.unmatched.filterNot(addedKeys::contains),
+                listChecked = (current.listChecked + checked).filterKeys(keepChecked::contains),
+            ),
+        )
+        if (added.isNotEmpty()) {
+            InAppLogger.info(TAG, "Linked ${added.size} titles of the AniList list: " + added.joinToString { "${it.key} to ${it.parts.joinToString("+") { part -> part.mediaId.toString() }}" })
+        }
+    }
+
     suspend fun removeLink(key: String): Unit = stateLock.withLock {
         val profile = profileId ?: return@withLock
         val current = mutableState.value
@@ -275,6 +301,9 @@ internal class AniListSendQueue(
     }
 
     fun linkFor(key: String): AniListLink? = mutableState.value.links.firstOrNull { it.key == key }
+
+    /** The profile whose queue is loaded, if any. */
+    val openProfile: Int? get() = profileId
 
     fun processSoon() {
         scope.launch { process() }

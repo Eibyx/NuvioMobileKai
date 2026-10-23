@@ -22,6 +22,8 @@
     <string name="settings_anilist_account_fallback">AniList user</string>
     <string name="settings_anilist_syncing">Syncing your AniList lists…</string>
     <string name="settings_anilist_last_synced">Last synced %1$s</string>
+    <string name="settings_anilist_list_linking">Importing your list from AniList: %1$d of %2$d titles</string>
+    <string name="settings_anilist_list_linked">%1$d of %2$d titles of your list linked: what you watched shows up in Nuvio</string>
     <string name="settings_anilist_auth_denied">Connection was declined. Try again to connect your account.</string>
     <string name="settings_anilist_auth_invalid">AniList returned an invalid sign-in response. Please try again.</string>
     <string name="settings_anilist_auth_revoked">Your AniList connection has expired or been revoked. Connect again to resume syncing.</string>

@@ -17,6 +17,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.conflate
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import com.nuvio.app.core.logging.InAppLogger
@@ -80,6 +83,22 @@ object AniListTracker : TrackingAuthProvider {
     /** AniList → Nuvio for anime; see [AniListWatchedImporter]. */
     internal val importer = AniListWatchedImporter(sync, api, queue, resolver, coroutineScope)
 
+    /** Links the list in the background so it imports without opening each title; see [AniListListLinker]. */
+    internal val listLinker = AniListListLinker(
+        snapshot = { sync.currentSnapshot() },
+        profile = { store.scope().profileId.takeIf(sync::isAuthenticatedFor) },
+        queue = queue,
+        armRows = resolver::imdbSeasonEntries,
+        link = { reference -> resolver.link(reference, sync.currentSnapshot()) },
+    )
+
+    private val listLinkRequests = MutableStateFlow(0)
+    /** Lets the list's ids (resolved in passes after a sync) settle before a linking run. */
+    private const val LIST_LINK_SETTLE_MS = 3_000L
+
+    /** Settings > AniList: how far linking the list went. */
+    val listLinkProgress: StateFlow<AniListListLinkProgress> = listLinker.progress
+
     init {
         writes.queue = queue
         writes.looksLikeAnime = ::looksLikeAnime
@@ -91,10 +110,31 @@ object AniListTracker : TrackingAuthProvider {
                     // Opening the app (or switching profile) sends whatever is still pending.
                     queue.open(state.scope.profileId, process = false)
                     queue.retryNow("App opened or AniList connected")
+                    listLinkRequests.value += 1
                 }
             }
         }
         importer.start()
+        coroutineScope.launch {
+            // Opening the app loads the list, "Sync now" and the automatic sync read it again: each
+            // time (and as the list's ids resolve) the entries without a link are linked.
+            combine(sync.projectionState, listLinkRequests) { state, _ ->
+                val snapshot = state.projection.snapshot
+                listOf(state.scope?.profileId, state.scope?.generation, snapshot.checkedAtEpochMs, snapshot.entries.size, snapshot.mappings.size)
+            }
+                .distinctUntilChanged()
+                .conflate()
+                .collect {
+                    delay(LIST_LINK_SETTLE_MS)
+                    try {
+                        listLinker.run()
+                    } catch (error: CancellationException) {
+                        throw error
+                    } catch (error: Exception) {
+                        InAppLogger.warn("Sync/AniList", "Linking the AniList list failed: ${InAppLogger.throwableSummary(error)}")
+                    }
+                }
+        }
         coroutineScope.launch {
             importer.keys.collect { keys ->
                 WatchedRepository.setImportedWatchedKeys(TrackingProviderId.ANILIST, keys)
