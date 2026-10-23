@@ -118,9 +118,9 @@ object AniListTracker : TrackingAuthProvider {
         coroutineScope.launch {
             // Opening the app loads the list, "Sync now" and the automatic sync read it again: each
             // time (and as the list's ids resolve) the entries without a link are linked.
-            combine(sync.projectionState, listLinkRequests) { state, _ ->
+            combine(sync.projectionState, listLinkRequests) { state, request ->
                 val snapshot = state.projection.snapshot
-                listOf(state.scope?.profileId, state.scope?.generation, snapshot.checkedAtEpochMs, snapshot.entries.size, snapshot.mappings.size)
+                listOf(request.toLong(), state.scope?.profileId, state.scope?.generation, snapshot.checkedAtEpochMs, snapshot.entries.size, snapshot.mappings.size)
             }
                 .distinctUntilChanged()
                 .conflate()
