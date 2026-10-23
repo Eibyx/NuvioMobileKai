@@ -3,10 +3,14 @@ package com.nuvio.app.features.player
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
+import android.os.PowerManager
+import android.os.SystemClock
 import com.nuvio.app.core.logging.InAppLogger
 import com.nuvio.app.features.player.shaders.ActiveRenderBackend
 import com.nuvio.app.features.player.shaders.ChainShader
 import com.nuvio.app.features.player.shaders.DebandLevel
+import com.nuvio.app.features.player.shaders.FrameSample
+import com.nuvio.app.features.player.shaders.ShaderPerformanceGovernor
 import com.nuvio.app.features.player.shaders.MpvVideoOptions
 import com.nuvio.app.features.player.shaders.MpvRenderBackend
 import com.nuvio.app.features.player.shaders.MpvRenderBackendPolicy
@@ -27,9 +31,40 @@ private const val VULKAN_1_1 = 0x401000
 internal object MpvRenderer {
     private var context: Context? = null
 
+    @Volatile
+    private var thermalStatus: Int? = null
+    private var lastHeadroomAtMs = 0L
+    private var lastHeadroom: Float? = null
+
     fun initialize(context: Context) {
         this.context = context.applicationContext
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            runCatching {
+                val power = context.getSystemService(PowerManager::class.java)
+                thermalStatus = power.currentThermalStatus
+                power.addThermalStatusListener(context.mainExecutor) { status -> thermalStatus = status }
+            }
+        }
     }
+
+    /** PowerManager's thermal status (Android 10+), kept up to date by its listener. */
+    fun thermalStatus(): Int? = thermalStatus
+
+    /**
+     * PowerManager.getThermalHeadroom(10) on Android 11+, read at most once per second (the
+     * system answers NaN when asked more often). Higher is hotter; 1.0 is where throttling starts.
+     */
+    fun thermalHeadroom(): Float? {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return null
+        val now = SystemClock.elapsedRealtime()
+        if (now - lastHeadroomAtMs < 1_000L) return lastHeadroom
+        lastHeadroomAtMs = now
+        lastHeadroom = runCatching { context?.getSystemService(PowerManager::class.java)?.getThermalHeadroom(10) }.getOrNull()
+        return lastHeadroom
+    }
+
+    fun batterySaverOn(): Boolean =
+        runCatching { context?.getSystemService(PowerManager::class.java)?.isPowerSaveMode == true }.getOrDefault(false)
 
     private fun preferences() = context?.getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE)
 
@@ -154,7 +189,31 @@ internal class MpvShaderController(private val mpv: MPVLib, private var backend:
             unattributedError = null
             syncChain()
         }
-        ShaderPlaybackSession.onStatuses(statuses, ShaderPassReport.totalCostMs(passes))
+        val passTotalMs = ShaderPassReport.totalCostMs(passes)
+        ShaderPlaybackSession.onStatuses(statuses, passTotalMs)
+        guard(passTotalMs)
+    }
+
+    /** Feeds the heat and frame-drop guard one sample per poll. */
+    private fun guard(passTotalMs: Double) {
+        val playing = mpv.getPropertyBoolean("pause") == false &&
+            mpv.getPropertyBoolean("paused-for-cache") != true &&
+            mpv.getPropertyBoolean("seeking") != true
+        val late = (mpv.getPropertyInt("frame-drop-count") ?: 0).toLong() + (mpv.getPropertyInt("vo-delayed-frame-count") ?: 0).toLong()
+        val fps = mpv.getPropertyDouble("estimated-vf-fps")?.takeIf { it > 1.0 }
+            ?: mpv.getPropertyDouble("container-fps")?.takeIf { it > 1.0 }
+        ShaderPerformanceGovernor.onSample(
+            headroom = MpvRenderer.thermalHeadroom(),
+            thermalStatus = MpvRenderer.thermalStatus(),
+            frame = FrameSample(
+                nowMs = SystemClock.elapsedRealtime(),
+                playing = playing,
+                lateFrames = late,
+                passTotalMs = passTotalMs,
+                frameTimeMs = fps?.let { 1000.0 / it },
+            ),
+            batterySaver = MpvRenderer.batterySaverOn(),
+        )
     }
 
     /** Called for every mpv log line (msg-level warn and above). */

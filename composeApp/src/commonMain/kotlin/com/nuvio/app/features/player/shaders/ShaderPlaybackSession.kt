@@ -2,8 +2,17 @@ package com.nuvio.app.features.player.shaders
 
 import com.nuvio.app.core.logging.InAppLogger
 import nuvio.composeapp.generated.resources.Res
+import nuvio.composeapp.generated.resources.shader_warning_apply_always_off
+import nuvio.composeapp.generated.resources.shader_warning_battery_saver
+import nuvio.composeapp.generated.resources.shader_warning_disabled
 import nuvio.composeapp.generated.resources.shader_warning_failed
 import nuvio.composeapp.generated.resources.shader_warning_failed_unknown
+import nuvio.composeapp.generated.resources.shader_warning_quality_frames
+import nuvio.composeapp.generated.resources.shader_warning_quality_heat
+import nuvio.composeapp.generated.resources.shader_warning_quality_raised
+import nuvio.composeapp.generated.resources.shader_quality_balanced
+import nuvio.composeapp.generated.resources.shader_quality_fast
+import nuvio.composeapp.generated.resources.shader_quality_high
 import org.jetbrains.compose.resources.getString
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -31,11 +40,33 @@ sealed interface ShaderWarning {
 
     /** A shader error mpv did not attribute to a file. */
     data object UnknownShaderFailed : ShaderWarning
+
+    /** The heat and frame-drop guard changed something. */
+    data class Guard(val step: GuardStep) : ShaderWarning
+
+    /** Shaders paused while battery saver is on. */
+    data object BatterySaver : ShaderWarning
 }
 
 suspend fun shaderWarningText(warning: ShaderWarning): String = when (warning) {
     is ShaderWarning.ShaderFailed -> getString(Res.string.shader_warning_failed, warning.title)
     ShaderWarning.UnknownShaderFailed -> getString(Res.string.shader_warning_failed_unknown)
+    ShaderWarning.BatterySaver -> getString(Res.string.shader_warning_battery_saver)
+    is ShaderWarning.Guard -> when (val step = warning.step) {
+        is GuardStep.QualityLowered -> getString(
+            if (step.byHeat) Res.string.shader_warning_quality_heat else Res.string.shader_warning_quality_frames,
+            getString(qualityName(step.quality)),
+        )
+        is GuardStep.QualityRaised -> getString(Res.string.shader_warning_quality_raised, getString(qualityName(step.quality)))
+        GuardStep.ApplyAlwaysSuspended -> getString(Res.string.shader_warning_apply_always_off)
+        GuardStep.ShadersDisabled -> getString(Res.string.shader_warning_disabled)
+    }
+}
+
+private fun qualityName(quality: ShaderQuality) = when (quality) {
+    ShaderQuality.Fast -> Res.string.shader_quality_fast
+    ShaderQuality.Balanced -> Res.string.shader_quality_balanced
+    ShaderQuality.High -> Res.string.shader_quality_high
 }
 
 data class ShaderPlaybackState(
@@ -123,6 +154,10 @@ object ShaderPlaybackSession {
         mutableState.update { it.copy(failedIds = it.failedIds + shader.id) }
         InAppLogger.warn(TAG, "shader failed, removed from the chain: ${shader.title} (${message.take(160)})")
         mutableWarnings.tryEmit(ShaderWarning.ShaderFailed(shader.title))
+    }
+
+    fun notify(warning: ShaderWarning) {
+        mutableWarnings.tryEmit(warning)
     }
 
     fun onUnknownShaderFailure(message: String) {

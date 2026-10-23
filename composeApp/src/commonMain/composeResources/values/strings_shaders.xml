@@ -64,4 +64,12 @@
     <string name="shader_scaler_catmull_description">Sharp and cheap.</string>
     <string name="shader_scaler_spline_description">Sharp and cheap; the default.</string>
     <string name="shader_scaler_ewa_description">The sharpest, but several milliseconds per frame on a phone.</string>
+    <string name="shader_warning_quality_heat">The phone is hot: shader quality lowered to %1$s.</string>
+    <string name="shader_warning_quality_frames">Frames were dropping: shader quality lowered to %1$s.</string>
+    <string name="shader_warning_quality_raised">The phone cooled down: shader quality back to %1$s.</string>
+    <string name="shader_warning_apply_always_off">Frames were dropping: “Apply always” is off for this video.</string>
+    <string name="shader_warning_disabled">The phone could not keep up: shaders are off for this video.</string>
+    <string name="shader_warning_battery_saver">Battery saver is on: shaders are paused.</string>
+    <string name="settings_shaders_battery_saver">Turn off with battery saver</string>
+    <string name="settings_shaders_battery_saver_description">Pauses the shaders while battery saver is on. If the phone gets hot or drops frames, quality is lowered automatically.</string>
 </resources>

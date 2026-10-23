@@ -71,6 +71,7 @@ object ShaderController {
 
     /** A new video: everything the previous one changed is forgotten. */
     fun startPlayback(content: ShaderContent) {
+        ShaderPerformanceGovernor.reset()
         mutableInputs.value = ShaderRuntimeInputs(content = content)
         refresh()
     }

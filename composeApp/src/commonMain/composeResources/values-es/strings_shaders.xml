@@ -64,4 +64,12 @@
     <string name="shader_scaler_catmull_description">Nítido y barato.</string>
     <string name="shader_scaler_spline_description">Nítido y barato; el predeterminado.</string>
     <string name="shader_scaler_ewa_description">El más nítido, pero varios milisegundos por fotograma en un móvil.</string>
+    <string name="shader_warning_quality_heat">El teléfono está caliente: calidad de shaders bajada a %1$s.</string>
+    <string name="shader_warning_quality_frames">Se perdían fotogramas: calidad de shaders bajada a %1$s.</string>
+    <string name="shader_warning_quality_raised">El teléfono se ha enfriado: calidad de shaders de nuevo en %1$s.</string>
+    <string name="shader_warning_apply_always_off">Se perdían fotogramas: «Aplicar siempre» desactivado en este video.</string>
+    <string name="shader_warning_disabled">El teléfono no da abasto: shaders desactivados en este video.</string>
+    <string name="shader_warning_battery_saver">El ahorro de batería está activo: shaders en pausa.</string>
+    <string name="settings_shaders_battery_saver">Desactivar con ahorro de batería</string>
+    <string name="settings_shaders_battery_saver_description">Pausa los shaders mientras el ahorro de batería esté activo. Si el teléfono se calienta o pierde fotogramas, la calidad baja sola.</string>
 </resources>

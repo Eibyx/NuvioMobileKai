@@ -187,6 +187,15 @@ internal fun ShaderSettingsContent(settings: ShaderSettings, mpvEngine: Boolean,
                 isTablet = isTablet,
                 onCheckedChange = ShaderSettingsRepository::setRememberPerSeries,
             )
+            SettingsGroupDivider(isTablet = isTablet)
+            SettingsSwitchRow(
+                title = stringResource(Res.string.settings_shaders_battery_saver),
+                description = stringResource(Res.string.settings_shaders_battery_saver_description),
+                checked = settings.disableOnBatterySaver,
+                enabled = enabled,
+                isTablet = isTablet,
+                onCheckedChange = ShaderSettingsRepository::setDisableOnBatterySaver,
+            )
         }
     }
 
