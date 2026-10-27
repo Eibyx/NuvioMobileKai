@@ -90,11 +90,15 @@ fun TabletDetailBackdrop(
     onHeroTrailerReady: () -> Unit,
     onHeroTrailerFinished: () -> Unit,
 ) {
+    // The content scrolled over the backdrop uses the page's colours: in the light appearance the
+    // veil that rises behind it has to be the light page background, or its text sits on dark art.
+    val lightPageBackground = MaterialTheme.colorScheme.background.takeUnless { LocalNuvioAppearance.current.isDark }
     // The artwork backdrop and its gradients stay dark in the light appearance.
     NuvioDarkSurface(underStatusBar = true) {
         TabletDetailBackdropContent(
             meta = meta,
             cinematic = cinematic,
+            lightPageBackground = lightPageBackground,
             scrollOffsetPx = scrollOffsetPx,
             heroHeightPx = heroHeightPx,
             heroTrailerSourceUrl = heroTrailerSourceUrl,
@@ -114,6 +118,7 @@ fun TabletDetailBackdrop(
 private fun TabletDetailBackdropContent(
     meta: MetaDetails,
     cinematic: Boolean,
+    lightPageBackground: Color?,
     scrollOffsetPx: () -> Float,
     heroHeightPx: () -> Int,
     heroTrailerSourceUrl: String?,
@@ -158,9 +163,13 @@ private fun TabletDetailBackdropContent(
             modifier = Modifier
                 .fillMaxSize()
                 .graphicsLayer {
-                    alpha = scrollProgress() * if (cinematic) 0.36f else 0.86f
+                    alpha = scrollProgress() * when {
+                        cinematic -> 0.36f
+                        lightPageBackground != null -> 0.96f
+                        else -> 0.86f
+                    }
                 }
-                .background(backgroundColor),
+                .background(lightPageBackground ?: backgroundColor),
         )
     }
 }
