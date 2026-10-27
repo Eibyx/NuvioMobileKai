@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
@@ -1119,50 +1120,8 @@ private fun ProgressControls(
 /** Room for the legacy bar's time pills on each side of its action pill. */
 private val LegacyTimePillReserve = 76.dp
 
-private val PlayerTimelineThumbInset = 2.dp
 
-private const val PlayerTimelineTapDedupePx = 12f
 
-private fun Modifier.tapToSeekOnTimeline(
-    durationMs: Long,
-    currentPositionMs: () -> Long,
-    onSeek: (Long) -> Unit,
-): Modifier {
-    if (durationMs <= 0L) return this
-
-    return pointerInput(durationMs) {
-        val thumbInsetPx = PlayerTimelineThumbInset.toPx()
-        awaitEachGesture {
-            val trackWidth = (size.width.toFloat() - thumbInsetPx * 2f)
-                .takeIf { it > 0f } ?: return@awaitEachGesture
-            val down = awaitFirstDown(
-                requireUnconsumed = false,
-                pass = PointerEventPass.Initial,
-            )
-            val downPosition = down.position
-            var lastPosition = downPosition
-            var maxDistance = 0f
-
-            while (true) {
-                val event = awaitPointerEvent(pass = PointerEventPass.Final)
-                val change = event.changes.firstOrNull { it.id == down.id } ?: return@awaitEachGesture
-                lastPosition = change.position
-                maxDistance = maxOf(maxDistance, (lastPosition - downPosition).getDistance())
-                if (!change.pressed) break
-            }
-
-            if (maxDistance > viewConfiguration.touchSlop) return@awaitEachGesture
-
-            val targetFraction = ((lastPosition.x - thumbInsetPx) / trackWidth).coerceIn(0f, 1f)
-            val targetPositionMs = (durationMs * targetFraction).roundToLong().coerceIn(0L, durationMs)
-
-            val toleranceMs = (durationMs * (PlayerTimelineTapDedupePx / trackWidth)).roundToLong()
-            if (abs(targetPositionMs - currentPositionMs()) <= toleranceMs) return@awaitEachGesture
-
-            onSeek(targetPositionMs)
-        }
-    }
-}
 
 @Composable
 internal fun PlayerSeekBar(
@@ -1179,53 +1138,18 @@ internal fun PlayerSeekBar(
     /** The legacy layout draws the time pills beside its action pill instead. */
     showTimeRow: Boolean = true,
 ) {
-    val seekDurationMs = durationMs.coerceAtLeast(1L)
-    val bufferedFraction = playerBufferedFraction(bufferedPositionMs, durationMs)
-    val chapterMarks = remember(chapters, durationMs) { chapters.chapterMarkFractions(durationMs) }
-    val seekDescription = stringResource(Res.string.player_seek_position)
-    val seekState = remember(seekDurationMs) { SliderState(trackRange = 0f..seekDurationMs.toFloat()) }
-    seekState.value = displayedPositionMs.coerceIn(0L, seekDurationMs).toFloat()
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val isDragged by interactionSource.collectIsDraggedAsState()
-    ReportTimelineTouch(durationMs > 0L && (isPressed || isDragged), onTouchChange)
     Column(modifier = modifier) {
-        Box {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(metrics.sliderTouchHeight)
-                    .graphicsLayer(scaleY = metrics.sliderScaleY)
-                    .tapToSeekOnTimeline(
-                        durationMs = durationMs,
-                        currentPositionMs = { displayedPositionMs },
-                        onSeek = { positionMs ->
-                            val targetPositionMs = positionMs.coerceIn(0L, seekDurationMs)
-                            onScrubChange(targetPositionMs)
-                            onScrubFinished(targetPositionMs)
-                        },
-                    ),
-            ) {
-                Slider(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .semantics { contentDescription = seekDescription },
-                    state = seekState,
-                    onValueChange = { value -> onScrubChange(value.toLong()) },
-                    onValueChangeFinished = { onScrubFinished(displayedPositionMs.coerceIn(0L, seekDurationMs)) },
-                    enabled = durationMs > 0L,
-                    interactionSource = interactionSource,
-                    track = { sliderState -> PlayerProgressTrack(sliderState, bufferedFraction, chapterMarks) },
-                )
-            }
-            SeekPreviewOverlay(
-                controller = seekPreview,
-                active = durationMs > 0L && (isPressed || isDragged),
-                positionMs = displayedPositionMs.coerceIn(0L, seekDurationMs),
-                durationMs = durationMs,
-                modifier = Modifier.matchParentSize(),
-            )
-        }
+        PlayerClassicProgressBar(
+            durationMs = durationMs,
+            positionMs = displayedPositionMs,
+            bufferedPositionMs = bufferedPositionMs,
+            metrics = metrics,
+            onScrubChange = onScrubChange,
+            onScrubFinished = onScrubFinished,
+            chapters = chapters,
+            seekPreview = seekPreview,
+            onTouchChange = onTouchChange,
+        )
         if (showTimeRow) {
             Row(
                 modifier = Modifier
@@ -1242,6 +1166,42 @@ internal fun PlayerSeekBar(
     }
 }
 
+/**
+ * The classic and locked layouts keep their compact row ([PlayerLayoutMetrics.sliderTouchHeight]);
+ * the bar's line sits in its middle and the 48 dp touch area spills over it.
+ */
+@Composable
+internal fun PlayerClassicProgressBar(
+    durationMs: Long,
+    positionMs: Long,
+    bufferedPositionMs: Long,
+    metrics: PlayerLayoutMetrics,
+    onScrubChange: (Long) -> Unit,
+    onScrubFinished: (Long) -> Unit,
+    enabled: Boolean = true,
+    chapters: List<PlayerChapter> = emptyList(),
+    seekPreview: SeekPreviewController? = null,
+    onTouchChange: (Boolean) -> Unit = {},
+) {
+    Box(
+        modifier = Modifier.fillMaxWidth().height(metrics.sliderTouchHeight),
+        contentAlignment = Alignment.Center,
+    ) {
+        PlayerProgressBar(
+            positionMs = positionMs,
+            durationMs = durationMs,
+            bufferedPositionMs = bufferedPositionMs,
+            onScrubChange = onScrubChange,
+            onScrubFinished = onScrubFinished,
+            enabled = enabled,
+            chapters = chapters,
+            seekPreview = seekPreview,
+            onTouchChange = onTouchChange,
+            modifier = Modifier.requiredHeight(PlayerProgressBarSpec.TouchHeight),
+        )
+    }
+}
+
 internal fun playerBufferedFraction(bufferedPositionMs: Long, durationMs: Long): Float =
     if (durationMs > 0L) {
         (bufferedPositionMs.toFloat() / durationMs.toFloat()).coerceIn(0f, 1f)
@@ -1249,80 +1209,7 @@ internal fun playerBufferedFraction(bufferedPositionMs: Long, durationMs: Long):
         0f
     }
 
-internal val PlayerBaseTrackColor = Color.White.copy(alpha = 0.20f)
 
-internal val PlayerBufferedTrackColor = Color.White.copy(alpha = 0.40f)
-
-@Composable
-private fun PlayerBufferedTrack(bufferedFraction: Float, enabled: Boolean = true) {
-    if (bufferedFraction <= 0f) return
-    val bufferedState = remember { SliderState(trackRange = 0f..1f) }
-    bufferedState.value = bufferedFraction
-    SliderDefaults.Track(
-        sliderState = bufferedState,
-        enabled = enabled,
-        colors = SliderDefaults.colors(
-            activeTrackColor = PlayerBufferedTrackColor,
-            inactiveTrackColor = Color.Transparent,
-            disabledActiveTrackColor = PlayerBufferedTrackColor,
-            disabledInactiveTrackColor = Color.Transparent,
-        ),
-        drawStopIndicator = null,
-        thumbTrackGapSize = 0.dp,
-    )
-}
-
-@Composable
-private fun PlayerProgressTrack(
-    sliderState: SliderState,
-    bufferedFraction: Float,
-    chapterMarks: List<Float> = emptyList(),
-) {
-    val palette = MaterialTheme.themePalette
-    val inactiveTrackColors = SliderDefaults.colors(
-        activeTrackColor = Color.Transparent,
-        inactiveTrackColor = PlayerBaseTrackColor,
-        disabledActiveTrackColor = Color.Transparent,
-        disabledInactiveTrackColor = PlayerBaseTrackColor,
-    )
-    val activeTrackColors = SliderDefaults.colors(
-        activeTrackColor = Color.White,
-        inactiveTrackColor = Color.Transparent,
-        disabledActiveTrackColor = Color.White,
-        disabledInactiveTrackColor = Color.Transparent,
-    )
-
-    Box {
-        SliderDefaults.Track(
-            sliderState = sliderState,
-            colors = inactiveTrackColors,
-            thumbTrackGapSize = 0.dp,
-        )
-        PlayerBufferedTrack(bufferedFraction = bufferedFraction)
-        SliderDefaults.Track(
-            sliderState = sliderState,
-            modifier = Modifier.gradientMask(palette.accentBrush()),
-            colors = activeTrackColors,
-            thumbTrackGapSize = 0.dp,
-        )
-        if (chapterMarks.isNotEmpty()) {
-            Box(
-                modifier = Modifier
-                    .matchParentSize()
-                    .drawBehind {
-                        val markWidth = PlayerChapterMarkWidth.toPx()
-                        chapterMarks.forEach { fraction ->
-                            drawRect(
-                                color = PlayerChapterMarkColor,
-                                topLeft = Offset(size.width * fraction - markWidth / 2f, 0f),
-                                size = Size(markWidth, size.height),
-                            )
-                        }
-                    },
-            )
-        }
-    }
-}
 
 @Composable
 internal fun LockedPlayerOverlay(
@@ -1336,14 +1223,6 @@ internal fun LockedPlayerOverlay(
     modifier: Modifier = Modifier,
 ) {
     val durationMs = playbackSnapshot.durationMs.coerceAtLeast(1L)
-    val sliderColors = SliderDefaults.colors(
-        thumbColor = Color.White,
-        activeTrackColor = Color.White,
-        inactiveTrackColor = Color.White.copy(alpha = 0.28f),
-        disabledThumbColor = Color.White,
-        disabledActiveTrackColor = Color.White,
-        disabledInactiveTrackColor = Color.White.copy(alpha = 0.28f),
-    )
 
     Box(modifier = modifier.fillMaxSize()) {
         Box(
@@ -1401,50 +1280,14 @@ internal fun LockedPlayerOverlay(
                 .padding(bottom = metrics.sliderBottomOffset),
         ) {
             if (useLegacyLayout) {
-                val lockedSeekDurationMs = durationMs.coerceAtLeast(1L)
-                val lockedSliderState = remember(lockedSeekDurationMs) {
-                    SliderState(trackRange = 0f..lockedSeekDurationMs.toFloat())
-                }
-                lockedSliderState.value = displayedPositionMs.coerceIn(0L, lockedSeekDurationMs).toFloat()
-                Slider(
-                    state = lockedSliderState,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(metrics.sliderTouchHeight)
-                        .graphicsLayer(scaleY = metrics.sliderScaleY),
-                    onValueChange = {},
-                    onValueChangeFinished = {},
+                PlayerClassicProgressBar(
+                    durationMs = playbackSnapshot.durationMs,
+                    positionMs = displayedPositionMs,
+                    bufferedPositionMs = playbackSnapshot.bufferedPositionMs,
+                    metrics = metrics,
+                    onScrubChange = {},
+                    onScrubFinished = {},
                     enabled = false,
-                    colors = sliderColors,
-                    track = { sliderState ->
-                        Box {
-                            SliderDefaults.Track(
-                                sliderState = sliderState,
-                                enabled = false,
-                                colors = SliderDefaults.colors(
-                                    disabledActiveTrackColor = Color.Transparent,
-                                    disabledInactiveTrackColor = PlayerBaseTrackColor,
-                                ),
-                                thumbTrackGapSize = 0.dp,
-                            )
-                            PlayerBufferedTrack(
-                                bufferedFraction = playerBufferedFraction(
-                                    playbackSnapshot.bufferedPositionMs,
-                                    playbackSnapshot.durationMs,
-                                ),
-                                enabled = false,
-                            )
-                            SliderDefaults.Track(
-                                sliderState = sliderState,
-                                enabled = false,
-                                colors = SliderDefaults.colors(
-                                    disabledActiveTrackColor = Color.White,
-                                    disabledInactiveTrackColor = Color.Transparent,
-                                ),
-                                thumbTrackGapSize = 0.dp,
-                            )
-                        }
-                    },
                 )
                 Row(
                     modifier = Modifier

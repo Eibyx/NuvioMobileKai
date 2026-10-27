@@ -52,9 +52,7 @@ import com.nuvio.app.core.i18n.localizedEpisodeTitle
 
 internal val PlayerTimelineContentInset = 2.dp
 
-internal val PlayerChapterMarkWidth = 2.dp
 
-internal val PlayerChapterMarkColor = Color.Black.copy(alpha = 0.6f)
 
 @Composable
 internal fun PlayerTimelineDetails(
@@ -115,7 +113,6 @@ internal fun ReportTimelineTouch(touching: Boolean, onTouchChange: (Boolean) -> 
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun PlayerTimeline(
     snapshot: PlayerPlaybackSnapshot,
@@ -126,101 +123,28 @@ internal fun PlayerTimeline(
     enabled: Boolean = true,
     seekPreview: SeekPreviewController? = null,
     onTouchChange: (Boolean) -> Unit = {},
-    /** Each chapter after the first gets a mark where it starts. */
+    /** Each chapter after the first gets a cut where it starts. */
     chapters: List<PlayerChapter> = emptyList(),
 ) {
-    val durationMs = snapshot.durationMs.coerceAtLeast(0L)
-    val rangeEnd = durationMs.coerceAtLeast(1L).toFloat()
-    val bufferedFraction = playerBufferedFraction(snapshot.bufferedPositionMs, durationMs)
-    val chapterMarks = remember(chapters, durationMs) {
-        chapters.chapterMarkFractions(durationMs)
-    }
-    val accentBrush = MaterialTheme.themePalette.accentBrush()
-    val description = stringResource(Res.string.player_seek_position)
-    var scrubPosition by remember { mutableStateOf<Long?>(null) }
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val isDragged by interactionSource.collectIsDraggedAsState()
-    val isInteracting = enabled && durationMs > 0L && (isPressed || isDragged)
-    ReportTimelineTouch(isInteracting, onTouchChange)
-    val trackThickness by animateDpAsState(
-        targetValue = if (isInteracting) 10.dp else 6.dp,
-        animationSpec = tween(durationMillis = if (isInteracting) 140 else 180),
-        label = "playerTimelineThickness",
-    )
-
-    val sliderState = remember(rangeEnd) { SliderState(trackRange = 0f..rangeEnd) }
-    sliderState.value = displayedPositionMs.coerceIn(0L, durationMs).toFloat()
-
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-        Box {
-            Slider(
-                state = sliderState,
-                onValueChange = { value ->
-                    val position = value.toLong().coerceIn(0L, durationMs)
-                    scrubPosition = position
-                    onScrubChange(position)
-                },
-                onValueChangeFinished = {
-                    onScrubFinished((scrubPosition ?: displayedPositionMs).coerceIn(0L, durationMs))
-                    scrubPosition = null
-                },
-                enabled = enabled && durationMs > 0L,
-                interactionSource = interactionSource,
-                thumb = {},
-                track = { state ->
-                    Box(
-                        Modifier
-                            .fillMaxWidth()
-                            .height(48.dp)
-                            .drawBehind {
-                                val trackHeight = trackThickness.toPx()
-                                val trackOrigin = Offset(0f, 35.dp.toPx() - trackHeight / 2)
-                                val radius = CornerRadius(trackHeight / 2)
-                                drawRoundRect(
-                                    color = PlayerBaseTrackColor,
-                                    topLeft = trackOrigin,
-                                    size = Size(size.width, trackHeight),
-                                    cornerRadius = radius,
-                                )
-                                drawRoundRect(
-                                    color = PlayerBufferedTrackColor,
-                                    topLeft = trackOrigin,
-                                    size = Size(size.width * bufferedFraction, trackHeight),
-                                    cornerRadius = radius,
-                                )
-                                drawRoundRect(
-                                    brush = accentBrush,
-                                    topLeft = trackOrigin,
-                                    size = Size(size.width * (state.value / rangeEnd).coerceIn(0f, 1f), trackHeight),
-                                    cornerRadius = radius,
-                                )
-                                val markWidth = PlayerChapterMarkWidth.toPx()
-                                chapterMarks.forEach { fraction ->
-                                    drawRect(
-                                        color = PlayerChapterMarkColor,
-                                        topLeft = Offset(size.width * fraction - markWidth / 2f, trackOrigin.y),
-                                        size = Size(markWidth, trackHeight),
-                                    )
-                                }
-                            },
-                    )
-                },
-                modifier = modifier
-                    .fillMaxWidth()
-                    .height(24.dp)
-                    .wrapContentHeight(Alignment.Bottom, unbounded = true)
-                    .requiredHeight(48.dp)
-                    .semantics { contentDescription = description },
-            )
-            SeekPreviewOverlay(
-                controller = seekPreview,
-                active = isInteracting,
-                positionMs = displayedPositionMs.coerceIn(0L, durationMs),
-                durationMs = durationMs,
-                modifier = Modifier.matchParentSize(),
-            )
-        }
+        PlayerProgressBar(
+            positionMs = displayedPositionMs,
+            durationMs = snapshot.durationMs,
+            bufferedPositionMs = snapshot.bufferedPositionMs,
+            onScrubChange = onScrubChange,
+            onScrubFinished = onScrubFinished,
+            enabled = enabled,
+            chapters = chapters,
+            seekPreview = seekPreview,
+            onTouchChange = onTouchChange,
+            // The bar takes 24 dp in the layout; its 48 dp touch area reaches above it.
+            lineCenter = 35.dp,
+            modifier = modifier
+                .fillMaxWidth()
+                .height(24.dp)
+                .wrapContentHeight(Alignment.Bottom, unbounded = true)
+                .requiredHeight(PlayerProgressBarSpec.TouchHeight),
+        )
     }
 }
 
