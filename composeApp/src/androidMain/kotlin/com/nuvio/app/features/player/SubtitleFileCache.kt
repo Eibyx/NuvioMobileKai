@@ -5,7 +5,6 @@ import android.net.Uri
 import android.util.Log
 import androidx.core.content.FileProvider
 import com.nuvio.app.core.diagnostics.SentryNetworkBreadcrumbInterceptor
-import com.nuvio.app.core.network.DnsOverHttpsDns
 import com.nuvio.app.features.streams.redactedForLogs
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

@@ -1,6 +1,5 @@
 package com.nuvio.app.features.downloads
 
-import com.nuvio.app.core.network.DnsOverHttpsDns
 import java.io.File
 import java.io.IOException
 import java.util.concurrent.TimeUnit

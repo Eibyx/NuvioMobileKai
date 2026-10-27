@@ -63,7 +63,10 @@ internal class DohEndpoint private constructor(val host: String, val bootstrapAd
         private val google = DohEndpoint("dns.google", listOf("8.8.8.8", "8.8.4.4"))
         private val adguard = DohEndpoint("dns.adguard-dns.com", listOf("94.140.14.14", "94.140.15.15"))
         private val quad9 = DohEndpoint("dns.quad9.net", listOf("9.9.9.9", "149.112.112.112"))
-        private val all = listOf(cloudflare, google, adguard, quad9)
+        private val dnsWatch = DohEndpoint("resolver2.dns.watch", listOf("84.200.69.80", "84.200.70.40"))
+        private val dnsSb = DohEndpoint("doh.dns.sb", listOf("185.222.222.222", "45.11.45.11"))
+        private val canadianShield = DohEndpoint("protected.canadianshield.cira.ca", listOf("149.112.121.10", "149.112.122.10"))
+        private val all = listOf(cloudflare, google, adguard, quad9, dnsWatch, dnsSb, canadianShield)
 
         fun forProvider(provider: DnsProvider): DohEndpoint? = when (provider) {
             DnsProvider.SYSTEM -> null
@@ -71,6 +74,9 @@ internal class DohEndpoint private constructor(val host: String, val bootstrapAd
             DnsProvider.GOOGLE -> google
             DnsProvider.ADGUARD -> adguard
             DnsProvider.QUAD9 -> quad9
+            DnsProvider.DNS_WATCH -> dnsWatch
+            DnsProvider.DNS_SB -> dnsSb
+            DnsProvider.CANADIAN_SHIELD -> canadianShield
         }
 
         fun forHost(host: String): DohEndpoint? = all.firstOrNull { it.host.equals(host, ignoreCase = true) }

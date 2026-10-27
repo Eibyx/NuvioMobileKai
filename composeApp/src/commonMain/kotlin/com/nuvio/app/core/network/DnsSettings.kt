@@ -10,6 +10,9 @@ enum class DnsProvider(val storageId: String, val displayName: String) {
     GOOGLE("google", "Google"),
     ADGUARD("adguard", "AdGuard"),
     QUAD9("quad9", "Quad9"),
+    DNS_WATCH("dnswatch", "DNS.WATCH"),
+    DNS_SB("dnssb", "DNS.SB"),
+    CANADIAN_SHIELD("canadian_shield", "Canadian Shield"),
     ;
 
     companion object {

@@ -9,9 +9,24 @@ internal actual object DnsPlatform {
     private var preferences: SharedPreferences? = null
 
     fun initialize(context: Context) {
-        preferences = context.applicationContext.getSharedPreferences(preferencesName, Context.MODE_PRIVATE)
+        val prefs = context.applicationContext.getSharedPreferences(preferencesName, Context.MODE_PRIVATE)
+        preferences = prefs
+        migrateKaiDnsOverHttps(context, prefs)
         NuvioDns.provider = DnsProvider.fromStorage(load())
     }
+
+    /** Nuvio Kai 1.0.x kept its DNS over HTTPS choice in its own file; it carries over once. */
+    private fun migrateKaiDnsOverHttps(context: Context, prefs: SharedPreferences) {
+        if (prefs.contains(providerKey)) return
+        val old = context.applicationContext.getSharedPreferences(kaiPreferencesName, Context.MODE_PRIVATE)
+        val id = old.getString(kaiProviderKey, null) ?: return
+        val provider = if (id == "none") DnsProvider.SYSTEM else DnsProvider.fromStorage(id)
+        prefs.edit().putString(providerKey, provider.storageId).apply()
+        old.edit().clear().apply()
+    }
+
+    private const val kaiPreferencesName = "nuvio_dns_over_https_settings"
+    private const val kaiProviderKey = "dns_over_https_provider"
 
     actual val isSupported: Boolean = true
 

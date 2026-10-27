@@ -45,7 +45,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.nuvio.app.core.network.DnsOverHttpsSettingsStorage
+import com.nuvio.app.core.network.DnsSettingsRepository
 import com.nuvio.app.core.ui.NuvioTokens
 import com.nuvio.app.core.ui.nuvio
 import com.nuvio.app.isIos
@@ -468,12 +468,12 @@ internal fun settingsSearchEntries(
         category = advancedCategory,
         icon = Icons.Rounded.Tune,
     )
-    if (DnsOverHttpsSettingsStorage.isSupported) {
+    if (DnsSettingsRepository.isSupported) {
         addRow(
             page = SettingsPage.Advanced,
             key = "dns-over-https",
-            title = stringResource(Res.string.settings_advanced_doh),
-            description = stringResource(Res.string.settings_advanced_doh_description),
+            title = stringResource(Res.string.settings_advanced_dns),
+            description = stringResource(Res.string.settings_advanced_dns_note),
             pageLabel = advancedPage,
             section = stringResource(Res.string.settings_advanced_section_network),
             category = advancedCategory,
@@ -760,8 +760,6 @@ internal fun settingsSearchEntries(
             icon = Icons.Rounded.PlayArrow,
             rows = listOf(
                 PlaybackSearchRow("libass", stringResource(Res.string.settings_playback_enable_libass), stringResource(Res.string.settings_playback_enable_libass_description)),
-                PlaybackSearchRow("libass-render", stringResource(Res.string.settings_playback_render_type)),
-                PlaybackSearchRow("libmpv-ass", stringResource(Res.string.settings_playback_enable_libmpv_ass), stringResource(Res.string.settings_playback_enable_libmpv_ass_description)),
             ),
         )
     }
