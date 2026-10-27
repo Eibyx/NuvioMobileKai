@@ -43,6 +43,7 @@ internal val PlayerToolbarButton.labelRes: StringResource
         PlayerToolbarButton.SPEED -> Res.string.compose_player_speed
         PlayerToolbarButton.RESIZE -> Res.string.player_toolbar_button_resize
         PlayerToolbarButton.SUBTITLES -> Res.string.compose_player_subtitles
+        PlayerToolbarButton.SHADERS -> Res.string.compose_player_shaders
         PlayerToolbarButton.CHAPTERS -> Res.string.player_chapters
         PlayerToolbarButton.AUDIO -> Res.string.compose_player_audio
         PlayerToolbarButton.QUALITY -> Res.string.player_toolbar_button_quality
