@@ -39,6 +39,8 @@ import com.nuvio.app.features.streams.StreamLaunchStore
 import com.nuvio.app.features.streams.StreamLinkCacheRepository
 import com.nuvio.app.features.streams.StreamsRepository
 import com.nuvio.app.features.streams.StreamsScreen
+import com.nuvio.app.features.streams.StreamSearchingPreviousSourceNotice
+import com.nuvio.app.features.streams.isSearchingPreviousSource
 import com.nuvio.app.features.streams.shouldShowAutoPlayLoading
 import com.nuvio.app.features.streams.shouldUseLandscapeAutoPlayLoading
 import com.nuvio.app.features.streams.StreamsUiState
@@ -827,6 +829,17 @@ internal fun StreamDestination(
                 modifier = Modifier.fillMaxSize(),
             )
         }
+        // While autoplay looks for the previous episode's source, a small notice over the list.
+        val searchingPreviousSource = !showLoadingScreen && streamsUiState.isSearchingPreviousSource(
+            expectedRequestToken = expectedStreamsRequestToken,
+            settings = playerSettings,
+            manualSelection = launch.manualSelection,
+            lastLinkChecked = reuseHandled,
+        )
+        StreamSearchingPreviousSourceNotice(
+            visible = searchingPreviousSource,
+            modifier = Modifier.align(Alignment.BottomCenter),
+        )
         pendingP2pStreamOpen?.let { pending ->
             P2pConsentDialog(
                 onEnableP2p = {

@@ -9,104 +9,82 @@ class StreamAutoPlayLoadingPolicyTest {
 
     private val autoPlaySettings = PlayerSettingsUiState(streamAutoPlayMode = StreamAutoPlayMode.FIRST_STREAM)
 
-    @Test
-    fun `autoplay shows loading before the stream request starts`() {
-        assertTrue(StreamsUiState().shouldShowAutoPlayLoading("new", autoPlaySettings, false))
-        assertTrue(
-            StreamsUiState(requestToken = "new")
-                .shouldShowAutoPlayLoading("new", autoPlaySettings, false),
-        )
-    }
+    private val stream = StreamItem(url = "https://example.com/episode.mp4", addonName = "Test", addonId = "test")
+    private val reuseSettings = listOf(
+        autoPlaySettings,
+        PlayerSettingsUiState(streamReuseLastLinkEnabled = true),
+        PlayerSettingsUiState(streamAutoPlayReuseBingeGroup = true, streamAutoPlayPreferBingeGroup = true),
+    )
+
+    /** Autoplay looking for a stream for this request: the direct flow, nothing chosen yet. */
+    private val searching = StreamsUiState(
+        requestToken = "new",
+        autoPlayDecided = true,
+        isDirectAutoPlayFlow = true,
+        showDirectAutoPlayOverlay = true,
+    )
 
     @Test
-    fun `previous request cannot hide a new autoplay loading screen`() {
-        val previous = StreamsUiState(requestToken = "old", autoPlayDecided = true)
-        assertTrue(previous.shouldShowAutoPlayLoading("new", autoPlaySettings, false))
-    }
-
-    @Test
-    fun `manual selection and invalid regex do not start autoplay loading`() {
-        val initial = StreamsUiState()
-        assertFalse(initial.shouldShowAutoPlayLoading("new", autoPlaySettings, true))
-        assertFalse(initial.shouldShowAutoPlayLoading("new", PlayerSettingsUiState(), false))
-        assertFalse(initial.shouldShowAutoPlayLoading(
-            "new",
-            PlayerSettingsUiState(streamAutoPlayMode = StreamAutoPlayMode.REGEX_MATCH, streamAutoPlayRegex = "["),
-            false,
-        ))
-    }
-
-    @Test
-    fun `settled autoplay fallback reveals the stream picker`() {
-        val loading = StreamsUiState(
-            requestToken = "new",
-            autoPlayDecided = true,
-            showDirectAutoPlayOverlay = true,
-        )
-        assertTrue(loading.shouldShowAutoPlayLoading("new", autoPlaySettings, false))
-        assertFalse(
-            loading.copy(showDirectAutoPlayOverlay = false)
-                .shouldShowAutoPlayLoading("new", autoPlaySettings, false),
-        )
-    }
-
-    @Test
-    fun `last link reuse starts with loading even in manual mode`() {
-        assertTrue(
-            StreamsUiState().shouldShowAutoPlayLoading(
-                "new", PlayerSettingsUiState(streamReuseLastLinkEnabled = true), false,
-            ),
-        )
-    }
-
-    @Test
-    fun `predicted autoplay loading does not rotate before the request starts`() {
-        val state = StreamsUiState()
-        val settings = listOf(
-            autoPlaySettings,
-            PlayerSettingsUiState(streamReuseLastLinkEnabled = true),
-            PlayerSettingsUiState(streamAutoPlayReuseBingeGroup = true),
-        )
-
-        settings.forEach { playerSettings ->
-            assertTrue(state.shouldShowAutoPlayLoading("new", playerSettings, false))
-            assertFalse(state.shouldUseLandscapeAutoPlayLoading("new", playerSettings, false))
+    fun `while autoplay is still deciding the streams screen shows without the poster`() {
+        reuseSettings.forEach { settings ->
+            assertFalse(StreamsUiState().shouldShowAutoPlayLoading("new", settings, false))
+            assertFalse(StreamsUiState(requestToken = "new").shouldShowAutoPlayLoading("new", settings, false))
+            assertFalse(searching.shouldShowAutoPlayLoading("new", settings, false))
+            assertFalse(searching.shouldUseLandscapeAutoPlayLoading("new", settings, false))
         }
     }
 
     @Test
-    fun `confirmed autoplay loading rotates only for the current automatic request`() {
-        val state = StreamsUiState(
-            requestToken = "new",
-            autoPlayDecided = true,
-            isDirectAutoPlayFlow = true,
-            showDirectAutoPlayOverlay = true,
-        )
-
-        assertTrue(state.shouldUseLandscapeAutoPlayLoading("new", autoPlaySettings, false))
-        assertFalse(state.shouldUseLandscapeAutoPlayLoading("other", autoPlaySettings, false))
-        assertFalse(state.shouldUseLandscapeAutoPlayLoading("new", autoPlaySettings, true))
-        assertFalse(state.copy(autoPlayDecided = false).shouldUseLandscapeAutoPlayLoading("new", autoPlaySettings, false))
-        assertFalse(state.copy(showDirectAutoPlayOverlay = false).shouldUseLandscapeAutoPlayLoading("new", autoPlaySettings, false))
+    fun `once a stream is chosen the poster shows until the player opens`() {
+        val chosen = searching.copy(autoPlayStream = stream)
+        reuseSettings.forEach { settings ->
+            assertTrue(chosen.shouldShowAutoPlayLoading("new", settings, false))
+        }
+        assertTrue(chosen.shouldUseLandscapeAutoPlayLoading("new", autoPlaySettings, false))
+        // Not for another request.
+        assertFalse(chosen.shouldShowAutoPlayLoading("other", autoPlaySettings, false))
+        assertFalse(chosen.shouldUseLandscapeAutoPlayLoading("other", autoPlaySettings, false))
     }
 
     @Test
-    fun `manual binge group reuse waits for playback before rotating`() {
-        val settings = PlayerSettingsUiState(streamAutoPlayReuseBingeGroup = true)
-        val state = StreamsUiState(
-            requestToken = "new",
-            autoPlayDecided = true,
-            isDirectAutoPlayFlow = true,
-            showDirectAutoPlayOverlay = true,
-        )
+    fun `when autoplay decides not to play the list stays without the poster`() {
+        val settled = searching.copy(isDirectAutoPlayFlow = false, showDirectAutoPlayOverlay = false)
+        reuseSettings.forEach { settings ->
+            assertFalse(settled.shouldShowAutoPlayLoading("new", settings, false))
+            assertFalse(settled.shouldUseLandscapeAutoPlayLoading("new", settings, false))
+        }
+    }
 
-        assertTrue(state.shouldShowAutoPlayLoading("new", settings, false))
-        assertFalse(state.shouldUseLandscapeAutoPlayLoading("new", settings, false))
-        val stream = StreamItem(url = "https://example.com/episode.mp4", addonName = "Test", addonId = "test")
-        assertFalse(
-            state.copy(autoPlayStream = stream)
-                .shouldUseLandscapeAutoPlayLoading("new", settings, false),
-        )
+    @Test
+    fun `a manual selection never shows the poster`() {
+        val chosen = searching.copy(autoPlayStream = stream)
+        reuseSettings.forEach { settings ->
+            assertFalse(StreamsUiState().shouldShowAutoPlayLoading("new", settings, true))
+            assertFalse(chosen.shouldShowAutoPlayLoading("new", settings, true))
+            assertFalse(chosen.shouldUseLandscapeAutoPlayLoading("new", settings, true))
+        }
+        assertFalse(StreamsUiState().shouldShowAutoPlayLoading("new", PlayerSettingsUiState(), false))
+    }
+
+    @Test
+    fun `manual binge group reuse does not rotate`() {
+        val settings = PlayerSettingsUiState(streamAutoPlayReuseBingeGroup = true, streamAutoPlayPreferBingeGroup = true)
+        val chosen = searching.copy(autoPlayStream = stream)
+        assertTrue(chosen.shouldShowAutoPlayLoading("new", settings, false))
+        assertFalse(chosen.shouldUseLandscapeAutoPlayLoading("new", settings, false))
+    }
+
+    @Test
+    fun `the small notice shows only while the previous source is searched for`() {
+        val lastLink = PlayerSettingsUiState(streamReuseLastLinkEnabled = true)
+        val bingeGroup = PlayerSettingsUiState(streamAutoPlayReuseBingeGroup = true, streamAutoPlayPreferBingeGroup = true)
+        assertTrue(StreamsUiState().isSearchingPreviousSource("new", lastLink, false, lastLinkChecked = false))
+        assertFalse(searching.isSearchingPreviousSource("new", lastLink, false, lastLinkChecked = true))
+        assertTrue(searching.isSearchingPreviousSource("new", bingeGroup, false, lastLinkChecked = true))
+        assertFalse(searching.copy(autoPlayStream = stream).isSearchingPreviousSource("new", bingeGroup, false, lastLinkChecked = true))
+        assertFalse(searching.copy(isDirectAutoPlayFlow = false).isSearchingPreviousSource("new", bingeGroup, false, lastLinkChecked = true))
+        assertFalse(StreamsUiState().isSearchingPreviousSource("new", lastLink, true, lastLinkChecked = false))
+        assertFalse(StreamsUiState().isSearchingPreviousSource("new", autoPlaySettings, false, lastLinkChecked = false))
     }
 
     @Test
