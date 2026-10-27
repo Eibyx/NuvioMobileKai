@@ -521,8 +521,8 @@
     <string name="compose_settings_page_poster_customization">Personalización de póster</string>
     <string name="compose_settings_page_privacy_policy">Política de privacidad</string>
     <string name="compose_settings_page_root">Configuración</string>
-    <string name="compose_settings_page_streams">Corrientes</string>
-    <string name="settings_appearance_section_streams">CORRIENTES</string>
+    <string name="compose_settings_page_streams">Streams</string>
+    <string name="settings_appearance_section_streams">STREAMS</string>
     <string name="compose_settings_page_supporters_contributors">Patrocinadores y colaboradores</string>
     <string name="compose_settings_page_tmdb_enrichment">Enriquecimiento TMDB</string>
     <string name="compose_settings_page_trakt">Trakt</string>
