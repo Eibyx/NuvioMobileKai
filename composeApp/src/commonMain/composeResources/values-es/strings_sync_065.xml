@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Textos nuevos del oficial 0.6.5 y de luqman (octubre de 2026). -->
+<resources>
+    <string name="compose_player_chapters">Capítulos</string>
+    <string name="compose_player_panel_chapters">Capítulos (%1$d)</string>
+    <string name="compose_player_chapter_number">Capítulo %1$d</string>
+    <string name="compose_player_chapter_remaining">Quedan %1$s</string>
+    <string name="compose_player_seek_back_seconds">Retroceder %1$d segundos</string>
+    <string name="compose_player_seek_forward_seconds">Avanzar %1$d segundos</string>
+    <string name="compose_player_ends_at">Termina a las %1$s</string>
+    <string name="settings_mdb_show_on_hero">Valoraciones en el destacado</string>
+    <string name="settings_mdb_show_on_hero_description">Muestra las valoraciones de MDBList en el destacado de Inicio</string>
+    <string name="settings_playback_skip_backward">Retroceso</string>
+    <string name="settings_playback_skip_forward">Avance</string>
+    <string name="settings_playback_skip_seconds_value">%1$d segundos</string>
+    <string name="settings_playback_skip_description">Lo usan los botones de saltar, el doble toque y las flechas del teclado.</string>
+    <string name="settings_playback_exo_chapters">Mostrar capítulos</string>
+    <string name="settings_playback_exo_chapters_description">Marca los capítulos en la barra de progreso y los lista en el reproductor. Con ExoPlayer hace algunas peticiones pequeñas al empezar para leer los capítulos de MKV y MP4.</string>
+    <string name="settings_tmdb_original_title_language">Idioma original</string>
+    <string name="settings_tmdb_original_title_language_description">Muestra títulos, logos, pósteres y fondos en su idioma original. Si no los hay, usa el idioma de arriba.</string>
+    <string name="settings_advanced_dns">DNS</string>
+    <string name="settings_advanced_dns_system">El del sistema</string>
+    <string name="settings_advanced_dns_doh_format">%1$s (DNS sobre HTTPS)</string>
+    <string name="settings_advanced_dns_note">Se usa en todas las conexiones de Nuvio en este dispositivo: complementos, metadatos, imágenes, sincronización, trackers y el motor ExoPlayer. El DNS del teléfono no cambia para las demás apps. El motor libmpv y las páginas web de inicio de sesión siguen usando el DNS del sistema.</string>
+    <string name="settings_playback_toolbar_layout">Botones del reproductor</string>
+    <string name="settings_playback_toolbar_layout_description">Elige qué botones quedan en la barra, cuáles van tras la flecha y su orden.</string>
+    <string name="settings_playback_toolbar_shown">Siempre visibles</string>
+    <string name="settings_playback_toolbar_hidden">Tras la flecha</string>
+    <string name="settings_playback_toolbar_empty">No hay botones aquí.</string>
+    <string name="settings_playback_toolbar_move_up">Subir</string>
+    <string name="settings_playback_toolbar_move_down">Bajar</string>
+    <string name="settings_playback_toolbar_hide">Mover tras la flecha</string>
+    <string name="settings_playback_toolbar_show">Mostrar siempre</string>
+    <string name="settings_playback_toolbar_note">Los botones que no sirven para el vídeo actual, como Siguiente episodio en una película, no se muestran.</string>
+    <string name="player_toolbar_button_resize">Ajuste</string>
+    <string name="player_toolbar_button_quality">Calidad</string>
+    <string name="settings_backup_section">COPIA DE SEGURIDAD</string>
+    <string name="settings_backup_include_sensitive">Incluir datos sensibles</string>
+    <string name="settings_backup_include_sensitive_description">Añade al archivo exportado las claves de API, las claves de debrid, los complementos, la TV en directo y el ID de la aplicación de Discord. Guarda ese archivo en privado</string>
+    <string name="settings_backup_export">Exportar ajustes</string>
+    <string name="settings_backup_export_description">Guarda los ajustes y los plugins en un archivo. Nunca incluye colecciones, trackers ni tu cuenta de Nuvio</string>
+    <string name="settings_backup_export_done">Ajustes exportados</string>
+    <string name="settings_backup_export_failed">No se pudieron exportar los ajustes</string>
+    <string name="settings_backup_import">Importar ajustes</string>
+    <string name="settings_backup_import_description">Restaura los ajustes desde un archivo exportado</string>
+    <string name="settings_backup_importing">Importando ajustes…</string>
+    <string name="settings_backup_import_confirm_title">¿Importar ajustes?</string>
+    <string name="settings_backup_import_confirm_message">Los ajustes del archivo sustituirán a los de este perfil. Se añadirán los plugins que falten. Tus claves de API, complementos y TV en directo no cambian.</string>
+    <string name="settings_backup_import_confirm_message_sensitive">Los ajustes del archivo sustituirán a los de este perfil, incluidas las claves de API y de debrid. Se añadirán los complementos, plugins y fuentes de TV en directo que falten.</string>
+    <string name="settings_backup_import_confirm_action">Importar</string>
+    <string name="settings_backup_import_done">Ajustes importados</string>
+    <string name="settings_backup_import_partial">Ajustes importados, pero algunas secciones no se pudieron aplicar</string>
+    <string name="settings_backup_import_failed">No se pudieron importar los ajustes</string>
+    <string name="settings_backup_import_invalid">Este archivo no es una exportación de ajustes de Nuvio</string>
+</resources>
