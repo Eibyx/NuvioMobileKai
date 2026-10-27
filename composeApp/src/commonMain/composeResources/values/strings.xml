@@ -487,6 +487,8 @@
     <string name="compose_player_seek_feedback_backward">-%1$ds</string>
     <string name="compose_player_seek_feedback_forward">+%1$ds</string>
     <string name="compose_player_seek_forward_10">Seek forward 10 seconds</string>
+    <string name="compose_player_seek_back_seconds">Seek backward %1$d seconds</string>
+    <string name="compose_player_seek_forward_seconds">Seek forward %1$d seconds</string>
     <string name="compose_player_sources">Sources</string>
     <string name="compose_player_style">Style</string>
     <string name="compose_player_select_addon_subtitle_first">Select an addon subtitle first</string>
@@ -1451,6 +1453,10 @@
     <string name="settings_playback_subtitle_vertical_offset">Vertical Offset</string>
     <string name="settings_playback_skip_intro_outro_recap">Skip Intro</string>
     <string name="settings_playback_skip_intro_outro_recap_description">Use introdb.app to detect intros and recaps.</string>
+    <string name="settings_playback_skip_backward">Skip Backward</string>
+    <string name="settings_playback_skip_forward">Skip Forward</string>
+    <string name="settings_playback_skip_seconds_value">%1$d seconds</string>
+    <string name="settings_playback_skip_description">Used by the skip buttons, double-tap seek and arrow keys.</string>
     <string name="settings_playback_source_scope">Auto-play Source Scope</string>
     <string name="settings_playback_source_scope_all_addons">All installed addons</string>
     <string name="settings_playback_source_scope_all_addons_description">Auto-play only considers streams coming from your installed addons.</string>
@@ -1502,7 +1508,7 @@
     <string name="settings_playback_vod_disk_cache_note">Disk writes continue while a cached stream plays. A new size applies the next time the app starts.</string>
     <string name="settings_playback_tunneled_playback_description">Hardware-level audio/video sync. May improve playback on some Android TV devices</string>
     <string name="settings_playback_exo_chapters">Show Chapters</string>
-    <string name="settings_playback_exo_chapters_description">Read the chapters of MKV files to mark them on the progress bar and list them in the player. Makes a few small extra requests once playback starts. libmpv always shows chapters</string>
+    <string name="settings_playback_exo_chapters_description">Mark chapters on the progress bar and list them in the player. With ExoPlayer this makes a few small extra requests once playback starts to read MKV and MP4 chapters.</string>
     <string name="settings_tmdb_api_key_label">API key</string>
     <string name="settings_tmdb_api_key_override_description">Use your own TMDB API key, or leave blank to use the default.</string>
     <string name="settings_tmdb_personal_api_key">Personal API key</string>
@@ -1539,6 +1545,8 @@
     <string name="settings_tmdb_module_trailers_description">Trailer candidates from TMDB videos for the detail trailer section</string>
     <string name="settings_tmdb_preferred_language">Language</string>
     <string name="settings_tmdb_preferred_language_description">TMDB metadata language for title, logo, and enabled fields</string>
+    <string name="settings_tmdb_original_title_language">Original language</string>
+    <string name="settings_tmdb_original_title_language_description">Show titles, title logos, posters, and backdrops in their original language. Falls back to the language above when unavailable.</string>
     <string name="settings_tmdb_section_localization">LOCALIZATION</string>
     <string name="settings_tmdb_section_modules">MODULES</string>
     <string name="settings_tmdb_section_title">TMDB ENRICHMENT</string>
@@ -2943,4 +2951,21 @@
     <string name="details_rating_map_unrated">Not rated yet</string>
     <string name="details_rating_map_hidden">Watch this episode to reveal its rating</string>
     <string name="details_rating_map_hint">Tap an episode to see its rating.</string>
+    <string name="settings_advanced_dns">DNS</string>
+    <string name="settings_advanced_dns_system">System default</string>
+    <string name="settings_advanced_dns_doh_format">%1$s (DNS over HTTPS)</string>
+    <string name="settings_advanced_dns_note">Used for all of Nuvio\'s connections on this device: addons, metadata, images, sync, trackers and the ExoPlayer engine. Your phone\'s DNS stays the same for other apps. The libmpv engine and web sign-in pages still use the system DNS.</string>
+    <string name="compose_player_ends_at">Ends at %1$s</string>
+    <string name="settings_playback_toolbar_layout">Player buttons</string>
+    <string name="settings_playback_toolbar_layout_description">Choose which buttons stay on the bar, which sit behind the arrow, and their order.</string>
+    <string name="settings_playback_toolbar_shown">Always shown</string>
+    <string name="settings_playback_toolbar_hidden">Behind the arrow</string>
+    <string name="settings_playback_toolbar_empty">No buttons here.</string>
+    <string name="settings_playback_toolbar_move_up">Move up</string>
+    <string name="settings_playback_toolbar_move_down">Move down</string>
+    <string name="settings_playback_toolbar_hide">Move behind the arrow</string>
+    <string name="settings_playback_toolbar_show">Always show</string>
+    <string name="settings_playback_toolbar_note">Buttons that do not apply to the current video, such as Next Episode on a movie, are skipped.</string>
+    <string name="player_toolbar_button_resize">Resize</string>
+    <string name="player_toolbar_button_quality">Quality</string>
 </resources>

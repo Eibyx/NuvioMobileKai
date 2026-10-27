@@ -58,6 +58,7 @@ import com.nuvio.app.features.player.SUBTITLE_SHADOW_STRENGTH_MAX
 import com.nuvio.app.features.player.SUBTITLE_SHADOW_STRENGTH_MIN
 import com.nuvio.app.features.player.SubtitleFontRepository
 import com.nuvio.app.features.player.AndroidLibmpvVideoOutput
+import com.nuvio.app.features.player.PlayerSkipSecondsOptions
 import com.nuvio.app.features.player.AndroidPlaybackEngine
 import com.nuvio.app.features.player.AudioLanguageOption
 import com.nuvio.app.features.player.AvailableLanguageOptions
@@ -365,6 +366,8 @@ private fun PlaybackSettingsSection(
     var showLibassRenderScaleDialog by remember { mutableStateOf(false) }
     var showDecoderPriorityDialog by remember { mutableStateOf(false) }
     var showHoldToSpeedValueDialog by remember { mutableStateOf(false) }
+    var skipDirectionDialog by remember { mutableStateOf<Boolean?>(null) } // true = forward
+    var showToolbarLayoutDialog by remember { mutableStateOf(false) }
     var showIosAudioOutputDialog by remember { mutableStateOf(false) }
     var showIosHardwareDecoderDialog by remember { mutableStateOf(false) }
     var showIosTargetPrimariesDialog by remember { mutableStateOf(false) }
@@ -417,6 +420,15 @@ private fun PlaybackSettingsSection(
                     isTablet = isTablet,
                     onCheckedChange = PlayerSettingsRepository::setUseLegacyPlayerLayout,
                 )
+                if (!autoPlayPlayerSettings.useLegacyPlayerLayout) {
+                    SettingsGroupDivider(isTablet = isTablet)
+                    SettingsNavigationRow(
+                        title = stringResource(Res.string.settings_playback_toolbar_layout),
+                        description = stringResource(Res.string.settings_playback_toolbar_layout_description),
+                        isTablet = isTablet,
+                        onClick = { showToolbarLayoutDialog = true },
+                    )
+                }
                 SettingsGroupDivider(isTablet = isTablet)
                 SettingsSwitchRow(
                     title = stringResource(Res.string.settings_playback_show_loading_overlay),
@@ -424,6 +436,14 @@ private fun PlaybackSettingsSection(
                     checked = showLoadingOverlay,
                     isTablet = isTablet,
                     onCheckedChange = PlayerSettingsRepository::setShowLoadingOverlay,
+                )
+                SettingsGroupDivider(isTablet = isTablet)
+                SettingsSwitchRow(
+                    title = stringResource(Res.string.settings_playback_exo_chapters),
+                    description = stringResource(Res.string.settings_playback_exo_chapters_description),
+                    checked = autoPlayPlayerSettings.androidExoChaptersEnabled,
+                    isTablet = isTablet,
+                    onCheckedChange = PlayerSettingsRepository::setAndroidExoChaptersEnabled,
                 )
                 SettingsGroupDivider(isTablet = isTablet)
                 SettingsSwitchRow(
@@ -576,6 +596,28 @@ private fun PlaybackSettingsSection(
                         onClick = { showHoldToSpeedValueDialog = true },
                     )
                 }
+                SettingsGroupDivider(isTablet = isTablet)
+                SettingsNavigationRow(
+                    title = stringResource(Res.string.settings_playback_skip_backward),
+                    description = stringResource(
+                        Res.string.settings_playback_skip_seconds_value,
+                        autoPlayPlayerSettings.skipBackwardSeconds,
+                    ),
+                    enabled = !autoPlayPlayerSettings.externalPlayerEnabled,
+                    isTablet = isTablet,
+                    onClick = { skipDirectionDialog = false },
+                )
+                SettingsGroupDivider(isTablet = isTablet)
+                SettingsNavigationRow(
+                    title = stringResource(Res.string.settings_playback_skip_forward),
+                    description = stringResource(
+                        Res.string.settings_playback_skip_seconds_value,
+                        autoPlayPlayerSettings.skipForwardSeconds,
+                    ),
+                    enabled = !autoPlayPlayerSettings.externalPlayerEnabled,
+                    isTablet = isTablet,
+                    onClick = { skipDirectionDialog = true },
+                )
             }
         }
 
@@ -1306,15 +1348,6 @@ private fun PlaybackSettingsSection(
                             isTablet = isTablet,
                         )
                     }
-                    SettingsGroupDivider(isTablet = isTablet)
-                    SettingsSwitchRow(
-                        title = stringResource(Res.string.settings_playback_exo_chapters),
-                        description = stringResource(Res.string.settings_playback_exo_chapters_description),
-                        checked = androidExoChaptersEnabled,
-                        enabled = exoOptionsEnabled,
-                        isTablet = isTablet,
-                        onCheckedChange = PlayerSettingsRepository::setAndroidExoChaptersEnabled,
-                    )
                 }
             }
         }
@@ -1893,6 +1926,36 @@ private fun PlaybackSettingsSection(
                 showLibmpvVideoOutputDialog = false
             },
             onDismiss = { showLibmpvVideoOutputDialog = false },
+        )
+    }
+
+    if (showToolbarLayoutDialog) {
+        PlayerToolbarSettingsDialog(
+            layout = autoPlayPlayerSettings.toolbarLayout,
+            onLayoutChange = PlayerSettingsRepository::setToolbarLayout,
+            onDismiss = { showToolbarLayoutDialog = false },
+        )
+    }
+
+    skipDirectionDialog?.let { forward ->
+        SkipSecondsDialog(
+            title = stringResource(
+                if (forward) Res.string.settings_playback_skip_forward else Res.string.settings_playback_skip_backward,
+            ),
+            selectedSeconds = if (forward) {
+                autoPlayPlayerSettings.skipForwardSeconds
+            } else {
+                autoPlayPlayerSettings.skipBackwardSeconds
+            },
+            onSelected = { seconds ->
+                if (forward) {
+                    PlayerSettingsRepository.setSkipForwardSeconds(seconds)
+                } else {
+                    PlayerSettingsRepository.setSkipBackwardSeconds(seconds)
+                }
+                skipDirectionDialog = null
+            },
+            onDismiss = { skipDirectionDialog = null },
         )
     }
 
@@ -3164,3 +3227,36 @@ private val com.nuvio.app.features.player.skip.NextEpisodeThresholdMode.labelRes
         com.nuvio.app.features.player.skip.NextEpisodeThresholdMode.MINUTES_BEFORE_END ->
             Res.string.settings_playback_threshold_mode_minutes_before_end
     }
+
+@Composable
+private fun SkipSecondsDialog(
+    title: String,
+    selectedSeconds: Int,
+    onSelected: (Int) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    DialogSurface(
+        onDismissRequest = onDismiss,
+        title = title,
+        message = stringResource(Res.string.settings_playback_skip_description),
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            PlayerSkipSecondsOptions.forEach { seconds ->
+                DialogOption(
+                    text = stringResource(Res.string.settings_playback_skip_seconds_value, seconds),
+                    selected = seconds == selectedSeconds,
+                    onClick = { onSelected(seconds) },
+                )
+            }
+        }
+        DialogButtons {
+            DialogButton(
+                text = stringResource(Res.string.action_cancel),
+                onClick = onDismiss,
+            )
+        }
+    }
+}

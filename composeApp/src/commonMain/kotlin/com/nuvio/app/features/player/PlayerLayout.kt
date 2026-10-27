@@ -14,6 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.coerceAtLeast
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nuvio.app.isIos
@@ -131,6 +132,16 @@ internal fun playerHorizontalSafePadding(): Dp {
 }
 
 @Composable
+internal fun playerTextCutoutPadding(metrics: PlayerLayoutMetrics): Dp {
+    val layoutDirection = LocalLayoutDirection.current
+    val cutout = WindowInsets.displayCutout.asPaddingValues()
+    val left = cutout.calculateLeftPadding(layoutDirection)
+    val right = cutout.calculateRightPadding(layoutDirection)
+    val widest = if (left > right) left else right
+    return (widest - metrics.horizontalPadding).coerceAtLeast(0.dp)
+}
+
+@Composable
 internal fun playerToolbarTopInsets(metrics: PlayerLayoutMetrics): WindowInsets {
     val safeInsets = WindowInsets.displayCutout.union(WindowInsets.statusBars).only(WindowInsetsSides.Top)
     val contentInsets = WindowInsets(top = metrics.sliderBottomOffset / 2)
@@ -176,11 +187,15 @@ internal fun formatPlaybackTime(positionMs: Long): String {
 
 internal fun formatPlaybackRuntime(positionMs: Long, durationMs: Long, showRemainingTime: Boolean): String =
     if (showRemainingTime) {
-        val remainingMs = (durationMs.coerceAtLeast(0L) - positionMs.coerceAtLeast(0L)).coerceAtLeast(0L)
-        "−${formatPlaybackTime(remainingMs)}"
+        "${formatPlaybackTime(positionMs)} / ${formatPlaybackRemaining(positionMs, durationMs)}"
     } else {
         "${formatPlaybackTime(positionMs)} / ${formatPlaybackTime(durationMs)}"
     }
+
+internal fun formatPlaybackRemaining(positionMs: Long, durationMs: Long): String {
+    val remainingMs = (durationMs.coerceAtLeast(0L) - positionMs.coerceAtLeast(0L)).coerceAtLeast(0L)
+    return "−${formatPlaybackTime(remainingMs)}"
+}
 
 internal fun formatPlaybackSpeedLabel(speed: Float): String {
     val normalized = speed.toString().trimEnd('0').trimEnd('.')

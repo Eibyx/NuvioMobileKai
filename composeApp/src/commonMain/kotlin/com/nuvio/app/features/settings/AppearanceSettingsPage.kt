@@ -153,7 +153,7 @@ internal fun LazyListScope.appearanceSettingsContent(
                     }
                 }
                 SettingsGroupDivider(isTablet = isTablet)
-                AppearanceThemePicker(
+                AppearanceThemeSelector(
                     isTablet = isTablet,
                     selectedTheme = selectedTheme,
                     onThemeSelected = onThemeSelected,

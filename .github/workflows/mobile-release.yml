@@ -291,6 +291,11 @@ jobs:
             fi
           done
 
+      - name: Set up Rust
+        run: |
+          rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android x86_64-linux-android
+          cargo install cargo-ndk --locked
+
       - name: Build full release APKs
         run: ./gradlew :androidApp:assembleFullRelease -Pnuvio.app.versionName="${RELEASE_VERSION}" -Pnuvio.android.abis="${RELEASE_ABI}" --stacktrace
 
@@ -405,6 +410,7 @@ jobs:
           path: build/ios-ipa/*.ipa
           if-no-files-found: error
 
+  # Creates the release with the APKs as soon as Android succeeds — does not wait for iOS.
   release:
     name: Create ${{ inputs.mode }} release
     # always() lets the release go ahead when one platform was skipped by the target choice.
@@ -417,7 +423,6 @@ jobs:
     needs:
       - prepare
       - android
-      - ios
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -429,17 +434,24 @@ jobs:
       RELEASE_BRANCH: ${{ github.ref_name }}
 
     steps:
-      - name: Download release artifacts
+      - name: Download release notes
         uses: actions/download-artifact@v8
         with:
+          name: release-notes
+          path: release-assets
+
+      - name: Download Android artifacts
+        uses: actions/download-artifact@v8
+        with:
+          pattern: nuvio-*-android-full-release
           path: release-assets
           merge-multiple: true
 
       - name: Create GitHub release
         run: |
-          mapfile -t release_files < <(find release-assets -maxdepth 1 -type f \( -name '*.apk' -o -name '*.ipa' \) -print | sort)
+          mapfile -t release_files < <(find release-assets -maxdepth 1 -type f -name '*.apk' -print | sort)
           if (( ${#release_files[@]} == 0 )); then
-            echo "No release packages were produced." >&2
+            echo "No Android packages were produced." >&2
             exit 1
           fi
 

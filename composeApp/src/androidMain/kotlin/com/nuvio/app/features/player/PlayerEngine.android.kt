@@ -9,6 +9,7 @@ import android.util.Log
 import android.util.TypedValue
 import android.graphics.RectF
 import android.os.Build
+import android.os.Handler
 import android.os.SystemClock
 import android.view.View
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
@@ -62,12 +63,14 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.ForwardingRenderer
 import androidx.media3.exoplayer.Renderer
 import androidx.media3.exoplayer.analytics.AnalyticsListener
+import androidx.media3.exoplayer.mediacodec.MediaCodecSelector
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.source.LoadEventInfo
 import androidx.media3.exoplayer.source.MediaLoadData
 import androidx.media3.exoplayer.source.MergingMediaSource
 import androidx.media3.exoplayer.text.TextOutput
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
+import androidx.media3.exoplayer.video.VideoRendererEventListener
 import androidx.media3.extractor.DefaultExtractorsFactory
 import androidx.media3.extractor.ts.DefaultTsPayloadReaderFactory
 import androidx.media3.extractor.ts.TsExtractor
@@ -79,9 +82,10 @@ import com.nuvio.app.features.autosync.AutoSyncExtractorsFactory
 import com.nuvio.app.features.autosync.AutoSyncPreferencesRepository
 import com.nuvio.app.features.autosync.LIBMPV_AUTOSYNC_FILE_PREFIX
 import com.nuvio.app.features.autosync.rememberAutoSyncCoordinator
-import com.nuvio.app.features.autosync.rememberLibmpvAutoSyncCoordinator
 import com.nuvio.app.features.player.aiostreams.AiostreamsAss
 import com.nuvio.app.features.player.aiostreams.AiostreamsAssEngine
+import com.nuvio.app.features.player.swdecoder.SoftwareVideoRenderer
+import com.nuvio.app.features.autosync.rememberLibmpvAutoSyncCoordinator
 import com.nuvio.app.R
 import com.nuvio.app.core.diagnostics.PlaybackDiagnostics
 import com.nuvio.app.core.logging.InAppLogger
@@ -601,6 +605,7 @@ private fun ExoPlayerSurface(
 
     LaunchedEffect(exoPlayer, playerSourceKey) {
         if (chaptersProbeDone || useYoutubeChunkedPlayback) return@LaunchedEffect
+        if (!PlayerSettingsRepository.uiState.value.androidExoChaptersEnabled) return@LaunchedEffect
         if (!isProgressivePlaybackSource(sourceUrl, sanitizedSourceResponseHeaders, normalizedStreamType)) {
             return@LaunchedEffect
         }
@@ -1034,8 +1039,6 @@ private fun ExoPlayerSurface(
         dispatchExoPlayerSnapshot()
     }
 
-    val latestChapterSourceUrl = rememberUpdatedState(sourceUrl)
-    val latestChapterSourceHeaders = rememberUpdatedState(sanitizedSourceHeaders)
     LaunchedEffect(exoPlayer) {
         onControllerReady(
             autoSyncCoordinator.wrap(object : PlayerEngineController { // AutoSync hook
@@ -1052,11 +1055,9 @@ private fun ExoPlayerSurface(
                     exoPlayer.play()
                 }
 
-                // Media3's Matroska extractor skips chapters; read them from the file, if allowed.
-                override suspend fun getChapters(): List<PlayerChapter> {
-                    if (!PlayerSettingsRepository.uiState.value.androidExoChaptersEnabled) return emptyList()
-                    return MatroskaChapterLoader.load(latestChapterSourceUrl.value, latestChapterSourceHeaders.value)
-                }
+                // Fork: ExoPlayer chapters come from PlayerChapterReader (MKV + MP4) through the
+                // playback snapshot, gated by the upstream "Show Chapters" toggle; see the probe
+                // in ExoPlayerSurface. Upstream's MatroskaChapterLoader is not used.
 
                 override fun pause() {
                     InAppLogger.debug("ExoPlayer/Android", "control pause positionMs=${exoPlayer.currentPosition.coerceAtLeast(0L)}")
@@ -3618,6 +3619,37 @@ private class SubtitleOffsetRenderersFactory(
             .setAudioProcessors(arrayOf(volumeBoostAudioProcessor))
             .build()
         return if (audioPassthroughEnabled) sink else PcmOnlyAudioSink(sink)
+    }
+
+    override fun buildVideoRenderers(
+        context: Context,
+        extensionRendererMode: Int,
+        mediaCodecSelector: MediaCodecSelector,
+        enableDecoderFallback: Boolean,
+        eventHandler: Handler,
+        eventListener: VideoRendererEventListener,
+        allowedVideoJoiningTimeMs: Long,
+        out: ArrayList<Renderer>,
+    ) {
+        super.buildVideoRenderers(
+            context,
+            extensionRendererMode,
+            mediaCodecSelector,
+            enableDecoderFallback,
+            eventHandler,
+            eventListener,
+            allowedVideoJoiningTimeMs,
+            out,
+        )
+        if (extensionRendererMode == EXTENSION_RENDERER_MODE_OFF) return
+        out.add(
+            SoftwareVideoRenderer(
+                allowedVideoJoiningTimeMs,
+                eventHandler,
+                eventListener,
+                MAX_DROPPED_VIDEO_FRAME_COUNT_TO_NOTIFY,
+            ),
+        )
     }
 
     override fun buildTextRenderers(

@@ -12,8 +12,11 @@ import coil3.request.CachePolicy
 import coil3.request.crossfade
 import coil3.svg.SvgDecoder
 import com.nuvio.app.core.diagnostics.AppDiagnostics
-import com.nuvio.app.core.network.DnsOverHttpsSettingsStorage
+import com.nuvio.app.core.network.DnsPlatform
+import com.nuvio.app.core.network.SharedOkHttpClient
 import com.nuvio.app.core.poster.CustomPosterFallbackInterceptor
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.okhttp.OkHttp
 
 /**
  * Custom Application class that implements [SingletonImageLoader.Factory] to guarantee
@@ -28,7 +31,7 @@ class NuvioApplication : Application(), SingletonImageLoader.Factory {
         // First, so a crash anywhere after this point is saved for "Export diagnostics".
         AppDiagnostics.initialize(this)
         // Before any request, in every process, so lookups never resolve before the DNS setting loads.
-        DnsOverHttpsSettingsStorage.initialize(this)
+        DnsPlatform.initialize(this)
     }
 
     override fun newImageLoader(context: android.content.Context): ImageLoader {
@@ -41,6 +44,9 @@ class NuvioApplication : Application(), SingletonImageLoader.Factory {
                 add(SvgDecoder.Factory())
                 add(
                     KtorNetworkFetcherFactory(
+                        httpClient = {
+                            HttpClient(OkHttp) { engine { preconfigured = SharedOkHttpClient.base } }
+                        },
                         cacheStrategy = { CacheControlCacheStrategy() },
                     ),
                 )
