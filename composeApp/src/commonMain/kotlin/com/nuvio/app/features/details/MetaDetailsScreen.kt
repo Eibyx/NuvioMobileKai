@@ -34,6 +34,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyListState
@@ -98,6 +99,8 @@ import com.nuvio.app.core.network.NetworkStatusRepository
 import com.nuvio.app.core.i18n.localizedSeasonEpisodeCode
 import com.nuvio.app.core.ui.NuvioBackButton
 import com.nuvio.app.core.ui.isDarkAppearance
+import com.nuvio.app.core.ui.LocalVerticalBarPadding
+import com.nuvio.app.core.ui.verticalBarWidth
 import com.nuvio.app.core.ui.NuvioCardDepthSurface
 import com.nuvio.app.core.ui.NuvioPosterZoomActionOverlay
 import com.nuvio.app.core.ui.NuvioToastController
@@ -2113,6 +2116,7 @@ private fun DetailHeaderOverlay(
         NuvioBackButton(
             onClick = onBack,
             modifier = Modifier
+                .padding(LocalVerticalBarPadding.current)
                 .padding(
                     start = 12.dp,
                     top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 8.dp,
@@ -2128,16 +2132,18 @@ private fun DetailHeaderOverlay(
         )
     }
 
-    DetailFloatingHeader(
-        meta = meta,
-        isSaved = isSaved,
-        progress = headerProgress,
-        backgroundColor = backgroundColor,
-        onBack = onBack,
-        onToggleSaved = onToggleSaved,
-        modifier = Modifier.zIndex(2f),
-        glassBackdrop = glassBackdrop,
-    )
+    if (verticalBarWidth() == 0.dp) {
+        DetailFloatingHeader(
+            meta = meta,
+            isSaved = isSaved,
+            progress = headerProgress,
+            backgroundColor = backgroundColor,
+            onBack = onBack,
+            onToggleSaved = onToggleSaved,
+            modifier = Modifier.zIndex(2f),
+            glassBackdrop = glassBackdrop,
+        )
+    }
 }
 
 private const val RATING_SHEET_OPEN_DELAY_MS = 350L
@@ -2445,7 +2451,7 @@ private fun DetailSectionContainer(
                 ),
             contentAlignment = Alignment.Center,
         ) {
-            content()
+            CompositionLocalProvider(LocalVerticalBarPadding provides PaddingValues(), content)
         }
     }
 }

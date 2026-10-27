@@ -75,9 +75,12 @@ internal fun ExoPlayer.Builder.buildWithAssSupportCompat(
     )
     mediaSourceFactory.setSubtitleParserFactory(assSubtitleParserFactory)
 
+    // Wrap the renderers factory with AssRenderersFactory to add a
+    // NoSampleRenderer-based position fallback for tunneled playback.
+    val assRenderersFactory = AssRenderersFactory(assHandler, renderersFactory)
     val player = this
         .setMediaSourceFactory(mediaSourceFactory)
-        .setRenderersFactory(renderersFactory.withAssSupport(assHandler))
+        .setRenderersFactory(assRenderersFactory)
         .build()
 
     assHandlersByPlayer[player] = assHandler
