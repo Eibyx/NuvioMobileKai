@@ -1,5 +1,6 @@
 package com.nuvio.app.features.home.components
 
+import com.nuvio.app.core.ui.NuvioWindowSize
 import com.nuvio.app.core.ui.surfaceOverlay
 import com.nuvio.app.core.ui.contentOnSurface
 import com.nuvio.app.core.ui.isDarkAppearance
@@ -1273,7 +1274,7 @@ internal fun rememberContinueWatchingLayout(
             wideBadgeTextSize = 14.sp,
             posterBadgeTextSize = 12.sp,
         )
-        maxWidthDp >= 1024f -> ContinueWatchingLayout(
+        maxWidthDp >= NuvioWindowSize.ExpandedWidth.value -> ContinueWatchingLayout(
             itemGap = 18.dp,
             wideCardWidth = 350.dp,
             wideCardHeight = 140.dp,
@@ -1291,7 +1292,7 @@ internal fun rememberContinueWatchingLayout(
             wideBadgeTextSize = 13.sp,
             posterBadgeTextSize = 10.sp,
         )
-        maxWidthDp >= 768f -> ContinueWatchingLayout(
+        maxWidthDp >= NuvioWindowSize.MediumWidth.value -> ContinueWatchingLayout(
             itemGap = 16.dp,
             wideCardWidth = 320.dp,
             wideCardHeight = 130.dp,

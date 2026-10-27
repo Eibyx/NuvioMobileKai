@@ -91,7 +91,7 @@ internal fun PlayerScreenContent(args: PlayerScreenArgs) {
     ) {
         val density = LocalDensity.current
         val horizontalSafePadding = playerHorizontalSafePadding()
-        val metrics = remember(maxWidth) { PlayerLayoutMetrics.fromWidth(maxWidth) }
+        val metrics = remember(maxWidth, maxHeight) { PlayerLayoutMetrics.fromWindow(maxWidth, maxHeight) }
 
         runtime.scope = rememberCoroutineScope()
         runtime.hapticFeedback = LocalHapticFeedback.current

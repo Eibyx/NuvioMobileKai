@@ -1,5 +1,6 @@
 package com.nuvio.app.features.auth
 
+import com.nuvio.app.core.ui.NuvioWindowSize
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -301,7 +302,7 @@ fun AuthScreen(
             modifier = Modifier.fillMaxSize(),
         ) {
             val screenWidth = maxWidth
-            val largeScreen = screenWidth >= 900.dp
+            val largeScreen = screenWidth >= NuvioWindowSize.ExpandedWidth
             val compactLargeScreen = screenWidth < 1100.dp
 
             Box(

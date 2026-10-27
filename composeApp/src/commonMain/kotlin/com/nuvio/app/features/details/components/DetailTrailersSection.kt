@@ -1,5 +1,6 @@
 package com.nuvio.app.features.details.components
 
+import com.nuvio.app.core.ui.NuvioWindowSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -273,7 +274,7 @@ private fun trailerSectionSizing(maxWidthDp: Float, userCornerRadius: androidx.c
             metaFontSize = 14.sp,
         )
 
-        maxWidthDp >= 1024f -> TrailerSectionSizing(
+        maxWidthDp >= NuvioWindowSize.ExpandedWidth.value -> TrailerSectionSizing(
             cardWidth = 260.dp,
             cardSpacing = 14.dp,
             cardRadius = userCornerRadius,
@@ -285,7 +286,7 @@ private fun trailerSectionSizing(maxWidthDp: Float, userCornerRadius: androidx.c
             metaFontSize = 13.sp,
         )
 
-        maxWidthDp >= 768f -> TrailerSectionSizing(
+        maxWidthDp >= NuvioWindowSize.MediumWidth.value -> TrailerSectionSizing(
             cardWidth = 240.dp,
             cardSpacing = 12.dp,
             cardRadius = userCornerRadius,

@@ -1,5 +1,6 @@
 package com.nuvio.app.features.details
 
+import com.nuvio.app.core.ui.NuvioWindowSize
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.text.style.TextAlign
@@ -1202,8 +1203,9 @@ fun MetaDetailsScreen(
 
                 BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
                     val colorScheme = MaterialTheme.colorScheme
-                    val useTabletLayout = minOf(maxWidth, maxHeight) >= 600.dp
-                    val isTablet = useTabletLayout || maxWidth >= 720.dp
+                    val windowSize = NuvioWindowSize(maxWidth, maxHeight)
+                    val useTabletLayout = windowSize.isLargeScreen
+                    val isTablet = windowSize.isTablet
                     val tabletViewportHeight = maxHeight
                     val isTabletLandscape = maxWidth > maxHeight
                     val contentHorizontalPadding = if (isTablet) 32.dp else 18.dp
@@ -2743,7 +2745,7 @@ private fun TabbedSectionGroup(
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-            val titleSize = if (maxWidth >= 720.dp) 22.sp else 20.sp
+            val titleSize = if (maxWidth >= NuvioWindowSize.MediumWidth) 22.sp else 20.sp
             val headerStyle = MaterialTheme.typography.titleLarge.copy(
                 fontSize = titleSize,
                 fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,

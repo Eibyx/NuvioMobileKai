@@ -1,7 +1,7 @@
 package com.nuvio.app.features.library
 
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalWindowInfo
+import com.nuvio.app.core.ui.NuvioWindowSize
+import com.nuvio.app.core.ui.rememberNuvioWindowSize
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.togetherWith
@@ -530,14 +530,12 @@ fun LibraryScreen(
         }
 
         BoxWithConstraints(modifier = Modifier.weight(1f)) {
-            val windowSize = LocalWindowInfo.current.containerSize
-            val density = LocalDensity.current
-            val windowShortSide = with(density) { minOf(windowSize.width, windowSize.height).toDp() }
+            val isLargeScreen = rememberNuvioWindowSize().isLargeScreen
             val isLandscape = maxWidth > maxHeight
-            val gridColumns = remember(isLandscape, windowShortSide) {
+            val gridColumns = remember(isLandscape, isLargeScreen) {
                 libraryGridColumnCount(
                     isLandscape = isLandscape,
-                    isTablet = windowShortSide >= 600.dp,
+                    isTablet = isLargeScreen,
                 )
             }
 
@@ -1585,7 +1583,7 @@ private fun LibraryReleaseCalendarPanel(
                 )
                 .padding(start = 16.dp, top = 16.dp, end = 16.dp),
         ) {
-            val useHorizontalLayout = maxWidth >= 600.dp || maxWidth > maxHeight
+            val useHorizontalLayout = NuvioWindowSize(maxWidth, maxHeight).let { it.isTablet || it.isLandscape }
             val panelHeight = if (useHorizontalLayout) {
                 minOf(maxHeight, 500.dp)
             } else {

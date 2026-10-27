@@ -1,5 +1,6 @@
 package com.nuvio.app.features.details.components
 
+import com.nuvio.app.core.ui.NuvioWindowSize
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
@@ -220,14 +221,14 @@ private fun castSectionSizing(maxWidthDp: Float): CastSectionSizing =
             nameLabelSize = 16.sp,
             subLabelSize = 14.sp,
         )
-        maxWidthDp >= 840f -> CastSectionSizing(
+        maxWidthDp >= NuvioWindowSize.ExpandedWidth.value -> CastSectionSizing(
             avatarSize = 90.dp,
             itemWidth = 102.dp,
             avatarGap = 18.dp,
             nameLabelSize = 15.sp,
             subLabelSize = 13.sp,
         )
-        maxWidthDp >= 600f -> CastSectionSizing(
+        maxWidthDp >= NuvioWindowSize.MediumWidth.value -> CastSectionSizing(
             avatarSize = 85.dp,
             itemWidth = 98.dp,
             avatarGap = 16.dp,

@@ -1,5 +1,6 @@
 package com.nuvio.app.features.home.components
 
+import com.nuvio.app.core.ui.NuvioWindowSize
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.animateContentSize
@@ -969,7 +970,7 @@ internal fun homeHeroLayout(
 ): HomeHeroLayout {
     val isLandscapeViewport = viewportHeightDp?.let { maxWidthDp > it } == true
     val shortestViewportSideDp = viewportHeightDp?.let { minOf(maxWidthDp, it) } ?: maxWidthDp
-    val shouldBoostTabletLandscapeHero = isLandscapeViewport && shortestViewportSideDp >= 600f
+    val shouldBoostTabletLandscapeHero = isLandscapeViewport && shortestViewportSideDp >= NuvioWindowSize.MediumWidth.value
 
     return when {
         maxWidthDp >= 1200f -> HomeHeroLayout(
@@ -985,7 +986,7 @@ internal fun homeHeroLayout(
             bottomFadeHeight = 190.dp,
             logoWidthFraction = 0.58f,
         )
-        maxWidthDp >= 840f -> HomeHeroLayout(
+        maxWidthDp >= NuvioWindowSize.ExpandedWidth.value -> HomeHeroLayout(
             isTablet = true,
             heroHeight = tabletHeroHeight(
                 baseHeight = (maxWidthDp * 0.46f).dp.coerceIn(340.dp, 420.dp),
@@ -998,7 +999,7 @@ internal fun homeHeroLayout(
             bottomFadeHeight = 180.dp,
             logoWidthFraction = 0.56f,
         )
-        maxWidthDp >= 600f -> HomeHeroLayout(
+        maxWidthDp >= NuvioWindowSize.MediumWidth.value -> HomeHeroLayout(
             isTablet = true,
             heroHeight = tabletHeroHeight(
                 baseHeight = (maxWidthDp * 0.58f).dp.coerceIn(320.dp, 380.dp),

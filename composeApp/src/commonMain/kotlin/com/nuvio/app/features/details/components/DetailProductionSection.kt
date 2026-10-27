@@ -1,5 +1,6 @@
 package com.nuvio.app.features.details.components
 
+import com.nuvio.app.core.ui.NuvioWindowSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -70,18 +71,18 @@ fun DetailProductionSection(
     ) {
         BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
             val chipHeight = when {
-                maxWidth >= 1024.dp -> 44.dp
-                maxWidth >= 720.dp -> 40.dp
+                maxWidth >= NuvioWindowSize.ExpandedWidth -> 44.dp
+                maxWidth >= NuvioWindowSize.MediumWidth -> 40.dp
                 else -> 36.dp
             }
             val logoWidth = when {
-                maxWidth >= 1024.dp -> 72.dp
-                maxWidth >= 720.dp -> 68.dp
+                maxWidth >= NuvioWindowSize.ExpandedWidth -> 72.dp
+                maxWidth >= NuvioWindowSize.MediumWidth -> 68.dp
                 else -> 64.dp
             }
             val logoHeight = when {
-                maxWidth >= 1024.dp -> 26.dp
-                maxWidth >= 720.dp -> 24.dp
+                maxWidth >= NuvioWindowSize.ExpandedWidth -> 26.dp
+                maxWidth >= NuvioWindowSize.MediumWidth -> 24.dp
                 else -> 22.dp
             }
 

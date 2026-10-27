@@ -1,5 +1,6 @@
 package com.nuvio.app.features.home.components
 
+import com.nuvio.app.core.ui.NuvioWindowSize
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -41,7 +42,7 @@ internal fun posterGridColumnCountForWidth(screenWidth: Dp): Int =
         screenWidth >= 1400.dp -> 7
         screenWidth >= 1200.dp -> 6
         screenWidth >= 1000.dp -> 5
-        screenWidth >= 840.dp -> 4
+        screenWidth >= NuvioWindowSize.ExpandedWidth -> 4
         else -> 3
     }
 

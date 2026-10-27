@@ -1,5 +1,6 @@
 package com.nuvio.app
 
+import com.nuvio.app.core.ui.NuvioWindowSize
 import androidx.compose.runtime.collectAsState
 import com.nuvio.app.core.ui.NativeTabBridge
 import androidx.compose.foundation.layout.Box
@@ -82,7 +83,7 @@ internal fun MainTabsDestination(
     PlatformBackHandler(enabled = true, onBack = onBack)
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-        val isTabletLayout = useTabletFloatingTabBar || maxWidth >= 768.dp
+        val isTabletLayout = useTabletFloatingTabBar || NuvioWindowSize(maxWidth, maxHeight).isTablet
         val nativeActiveTab by NativeTabBridge.activeTab.collectAsState()
         val highlightedTab = if (useNativeNavigation) nativeActiveTab.toAppScreenTab() else selectedTab
         val tabActions = remember(actions, isTabletLayout) { actions(isTabletLayout) }

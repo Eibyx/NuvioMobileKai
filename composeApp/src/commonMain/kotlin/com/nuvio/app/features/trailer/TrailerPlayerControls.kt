@@ -72,7 +72,7 @@ internal fun TrailerPlayerControls(
             } else Modifier,
         ),
     ) {
-        val metrics = PlayerLayoutMetrics.fromWidth(maxWidth)
+        val metrics = PlayerLayoutMetrics.fromWindow(maxWidth, maxHeight)
         val horizontalPadding = if (fullscreen) {
             playerHorizontalSafePadding() + metrics.horizontalPadding
         } else {

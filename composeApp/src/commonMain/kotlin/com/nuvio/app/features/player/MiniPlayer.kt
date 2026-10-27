@@ -1,5 +1,6 @@
 package com.nuvio.app.features.player
 
+import com.nuvio.app.core.ui.NuvioWindowSize
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -221,7 +222,7 @@ private fun MiniPlayerFrame(
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
         val containerWidthPx = constraints.maxWidth.toFloat()
         val containerHeightPx = constraints.maxHeight.toFloat()
-        val cardWidth = if (maxWidth >= 600.dp) 320.dp else maxWidth * 0.58f
+        val cardWidth = if (maxWidth >= NuvioWindowSize.MediumWidth) 320.dp else maxWidth * 0.58f
         val videoHeight = cardWidth * 9f / 16f
         val cardHeight = videoHeight + MiniPlayerProgressHeight + MiniPlayerInfoHeight
         val cardWidthPx = with(density) { cardWidth.toPx() }

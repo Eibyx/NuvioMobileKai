@@ -1,5 +1,6 @@
 package com.nuvio.app.features.player
 
+import com.nuvio.app.core.ui.NuvioWindowSize
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -92,7 +93,7 @@ internal fun OpeningOverlay(
     ) {
         val logoWidth = minOf(320.dp, maxWidth - 48.dp)
         val logoHeight = minOf(180.dp, maxHeight * 0.4f)
-        val titleFontSize = if (maxWidth < 600.dp) 30.sp else 42.sp
+        val titleFontSize = if (maxWidth < NuvioWindowSize.MediumWidth) 30.sp else 42.sp
         if (artwork != null) {
             AsyncImage(
                 model = artwork,

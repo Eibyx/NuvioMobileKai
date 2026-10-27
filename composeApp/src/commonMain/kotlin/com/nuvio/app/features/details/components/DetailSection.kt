@@ -1,5 +1,6 @@
 package com.nuvio.app.features.details.components
 
+import com.nuvio.app.core.ui.NuvioWindowSize
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -38,7 +39,7 @@ fun DetailSectionTitle(
 ) {
     val titleModifier = if (fullWidth) modifier.fillMaxWidth() else modifier
     BoxWithConstraints(modifier = titleModifier) {
-        val titleSize = if (maxWidth >= 720.dp) 22.sp else 20.sp
+        val titleSize = if (maxWidth >= NuvioWindowSize.MediumWidth) 22.sp else 20.sp
         Text(
             text = title,
             style = MaterialTheme.typography.titleLarge.copy(

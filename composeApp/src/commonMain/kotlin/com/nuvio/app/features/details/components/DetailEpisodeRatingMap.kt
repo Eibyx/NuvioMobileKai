@@ -1,5 +1,6 @@
 package com.nuvio.app.features.details.components
 
+import com.nuvio.app.core.ui.NuvioWindowSize
 import com.nuvio.app.core.ui.readableOnBackground
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -258,7 +259,7 @@ fun DetailEpisodeRatingMap(
 
             BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
                 val gap = 4.dp
-                val targetCell = if (maxWidth >= 720.dp) 46.dp else 36.dp
+                val targetCell = if (maxWidth >= NuvioWindowSize.MediumWidth) 46.dp else 36.dp
                 val columns = floor(((maxWidth + gap) / (targetCell + gap)).toDouble())
                     .toInt()
                     .coerceIn(5, 25)

@@ -1,5 +1,6 @@
 package com.nuvio.app
 
+import com.nuvio.app.core.ui.NuvioWindowSize
 import com.nuvio.app.navigation.PersonDetailRoute
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
@@ -2034,7 +2035,7 @@ internal fun MainAppContent(
             if (settingsRouteBarVisible) {
                 BoxWithConstraints(Modifier.fillMaxSize()) {
                     SettingsRouteNavigationBar(
-                        isTabletLayout = useTabletFloatingTabBar || maxWidth >= 768.dp,
+                        isTabletLayout = useTabletFloatingTabBar || NuvioWindowSize(maxWidth, maxHeight).isTablet,
                         showLiveTv = showLiveTvInNavigation,
                         backdrop = settingsRouteBarBackdrop,
                         onTabSelected = ::selectTabFromSettingsRoute,

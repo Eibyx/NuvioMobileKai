@@ -1,5 +1,8 @@
 package com.nuvio.app.features.player
 
+import com.nuvio.app.core.ui.NuvioHeightClass
+import com.nuvio.app.core.ui.NuvioWidthClass
+import com.nuvio.app.core.ui.NuvioWindowSize
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.add
@@ -44,6 +47,20 @@ internal data class PlayerLayoutMetrics(
     val playIconSize: Dp,
 ) {
     companion object {
+        /**
+         * By the window's size class: phones held sideways (compact height) and medium widths get
+         * the phone-landscape controls whatever their width, tablets the larger ones. A phone at a
+         * high DPI (325 dp) or set to a smallest width of 600 lands in the same tier everywhere.
+         */
+        fun fromWindow(width: Dp, height: Dp): PlayerLayoutMetrics {
+            val size = NuvioWindowSize(width, height)
+            return when {
+                size.widthClass == NuvioWidthClass.Compact -> fromWidth(width)
+                size.isExpanded && size.heightClass != NuvioHeightClass.Compact -> fromWidth(maxOf(width, 1024.dp))
+                else -> fromWidth(768.dp)
+            }
+        }
+
         fun fromWidth(width: Dp): PlayerLayoutMetrics =
             when {
                 width >= 1440.dp -> PlayerLayoutMetrics(

@@ -1,5 +1,6 @@
 package com.nuvio.app.features.details.components
 
+import com.nuvio.app.core.ui.NuvioWindowSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -151,7 +152,7 @@ fun DetailCommentsSection(
 @Composable
 private fun CommentsHeader() {
     BoxWithConstraints {
-        val isTablet = maxWidth >= 720.dp
+        val isTablet = maxWidth >= NuvioWindowSize.MediumWidth
         val titleSize = if (isTablet) 22.sp else 20.sp
 
         Text(
@@ -180,7 +181,7 @@ private fun CommentCard(
     }
 
     BoxWithConstraints {
-        val isTablet = maxWidth >= 720.dp
+        val isTablet = maxWidth >= NuvioWindowSize.MediumWidth
         val cardWidth = if (isTablet) 340.dp else 280.dp
         val cardHeight = if (isTablet) 210.dp else 190.dp
 
@@ -269,7 +270,7 @@ private fun CommentChip(text: String) {
 @Composable
 private fun LoadingCommentCard() {
     BoxWithConstraints {
-        val isTablet = maxWidth >= 720.dp
+        val isTablet = maxWidth >= NuvioWindowSize.MediumWidth
         val cardWidth = if (isTablet) 340.dp else 280.dp
         val cardHeight = if (isTablet) 210.dp else 190.dp
 

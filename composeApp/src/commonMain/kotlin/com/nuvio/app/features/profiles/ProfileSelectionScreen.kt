@@ -1,5 +1,6 @@
 package com.nuvio.app.features.profiles
 
+import com.nuvio.app.core.ui.NuvioWindowSize
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
@@ -188,7 +189,7 @@ fun ProfileSelectionScreen(
         modifier = modifier
             .fillMaxSize(),
     ) {
-        val isTabletLayout = maxWidth >= 768.dp
+        val isTabletLayout = NuvioWindowSize(maxWidth, maxHeight).isTablet
         ProfileBackgroundBackdrop(
             profile = backgroundProfile,
             modifier = Modifier.fillMaxSize(),

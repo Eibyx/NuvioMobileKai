@@ -1,5 +1,6 @@
 package com.nuvio.app.features.details.components
 
+import com.nuvio.app.core.ui.NuvioWindowSize
 import com.nuvio.app.core.ui.surfaceOverlay
 import com.nuvio.app.core.ui.readableOnBackground
 import androidx.compose.animation.AnimatedContent
@@ -1178,7 +1179,7 @@ private fun rememberEpisodeHorizontalCardMetrics(maxWidthDp: Float): EpisodeHori
                 tmdbLogoSize = 14.dp,
             )
 
-            maxWidthDp >= 1000f -> EpisodeHorizontalCardMetrics(
+            maxWidthDp >= NuvioWindowSize.ExpandedWidth.value -> EpisodeHorizontalCardMetrics(
                 rowHorizontalPadding = 0.dp,
                 rowVerticalPadding = 0.dp,
                 itemSpacing = 16.dp,
@@ -1200,7 +1201,7 @@ private fun rememberEpisodeHorizontalCardMetrics(maxWidthDp: Float): EpisodeHori
                 tmdbLogoSize = 13.dp,
             )
 
-            maxWidthDp >= 760f -> EpisodeHorizontalCardMetrics(
+            maxWidthDp >= NuvioWindowSize.MediumWidth.value -> EpisodeHorizontalCardMetrics(
                 rowHorizontalPadding = 0.dp,
                 rowVerticalPadding = 0.dp,
                 itemSpacing = 14.dp,
@@ -1649,7 +1650,7 @@ private fun seriesContentSizing(maxWidthDp: Float): SeriesContentSizing =
             badgeHorizontalPadding = 8.dp,
             badgeVerticalPadding = 4.dp,
         )
-        maxWidthDp >= 1024f -> SeriesContentSizing(
+        maxWidthDp >= NuvioWindowSize.ExpandedWidth.value -> SeriesContentSizing(
             seasonHeaderSize = 26.sp,
             seasonToggleTextSize = 15.sp,
             seasonChipGap = 18.dp,
@@ -1678,7 +1679,7 @@ private fun seriesContentSizing(maxWidthDp: Float): SeriesContentSizing =
             badgeHorizontalPadding = 7.dp,
             badgeVerticalPadding = 3.dp,
         )
-        maxWidthDp >= 768f -> SeriesContentSizing(
+        maxWidthDp >= NuvioWindowSize.MediumWidth.value -> SeriesContentSizing(
             seasonHeaderSize = 24.sp,
             seasonToggleTextSize = 14.sp,
             seasonChipGap = 16.dp,
