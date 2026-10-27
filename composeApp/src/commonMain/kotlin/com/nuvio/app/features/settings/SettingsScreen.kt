@@ -439,8 +439,6 @@ fun SettingsScreen(
                         mapDV7ToHevc = playerSettingsUiState.mapDV7ToHevc,
                         tunnelingEnabled = playerSettingsUiState.tunnelingEnabled,
                         useLibass = playerSettingsUiState.useLibass,
-                        libassRenderType = playerSettingsUiState.libassRenderType,
-                        libassRenderScale = playerSettingsUiState.libassRenderScale,
                         rememberLastProfileEnabled = profileSettingsState.rememberLastProfileEnabled,
                         selectedTheme = selectedTheme,
                         onThemeSelected = ThemeSettingsRepository::setTheme,
@@ -521,8 +519,6 @@ fun SettingsScreen(
                         mapDV7ToHevc = playerSettingsUiState.mapDV7ToHevc,
                         tunnelingEnabled = playerSettingsUiState.tunnelingEnabled,
                         useLibass = playerSettingsUiState.useLibass,
-                        libassRenderType = playerSettingsUiState.libassRenderType,
-                        libassRenderScale = playerSettingsUiState.libassRenderScale,
                         rememberLastProfileEnabled = profileSettingsState.rememberLastProfileEnabled,
                         selectedTheme = selectedTheme,
                         onThemeSelected = ThemeSettingsRepository::setTheme,
@@ -615,8 +611,6 @@ private fun MobileSettingsScreen(
     mapDV7ToHevc: Boolean,
     tunnelingEnabled: Boolean,
     useLibass: Boolean,
-    libassRenderType: String,
-    libassRenderScale: String,
     rememberLastProfileEnabled: Boolean,
     selectedTheme: AppTheme,
     onThemeSelected: (AppTheme) -> Unit,
@@ -862,8 +856,6 @@ private fun MobileSettingsScreen(
                     mapDV7ToHevc = mapDV7ToHevc,
                     tunnelingEnabled = tunnelingEnabled,
                     useLibass = useLibass,
-                    libassRenderType = libassRenderType,
-                    libassRenderScale = libassRenderScale,
                 )
                 SettingsPage.Streams -> streamsSettingsContent(
                     isTablet = false,
@@ -1074,8 +1066,6 @@ private fun TabletSettingsScreen(
     mapDV7ToHevc: Boolean,
     tunnelingEnabled: Boolean,
     useLibass: Boolean,
-    libassRenderType: String,
-    libassRenderScale: String,
     rememberLastProfileEnabled: Boolean,
     selectedTheme: AppTheme,
     onThemeSelected: (AppTheme) -> Unit,
@@ -1370,8 +1360,6 @@ private fun TabletSettingsScreen(
                         mapDV7ToHevc = mapDV7ToHevc,
                         tunnelingEnabled = tunnelingEnabled,
                         useLibass = useLibass,
-                        libassRenderType = libassRenderType,
-                    libassRenderScale = libassRenderScale,
                     )
                     SettingsPage.Streams -> streamsSettingsContent(
                         isTablet = true,

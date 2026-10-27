@@ -1094,8 +1094,8 @@
     <string name="settings_playback_duration_days">%1$d días</string>
     <string name="settings_playback_duration_hour_one">%1$d hora</string>
     <string name="settings_playback_duration_hours">%1$d horas</string>
-    <string name="settings_playback_enable_libass">Activar libass</string>
-    <string name="settings_playback_enable_libass_description">Usar libass para renderizar subtítulos ASS/SSA en lugar del renderizador predeterminado.</string>
+    <string name="settings_playback_enable_libass">Subtítulos ASS/SSA con libass</string>
+    <string name="settings_playback_enable_libass_description">Dibuja los subtítulos ASS/SSA en ExoPlayer con el libass que trae libmpv: estilos, posiciones, fuentes y efectos tal como los define el archivo. mpv usa siempre su propio libass.</string>
     <string name="settings_playback_external_player">Reproductor externo</string>
     <string name="settings_playback_external_player_app">Aplicación de reproductor externo</string>
     <string name="settings_playback_external_player_description_android">Abrir la reproducción con la app de vídeo predeterminada de Android o el selector del sistema.</string>

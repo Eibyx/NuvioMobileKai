@@ -217,7 +217,7 @@ android {
     }
 }
 
-// libmpv from mpvlibAndroid is built with a newer NDK than ass-kt and needs symbols only its own
+// libmpv from mpvlibAndroid is built with a newer NDK than the other native dependencies and needs symbols only its own
 // libc++_shared.so has. pickFirsts keeps whichever copy it meets first, so the app ships mpvlib's
 // copy itself: the app's own native libraries win over those of its dependencies.
 val mpvlibAar: Configuration by configurations.creating {

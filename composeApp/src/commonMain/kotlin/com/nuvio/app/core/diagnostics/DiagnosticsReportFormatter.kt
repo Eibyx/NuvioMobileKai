@@ -93,8 +93,7 @@ object DiagnosticsReportFormatter {
                 "off"
             },
         )
-        add("ASS subtitles (ExoPlayer libass)" to if (settings.useLibass) "on (${settings.libassRenderType})" else "off")
-        add("ASS subtitles (libmpv)" to settings.useLibmpvAss.onOff())
+        add("ASS subtitles (ExoPlayer, libmpv's libass)" to settings.useLibass.onOff())
         add("preferred audio" to settings.preferredAudioLanguage)
         add("preferred subtitles" to settings.preferredSubtitleLanguage)
         add("external player" to settings.externalPlayerEnabled.onOff())

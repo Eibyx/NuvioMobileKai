@@ -103,7 +103,8 @@ data class PlayerSettingsUiState(
     val preloadNextEpisodeSources: Boolean = false,
     val miniPlayerEnabled: Boolean = true,
     val privateViewingEnabled: Boolean = false,
-    val useLibmpvAss: Boolean = false,
+    /** ASS/SSA subtitles in ExoPlayer through libmpv's libass, the only ASS renderer there. */
+    val useLibass: Boolean = true,
     val iosVideoOutputPreset: IosVideoOutputPreset = IosVideoOutputPreset.NativeEdr,
     val iosToneMappingMode: IosToneMappingMode = IosToneMappingMode.Auto,
     val iosTargetPrimaries: IosTargetPrimaries = IosTargetPrimaries.Auto,
@@ -196,7 +197,7 @@ object PlayerSettingsRepository {
     private var preloadNextEpisodeSources = false
     private var miniPlayerEnabled = true
     private var privateViewingEnabled = false
-    private var useLibmpvAss = false
+    private var useLibass = true
     private var iosVideoOutputPreset = IosVideoOutputPreset.NativeEdr
     private var iosToneMappingMode = IosToneMappingMode.Auto
     private var iosTargetPrimaries = IosTargetPrimaries.Auto
@@ -294,7 +295,7 @@ object PlayerSettingsRepository {
         preloadNextEpisodeSources = false
         miniPlayerEnabled = true
         privateViewingEnabled = false
-        useLibmpvAss = false
+        useLibass = true
         iosVideoOutputPreset = IosVideoOutputPreset.NativeEdr
         iosToneMappingMode = IosToneMappingMode.Auto
         iosTargetPrimaries = IosTargetPrimaries.Auto
@@ -455,7 +456,8 @@ object PlayerSettingsRepository {
         preloadNextEpisodeSources = PlayerSettingsStorage.loadPreloadNextEpisodeSources() ?: false
         miniPlayerEnabled = PlayerSettingsStorage.loadMiniPlayerEnabled() ?: true
         privateViewingEnabled = PlayerSettingsStorage.loadPrivateViewingEnabled() ?: false
-        useLibmpvAss = PlayerSettingsStorage.loadUseLibmpvAss() ?: false
+        // One switch now: Kai's "libass from libmpv" switch, when it was on, carries over.
+        useLibass = PlayerSettingsStorage.loadUseLibmpvAss() == true || (PlayerSettingsStorage.loadUseLibass() ?: true)
         iosVideoOutputPreset = PlayerSettingsStorage.loadIosVideoOutputPreset()
             ?.let { runCatching { IosVideoOutputPreset.valueOf(it) }.getOrNull() }
             ?: IosVideoOutputPreset.NativeEdr
@@ -1086,22 +1088,8 @@ object PlayerSettingsRepository {
         useLibass = enabled
         publish()
         PlayerSettingsStorage.saveUseLibass(enabled)
-    }
-
-    fun setLibassRenderType(renderType: String) {
-        ensureLoaded()
-        if (libassRenderType == renderType) return
-        libassRenderType = renderType
-        publish()
-        PlayerSettingsStorage.saveLibassRenderType(renderType)
-    }
-
-    fun setUseLibmpvAss(enabled: Boolean) {
-        ensureLoaded()
-        if (useLibmpvAss == enabled) return
-        useLibmpvAss = enabled
-        publish()
-        PlayerSettingsStorage.saveUseLibmpvAss(enabled)
+        // The old second switch must not turn it back on at the next start.
+        PlayerSettingsStorage.saveUseLibmpvAss(false)
     }
 
     fun setIosVideoOutputPreset(preset: IosVideoOutputPreset) {
@@ -1342,8 +1330,6 @@ object PlayerSettingsRepository {
             miniPlayerEnabled = miniPlayerEnabled,
             privateViewingEnabled = privateViewingEnabled,
             useLibass = useLibass,
-            libassRenderType = libassRenderType,
-            useLibmpvAss = useLibmpvAss,
             iosVideoOutputPreset = iosVideoOutputPreset,
             iosToneMappingMode = iosToneMappingMode,
             iosTargetPrimaries = iosTargetPrimaries,

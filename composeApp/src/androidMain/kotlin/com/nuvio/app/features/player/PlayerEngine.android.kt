@@ -326,14 +326,12 @@ private fun ExoPlayerSurface(
     val normalizedStreamType = remember(streamType) {
         normalizeStreamType(streamType)
     }
-    val useLibmpvAss = playerSettings.useLibmpvAss && AiostreamsAss.isAvailable
-    val useLibass = playerSettings.useLibass && !useLibmpvAss
+    // ASS/SSA subtitles in ExoPlayer have one renderer: libass from libmpv (mpv keeps its own).
+    // Without it (switched off, or libmpv missing) ExoPlayer shows them as plain text.
+    val useLibmpvAss = playerSettings.useLibass && AiostreamsAss.isAvailable
     val aiostreamsAss = remember {
         if (useLibmpvAss) AiostreamsAssEngine(context, playerSettings.tunnelingEnabled) else null
     }
-    val libassRenderType = runCatching {
-        LibassRenderType.valueOf(playerSettings.libassRenderType)
-    }.getOrDefault(LibassRenderType.CUES)
     val playerSourceKey = listOf(
         sourceUrl,
         sourceAudioUrl.orEmpty(),
@@ -523,8 +521,8 @@ private fun ExoPlayerSurface(
         InAppLogger.info(
             "ExoPlayer/Android",
             "Initializing ExoPlayer decoderPriority=${effectiveDecoderPriority.decoderPriorityName()} " +
-                "decoderFallback=true tunneling=${playerSettings.tunnelingEnabled} libass=$useLibass " +
-                "libassRenderType=$libassRenderType mapDV7ToHevc=${playerSettings.mapDV7ToHevc}",
+                "decoderFallback=true tunneling=${playerSettings.tunnelingEnabled} libass=$useLibmpvAss " +
+                "mapDV7ToHevc=${playerSettings.mapDV7ToHevc}",
         )
 
         val playerBuilder = ExoPlayer.Builder(context)
@@ -532,36 +530,15 @@ private fun ExoPlayerSurface(
             .setTrackSelector(trackSelector)
             .setLoadControl(loadControl)
 
-        val player = if (useLibass) {
-            // Set render scale before building the player
-            val scaleValue = when (playerSettings.libassRenderScale) {
-                "THREE_QUARTER" -> 0.75f
-                "HALF" -> 0.5f
-                "THIRD" -> 0.33f
-                "QUARTER" -> 0.25f
-                else -> 1.0f
-            }
-            com.nuvio.tv.libass.media.AssHandler.setRenderScale(scaleValue)
-            playerBuilder.buildWithAssSupportCompat(
-                context = context,
-                renderType = libassRenderType.toAssRenderType(),
-                config = createLibassHandlerConfig(context),
-                dataSourceFactory = dataSourceFactory,
-                extractorsFactory = extractorsFactory,
-                renderersFactory = renderersFactory
-            )
-        } else {
-            val mediaSourceFactory = DefaultMediaSourceFactory(
-                dataSourceFactory,
-                extractorsFactory,
-            )
-            aiostreamsAss?.let { mediaSourceFactory.setSubtitleParserFactory(it.scripts()) }
-
-            playerBuilder
-                .setRenderersFactory(renderersFactory)
-                .setMediaSourceFactory(mediaSourceFactory)
-                .build()
-        }
+        val mediaSourceFactory = DefaultMediaSourceFactory(
+            dataSourceFactory,
+            extractorsFactory,
+        )
+        aiostreamsAss?.let { mediaSourceFactory.setSubtitleParserFactory(it.scripts()) }
+        val player = playerBuilder
+            .setRenderersFactory(renderersFactory)
+            .setMediaSourceFactory(mediaSourceFactory)
+            .build()
 
         player.applySubtitleTrackPreferences(
             preferredLanguage = playerSettings.preferredSubtitleLanguage,
@@ -693,7 +670,7 @@ private fun ExoPlayerSurface(
         sourceUrl = sourceUrl,
         sourceHeaders = sanitizedSourceHeaders,
         externalSubtitles = externalSubtitles,
-        useLibass = useLibass || useLibmpvAss,
+        useLibass = useLibmpvAss,
         preferredSubtitleLanguage = playerSettings.preferredSubtitleLanguage,
         onMimeTypeSelected = { selectedExternalSubtitleMimeType = it },
         onSubtitleDelayChanged = { subtitleDelayMs = it },
@@ -1015,7 +992,6 @@ private fun ExoPlayerSurface(
                 "ExoPlayer/Android",
                 "release positionMs=${exoPlayer.currentPosition.coerceAtLeast(0L)} durationMs=${exoPlayer.duration.coerceAtLeast(0L)}",
             )
-            playerViewRef?.releaseLibassOverlay()
             exoPlayer.release()
         }
     }
@@ -1229,13 +1205,13 @@ private fun ExoPlayerSurface(
                         }
                         return
                     }
-                    if (sidecarController.canAttachAddonSubtitleViaSidecar(url, useLibass)) {
+                    if (sidecarController.canAttachAddonSubtitleViaSidecar(url, useLibass = false)) {
                         Log.d(TAG, "setSubtitleUri: using buffer-preserving sidecar for url=${url.redactedForLogs()}")
                         val headers = externalSubtitles.firstOrNull { it.url == url }?.headers.orEmpty()
                         val attached = sidecarController.startSidecarAddonSubtitle(
                             url = url,
                             headers = headers,
-                            useLibass = useLibass,
+                            useLibass = false,
                         )
                         if (attached) {
                             exoPlayer.trackSelectionParameters = exoPlayer.trackSelectionParameters
@@ -1408,12 +1384,6 @@ private fun ExoPlayerSurface(
                     )
                     if (!inPip && size.width > 0 && size.height > 0) playerSizeOutsidePip = size
                 }
-                syncLibassOverlay(
-                    player = exoPlayer,
-                    enabled = useLibass,
-                    renderType = libassRenderType,
-                    subtitleDelayUsProvider = { latestSubtitleDelayMs.value.toLong() * 1_000L },
-                )
                 aiostreamsAss?.attach(this)
                 aiostreamsAss?.setStyle(currentSubtitleStyle)
                 applySubtitleStyle(currentSubtitleStyle, pipVideoHeightPx)
@@ -1426,12 +1396,6 @@ private fun ExoPlayerSurface(
             playerViewRef = playerView
             sidecarController.bindSubtitleView(playerView.subtitleView)
             syncPlayerViewKeepScreenOn()
-            playerView.syncLibassOverlay(
-                player = exoPlayer,
-                enabled = useLibass,
-                renderType = libassRenderType,
-                subtitleDelayUsProvider = { latestSubtitleDelayMs.value.toLong() * 1_000L },
-            )
             aiostreamsAss?.attach(playerView)
             aiostreamsAss?.setStyle(currentSubtitleStyle)
             playerView.applySubtitleStyle(currentSubtitleStyle, pipVideoHeightPx)
@@ -3127,78 +3091,6 @@ private fun PlayerResizeMode.toExoResizeMode(): Int =
         PlayerResizeMode.Fill -> AspectRatioFrameLayout.RESIZE_MODE_FILL
         PlayerResizeMode.Zoom -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
     }
-
-private fun PlayerView.syncLibassOverlay(
-    player: ExoPlayer,
-    enabled: Boolean,
-    renderType: LibassRenderType,
-    subtitleDelayUsProvider: () -> Long,
-) {
-    val containerId = if (renderType == LibassRenderType.OVERLAY_OPEN_GL) {
-        R.id.libass_overlay_container_gl
-    } else {
-        R.id.libass_overlay_container
-    }
-    val overlayContainer = findViewById<android.widget.FrameLayout>(containerId) ?: return
-    val needsOverlay = enabled
-    val boundPlayer = getTag(R.id.libass_overlay_bound_player) as? ExoPlayer
-    val hasOverlayChild = overlayContainer.hasAssOverlayChild()
-
-    if (!needsOverlay) {
-        if (hasOverlayChild) {
-            overlayContainer.removeAssOverlayChildren()
-        }
-        if (boundPlayer != null) {
-            boundPlayer.getAssHandlerCompat()?.videoFrameCallback = null
-            setTag(R.id.libass_overlay_bound_player, null)
-        }
-        return
-    }
-
-    val assHandler = player.getAssHandlerCompat() ?: return
-    if (boundPlayer === player && hasOverlayChild) {
-        return
-    }
-
-    overlayContainer.removeAssOverlayChildren()
-    val assSubtitleView = LibassOverlayView(
-        context = overlayContainer.context,
-        player = player,
-        assHandler = assHandler,
-        subtitleDelayUsProvider = subtitleDelayUsProvider,
-    )
-    overlayContainer.addView(
-        assSubtitleView,
-        android.widget.FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT)
-    )
-    setTag(R.id.libass_overlay_bound_player, player)
-}
-
-
-private fun android.widget.FrameLayout.hasAssOverlayChild(): Boolean {
-    for (index in 0 until childCount) {
-        if (getChildAt(index) is LibassOverlayView) {
-            return true
-        }
-    }
-    return false
-}
-
-private fun android.widget.FrameLayout.removeAssOverlayChildren() {
-    for (index in childCount - 1 downTo 0) {
-        if (getChildAt(index) is LibassOverlayView) {
-            removeViewAt(index)
-        }
-    }
-}
-
-private fun PlayerView.releaseLibassOverlay() {
-    findViewById<android.widget.FrameLayout>(R.id.libass_overlay_container)
-        ?.removeAssOverlayChildren()
-    findViewById<android.widget.FrameLayout>(R.id.libass_overlay_container_gl)
-        ?.removeAssOverlayChildren()
-    setTag(R.id.libass_overlay_bound_player, null)
-}
 
 private const val PIP_FALLBACK_SUBTITLE_SCALE = 0.4f
 

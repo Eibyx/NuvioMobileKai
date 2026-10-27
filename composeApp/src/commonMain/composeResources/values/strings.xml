@@ -1295,8 +1295,8 @@
     <string name="settings_playback_duration_days">%1$d days</string>
     <string name="settings_playback_duration_hour_one">%1$d hour</string>
     <string name="settings_playback_duration_hours">%1$d hours</string>
-    <string name="settings_playback_enable_libass">Use libass for ASS/SSA subtitles</string>
-    <string name="settings_playback_enable_libass_description">Experimental: advanced ASS/SSA rendering (styles, positioning, animations)</string>
+    <string name="settings_playback_enable_libass">ASS/SSA subtitles with libass</string>
+    <string name="settings_playback_enable_libass_description">Draws ASS/SSA subtitles in ExoPlayer with the libass inside libmpv: styles, positions, fonts and effects as the subtitle file sets them. mpv always uses its own libass.</string>
     <string name="settings_playback_enable_libmpv_ass">Use libmpv&apos;s libass for ASS/SSA subtitles</string>
     <string name="settings_playback_enable_libmpv_ass_description">Experimental: draws ASS/SSA with the libass bundled in libmpv on a frame-synced overlay, replacing ExoPlayer&apos;s ASS rendering</string>
     <string name="settings_playback_external_player">External Player</string>
