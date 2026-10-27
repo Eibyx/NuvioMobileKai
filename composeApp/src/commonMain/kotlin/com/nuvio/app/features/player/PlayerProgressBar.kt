@@ -46,6 +46,7 @@ import com.nuvio.app.features.player.seekpreview.SeekPreviewController
 import com.nuvio.app.features.player.seekpreview.SeekPreviewOverlay
 import kotlin.math.roundToLong
 import nuvio.composeapp.generated.resources.Res
+import nuvio.composeapp.generated.resources.compose_player_chapter_number
 import nuvio.composeapp.generated.resources.player_seek_position
 import org.jetbrains.compose.resources.stringResource
 
@@ -251,11 +252,19 @@ internal fun PlayerProgressBar(
                 )
             }
         }
+        val chapterIndex = PlayerChapters.indexAt(chapters, shown)
+        val chapterTitle = if (chapterIndex >= 0) {
+            chapters[chapterIndex].title?.takeIf { it.isNotBlank() }
+                ?: stringResource(Res.string.compose_player_chapter_number, chapterIndex + 1)
+        } else {
+            null
+        }
         SeekPreviewOverlay(
             controller = seekPreview,
             active = active && !pressedPreview,
             positionMs = shown,
             durationMs = duration,
+            chapterTitle = chapterTitle,
             modifier = Modifier.fillMaxSize(),
         )
     }

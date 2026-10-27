@@ -21,6 +21,10 @@ import com.nuvio.app.core.ui.NuvioTheme
 import com.nuvio.app.core.ui.themePalette
 import com.nuvio.app.features.player.PlayerChapter
 import com.nuvio.app.features.player.PlayerProgressBar
+import com.nuvio.app.features.player.seekpreview.SeekPreviewCard
+import com.nuvio.app.features.player.seekpreview.SeekPreviewFrame
+import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.graphics.asImageBitmap
 import org.junit.Rule
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -143,5 +147,39 @@ class PlayerProgressBarScreenshotTest {
         // 16 dp circle at a third of the bar (x = 120 dp): 6 dp above the centre is inside it.
         assertTrue(bitmap.at(120f, dyDp = -6f).isAccent())
         assertTrue(bitmap.at(140f, dyDp = -6f).isBackground())
+    }
+    @Test
+    fun seekPreviewCard() {
+        val scene = Bitmap.createBitmap(320, 180, Bitmap.Config.ARGB_8888).apply {
+            val canvas = android.graphics.Canvas(this)
+            val paint = android.graphics.Paint().apply {
+                shader = android.graphics.LinearGradient(0f, 0f, 320f, 180f, 0xFF3A7BD5.toInt(), 0xFFF2994A.toInt(), android.graphics.Shader.TileMode.CLAMP)
+            }
+            canvas.drawRect(0f, 0f, 320f, 180f, paint)
+        }.asImageBitmap()
+        compose.setContent {
+            CompositionLocalProvider(LocalInspectionMode provides true) {
+                NuvioTheme(appTheme = AppTheme.CRIMSON, appearance = AppearanceMode.DARK) {
+                    androidx.compose.foundation.layout.Column(
+                        Modifier.background(Color(0xFF202020)).padding(16.dp),
+                        verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(16.dp),
+                    ) {
+                        SeekPreviewCard(
+                            frame = SeekPreviewFrame(754_000L, scene),
+                            pictures = true,
+                            time = "12:34",
+                            chapterTitle = "Part A",
+                        )
+                        SeekPreviewCard(frame = null, pictures = true, time = "12:35", chapterTitle = null)
+                        SeekPreviewCard(frame = null, pictures = false, time = "12:36", chapterTitle = "Part A")
+                    }
+                }
+            }
+        }
+        compose.waitForIdle()
+        val bitmap = compose.onRoot().captureToImage().asAndroidBitmap()
+        File(outputDir, "06_seek_preview_card.png").outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
+        // 160 × 90 dp card at xhdpi, 16 dp padding: the scene shows in its upper part.
+        assertTrue(Color(bitmap.getPixel(32 + 40, 32 + 20)).let { it.blue > 0.4f || it.red > 0.4f })
     }
 }
