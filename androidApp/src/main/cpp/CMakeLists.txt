@@ -6,7 +6,8 @@ add_library(aiostreams_ass SHARED ass_surface.c)
 target_compile_options(aiostreams_ass PRIVATE -O3 -Wall)
 target_link_libraries(aiostreams_ass PRIVATE android dl log)
 
-# ffmpeg/ holds FFmpeg 8.0's public headers, as libmpv carries it; the libraries are loaded from libmpv's.
+# ffmpeg/ holds FFmpeg n9.0.2's public headers (avcodec 63, avutil 61, swscale 10), as mpvlib 1.1.3
+# carries it; the libraries are loaded from libmpv's at run time and sw_video.c refuses other majors.
 add_library(nuvio_swvideo SHARED sw_video.c)
 target_include_directories(nuvio_swvideo PRIVATE ffmpeg)
 target_compile_options(nuvio_swvideo PRIVATE -O3 -Wall)
