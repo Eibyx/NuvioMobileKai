@@ -114,6 +114,7 @@ import com.nuvio.app.features.home.HomeCatalogSection
 import com.nuvio.app.features.home.HomeCatalogSettingsRepository
 import com.nuvio.app.features.home.HomeRepository
 import com.nuvio.app.features.home.buildAddonCatalogRefreshSignature
+import com.nuvio.app.features.home.removeContinueWatchingCard
 import com.nuvio.app.features.home.components.HomeHeroTrailerPlaybackController
 import com.nuvio.app.features.home.components.shouldBlurContinueWatchingArtwork
 import com.nuvio.app.features.library.refreshLibraryReleaseScheduleIfStale
@@ -197,7 +198,6 @@ import com.nuvio.app.features.watchprogress.ResumePromptRepository
 import com.nuvio.app.features.watchprogress.WatchProgressRepository
 import com.nuvio.app.features.watchprogress.WatchProgressSourceCoordinator
 import com.nuvio.app.features.watchprogress.continueWatchingItemKey
-import com.nuvio.app.features.watchprogress.nextUpDismissKey
 import com.nuvio.app.features.watchprogress.toContinueWatchingItem
 import com.nuvio.app.navigation.*
 import com.nuvio.app.core.ui.glass.nuvioBackdropSource
@@ -1512,17 +1512,11 @@ internal fun MainAppContent(
 
         val onContinueWatchingRemove: (ContinueWatchingItem) -> Unit = { item ->
             continueWatchingDisintegrationRequests.arm(continueWatchingItemKey(item))
-            if (item.isNextUp) {
-                ContinueWatchingPreferencesRepository.addDismissedNextUpKey(
-                    nextUpDismissKey(
-                        item.parentMetaId,
-                        item.nextUpSeedSeasonNumber,
-                        item.nextUpSeedEpisodeNumber,
-                    ),
-                )
-            } else {
-                WatchProgressRepository.removeProgress(contentId = item.parentMetaId)
-            }
+            removeContinueWatchingCard(
+                item = item,
+                dismissNextUp = ContinueWatchingPreferencesRepository::addDismissedNextUpKey,
+                removeProgress = { contentId -> WatchProgressRepository.removeProgress(contentId = contentId) },
+            )
         }
 
         val onContinueWatchingLongPress: (ContinueWatchingItem) -> Unit = { item ->
