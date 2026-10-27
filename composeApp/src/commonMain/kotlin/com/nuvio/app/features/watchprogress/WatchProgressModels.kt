@@ -226,6 +226,17 @@ data class ContinueWatchingItem(
     val rawBackgroundUrl: String? = null,
     val shufflePlayback: Boolean = false,
     val isWatched: Boolean = false,
+    /** Cards of the same title under other ids, folded into this one. */
+    val duplicates: List<ContinueWatchingDuplicate> = emptyList(),
+)
+
+/** A Continue Watching card that was the same title as another under a different id. */
+data class ContinueWatchingDuplicate(
+    val parentMetaId: String,
+    val isNextUp: Boolean,
+    val nextUpSeedSeasonNumber: Int?,
+    val nextUpSeedEpisodeNumber: Int?,
+    val reason: String,
 )
 
 internal fun continueWatchingItemKey(item: ContinueWatchingItem): String {

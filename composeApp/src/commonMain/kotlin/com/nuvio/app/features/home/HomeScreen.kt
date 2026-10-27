@@ -78,6 +78,7 @@ import com.nuvio.app.features.watchprogress.ContinueWatchingEnrichmentCache
 import com.nuvio.app.features.watchprogress.CurrentDateProvider
 import com.nuvio.app.features.watchprogress.ContinueWatchingPreferencesRepository
 import com.nuvio.app.features.watchprogress.ContinueWatchingPreferencesUiState
+import com.nuvio.app.features.watchprogress.ContinueWatchingDuplicate
 import com.nuvio.app.features.watchprogress.ContinueWatchingItem
 import com.nuvio.app.features.watchprogress.ContinueWatchingSortMode
 import com.nuvio.app.features.watchprogress.isMalformedNextUpSeedContentId
@@ -172,6 +173,8 @@ fun HomeScreen(
     // What AniList says is watched, as the detail page uses it.
     val aniListWatchedKeys by AniListTracker.importer.keys.collectAsStateWithLifecycle()
     val aniListRewatch by AniListTracker.importer.resume.collectAsStateWithLifecycle()
+    // Ids learnt to be the same title (kitsu:…, tt…, tmdb:…), so one series is one card.
+    val identityGroups by ContinueWatchingIdentity.groups.collectAsStateWithLifecycle()
     val homeProgressEntries = remember(watchProgressUiState.entries, aniListWatchedKeys, aniListRewatch) {
         watchProgressUiState.entries.finishedByAniList(aniListWatchedKeys, aniListRewatch)
     }
@@ -257,6 +260,7 @@ fun HomeScreen(
         nextUpWatchedItems,
         progressProviderOwnsCompletedHistory,
         continueWatchingPreferences.upNextFromFurthestEpisode,
+        identityGroups,
     ) {
         buildHomeNextUpSeedCandidates(
             progressEntries = nextUpProgressSeedEntries,
@@ -269,7 +273,13 @@ fun HomeScreen(
                 contentId in watchProgressUiState.hiddenContentIds ||
                     WatchProgressRepository.isDroppedShow(contentId)
             },
-            canonicalSeedContentId = WatchProgressRepository::nextUpSeedContentId,
+            canonicalSeedContentId = { contentId ->
+                ContinueWatchingIdentity.canonical(
+                    type = "series",
+                    id = WatchProgressRepository.nextUpSeedContentId(contentId),
+                    groups = identityGroups,
+                )
+            },
         )
     }
 
@@ -553,6 +563,7 @@ fun HomeScreen(
         cwPosterPattern,
         aniListProjection,
         unknownContinueWatchingTitle,
+        identityGroups,
     ) {
         buildHomeContinueWatchingItems(
             visibleEntries = visibleContinueWatchingEntries,
@@ -564,9 +575,33 @@ fun HomeScreen(
             cloudLibraryUiState = cloudLibraryUiState,
             trackerMedia = { contentId -> TrackerMediaLookup.find(contentId, aniListProjection.projection) },
             unknownTitle = unknownContinueWatchingTitle,
+            seriesIdentity = { type, id ->
+                val providerId = WatchProgressRepository.nextUpSeedContentId(id)
+                ContinueWatchingIdentity.aliases(type, id, identityGroups) +
+                    ContinueWatchingIdentity.aliases(type, providerId, identityGroups)
+            },
         ).let { items ->
             items.withCustomPosterUrls(cwPosterPattern)
         }
+    }
+    // Learn the other ids of every title that can make a card: cached pages, ARM and TMDB.
+    val identityLookups = remember(allNextUpSeedCandidates, visibleContinueWatchingEntries, effectivNextUpItems) {
+        buildSet {
+            allNextUpSeedCandidates.forEach { add(it.content.type to it.content.id) }
+            visibleContinueWatchingEntries.forEach { add(it.parentMetaType to it.parentMetaId) }
+            effectivNextUpItems.values.forEach { (_, item) -> add(item.parentMetaType to item.parentMetaId) }
+        }.filter { (_, id) -> id.isNotBlank() }
+    }
+    LaunchedEffect(identityLookups) {
+        withContext(Dispatchers.Default) {
+            val permits = Semaphore(NEXT_UP_RESOLUTION_CONCURRENCY)
+            identityLookups.forEach { (type, id) ->
+                launch { permits.withPermit { ContinueWatchingIdentity.resolve(type, id) } }
+            }
+        }
+    }
+    LaunchedEffect(allContinueWatchingItems) {
+        ContinueWatchingIdentity.report(continueWatchingDiagnosticLines(allContinueWatchingItems))
     }
     val shuffleCandidates = remember(completedSeriesCandidates, continueWatchingPreferences.dismissedNextUpKeys) {
         completedSeriesCandidates.filter { candidate ->
@@ -1569,6 +1604,7 @@ private suspend fun resolveHomeNextUpCandidate(
     if (meta == null) {
         return HomeNextUpResolutionAttempt.transientFailure()
     }
+    ContinueWatchingIdentity.learn(contentId, meta)
 
     val resolvedProgressEntries = WatchProgressRepository.prepareNextUpProgressEntries(
         entries = watchProgressEntries,
@@ -1677,6 +1713,10 @@ internal fun buildHomeContinueWatchingItems(
     cloudLibraryUiState: CloudLibraryUiState? = null,
     trackerMedia: (String) -> TrackerMediaInfo? = { null },
     unknownTitle: String = "",
+    seriesIdentity: (type: String, id: String) -> Set<String> = { type, id ->
+        setOf(ContinueWatchingIdentity.key(type, id))
+    },
+    sameEpisodeByTitle: Boolean = true,
 ): List<ContinueWatchingItem> {
     val suppressedSeriesIds = nextUpSuppressedSeriesIds
         ?: visibleEntries
@@ -1715,18 +1755,14 @@ internal fun buildHomeContinueWatchingItems(
         )
     }
 
-    // Deduplicate by series/content id first (order-stable)
-    val seen = mutableSetOf<String>()
+    // One card per title: newest first, progress before next-up on a tie (order-stable).
     val deduplicated = candidates
         .sortedWith(
             compareByDescending<HomeContinueWatchingCandidate> { it.lastUpdatedEpochMs }
                 .thenByDescending { it.isProgressEntry },
         )
         .filter { candidate -> candidate.item.shouldDisplayInContinueWatching() }
-        .filter { candidate ->
-            val key = candidate.item.parentMetaId.ifBlank { candidate.item.videoId }
-            seen.add(key)
-        }
+        .foldSameTitle(seriesIdentity, sameEpisodeByTitle)
 
     return when (sortMode) {
         ContinueWatchingSortMode.DEFAULT,
@@ -1735,6 +1771,106 @@ internal fun buildHomeContinueWatchingItems(
         ContinueWatchingSortMode.STREAMING_STYLE -> applyStreamingStyleSort(deduplicated, todayIsoDate)
     }
 }
+
+/**
+ * Folds cards of one title into the first (newest) of them: the same id, ids linked as the same
+ * title ([seriesIdentity]: kitsu:…, tt…, tmdb:…), or — when no link is known — the same normalised
+ * title at the same season and episode. Folded cards under other ids are kept on the survivor, so
+ * hiding it hides them too.
+ */
+private fun List<HomeContinueWatchingCandidate>.foldSameTitle(
+    seriesIdentity: (type: String, id: String) -> Set<String>,
+    sameEpisodeByTitle: Boolean,
+): List<HomeContinueWatchingCandidate> {
+    val kept = mutableListOf<HomeContinueWatchingCandidate>()
+    val owners = mutableMapOf<String, Int>()
+    forEach { candidate ->
+        val item = candidate.item
+        val ownId = item.parentMetaId.ifBlank { item.videoId }
+        val idKeys = setOf("id|$ownId") + seriesIdentity(item.parentMetaType, ownId)
+        val titleKey = item.sameEpisodeTitleKey().takeIf { sameEpisodeByTitle }
+        val byId = idKeys.firstNotNullOfOrNull(owners::get)
+        // Same title and episode only counts across id systems (kitsu: next to tt…): two shows
+        // sharing a name in one catalogue are two shows.
+        val byTitle = titleKey?.let(owners::get)?.takeIf { index ->
+            idNamespace(kept[index].item.parentMetaId) != idNamespace(item.parentMetaId)
+        }
+        val owner = byId ?: byTitle
+        val index = if (owner == null) {
+            kept += candidate
+            kept.lastIndex
+        } else {
+            val survivor = kept[owner].item
+            if (survivor.parentMetaId != item.parentMetaId && item.parentMetaId.isNotBlank()) {
+                val reason = if (byId != null) "linked id" else "same title and episode"
+                kept[owner] = kept[owner].copy(
+                    item = survivor.copy(duplicates = survivor.duplicates + item.asDuplicate(reason) + item.duplicates),
+                )
+            }
+            owner
+        }
+        (idKeys + listOfNotNull(titleKey)).forEach { key -> owners.getOrPut(key) { index } }
+    }
+    return kept
+}
+
+private fun ContinueWatchingItem.asDuplicate(reason: String) = ContinueWatchingDuplicate(
+    parentMetaId = parentMetaId,
+    isNextUp = isNextUp,
+    nextUpSeedSeasonNumber = nextUpSeedSeasonNumber,
+    nextUpSeedEpisodeNumber = nextUpSeedEpisodeNumber,
+    reason = reason,
+)
+
+/** The catalogue an id belongs to: "imdb" for tt…, else what comes before the colon. */
+private fun idNamespace(id: String): String {
+    val trimmed = id.trim().lowercase()
+    if (trimmed.startsWith("tt") && trimmed.drop(2).takeWhile(Char::isDigit).isNotEmpty()) return "imdb"
+    return trimmed.substringBefore(':', missingDelimiterValue = "")
+}
+
+/** "title|<letters and digits of the title>|S|E" for an episode with a real title, else null. */
+private fun ContinueWatchingItem.sameEpisodeTitleKey(): String? {
+    if (!parentMetaType.isSeriesTypeForContinueWatching()) return null
+    val season = seasonNumber ?: return null
+    val episode = episodeNumber ?: return null
+    if (title.isBlank() || title.equals(parentMetaId, ignoreCase = true)) return null
+    val normalised = title.lowercase().filter(Char::isLetterOrDigit)
+    if (normalised.isEmpty()) return null
+    return "title|$normalised|$season|$episode"
+}
+
+/** Hides a card: its next-up is dismissed or its progress removed, and the same for its other ids. */
+internal fun removeContinueWatchingCard(
+    item: ContinueWatchingItem,
+    dismissNextUp: (String) -> Unit,
+    removeProgress: (String) -> Unit,
+) {
+    val all = listOf(item.asDuplicate("shown")) + item.duplicates
+    all.distinct().forEach { card ->
+        if (card.isNextUp) {
+            dismissNextUp(nextUpDismissKey(card.parentMetaId, card.nextUpSeedSeasonNumber, card.nextUpSeedEpisodeNumber))
+        } else {
+            removeProgress(card.parentMetaId)
+        }
+    }
+}
+
+/** One line per card for the diagnostics log: ids, kind and origin, no titles or addresses. */
+internal fun continueWatchingDiagnosticLines(items: List<ContinueWatchingItem>): List<String> =
+    items.mapIndexed { index, item ->
+        val origin = when {
+            !item.isNextUp -> "progress"
+            item.isNewSeasonRelease -> "new season"
+            item.isReleaseAlert -> "release alert"
+            else -> "next up"
+        }
+        val episode = if (item.seasonNumber != null && item.episodeNumber != null) " S${item.seasonNumber}E${item.episodeNumber}" else ""
+        val folded = item.duplicates.joinToString(prefix = " folded=[", postfix = "]") { duplicate ->
+            "${duplicate.parentMetaId} ${if (duplicate.isNextUp) "next up" else "progress"} (${duplicate.reason})"
+        }.takeIf { item.duplicates.isNotEmpty() }.orEmpty()
+        "#${index + 1} ${item.parentMetaType} ${item.parentMetaId}$episode $origin$folded"
+    }
 
 /**
  * Splits unaired next-up episodes into a dedicated row when [ContinueWatchingSortMode.SPLIT_UPCOMING]
