@@ -1,5 +1,6 @@
 package com.nuvio.app.features.streams
 
+import com.nuvio.app.core.ui.NuvioWindowSize
 import com.nuvio.app.core.ui.NuvioDarkSurface
 import com.nuvio.app.core.ui.isDarkAppearance
 import com.nuvio.app.core.ui.surfaceOverlay
@@ -317,7 +318,8 @@ fun StreamsScreen(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background),
     ) {
-        val isTabletLayout = maxWidth >= 768.dp
+        // Artwork beside the list only at an expanded width: at a medium one the list needs it all.
+        val isTabletLayout = NuvioWindowSize(maxWidth, maxHeight).isExpanded
 
         if (isTabletLayout) {
             TabletStreamsLayout(

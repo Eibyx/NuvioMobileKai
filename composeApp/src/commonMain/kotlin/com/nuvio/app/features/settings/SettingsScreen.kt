@@ -1,5 +1,6 @@
 package com.nuvio.app.features.settings
 
+import com.nuvio.app.core.ui.NuvioWindowSize
 import com.nuvio.app.features.details.FavoritePerson
 import com.nuvio.app.features.whatsnew.WhatsNewSettingsScreen
 import com.nuvio.app.navigation.LocalUseNativeNavigation
@@ -413,7 +414,8 @@ fun SettingsScreen(
 
         if (isSelectedTab || page == SettingsPage.Root) {
             pageStateHolder.SaveableStateProvider("content") {
-                if (maxWidth >= 768.dp) {
+                // Side-by-side list and page only at an expanded width; at a medium one the page alone.
+                if (NuvioWindowSize(maxWidth, maxHeight).isExpanded) {
                     TabletSettingsScreen(
                         page = page,
                         scrollToTopRequests = scrollToTopRequests,
