@@ -14,6 +14,7 @@ final class PlayerNowPlayingController {
         var positionMs: Int64 = 0
         var durationMs: Int64 = 0
         var playbackSpeed: Float = 1.0
+        var sampledAt: TimeInterval = ProcessInfo.processInfo.systemUptime
     }
 
     private struct RemoteCommandTarget {
@@ -24,15 +25,12 @@ final class PlayerNowPlayingController {
     private weak var owner: MPVPlayerViewController?
     private var metadata = Metadata()
     private var playbackState = PlaybackState()
+    private var publishedPlaybackState = PlaybackState()
     private var currentArtworkImage: UIImage?
     private var currentArtworkURL: String?
     private var artworkTask: URLSessionDataTask?
     private var remoteTargets: [RemoteCommandTarget] = []
     private let artworkCache = NSCache<NSString, UIImage>()
-    private var publishedState: PlaybackState?
-    private var publishedAt: TimeInterval = 0
-    private var hasPublishedInfo = false
-    private static let positionDriftToleranceMs: Double = 1_500
 
     init(owner: MPVPlayerViewController) {
         self.owner = owner
@@ -55,7 +53,6 @@ final class PlayerNowPlayingController {
         if metadata.title == normalizedTitle,
            metadata.subtitle == normalizedSubtitle,
            currentArtworkURL == normalizedArtworkUrl {
-            if !hasPublishedInfo { applyNowPlayingInfo() }
             return
         }
 
@@ -105,7 +102,8 @@ final class PlayerNowPlayingController {
         positionMs: Int64,
         durationMs: Int64,
         isPlaying: Bool,
-        playbackSpeed: Float
+        playbackSpeed: Float,
+        force: Bool = false
     ) {
         let nextState = PlaybackState(
             isPlaying: isPlaying,
@@ -113,24 +111,16 @@ final class PlayerNowPlayingController {
             durationMs: max(0, durationMs),
             playbackSpeed: playbackSpeed > 0 ? playbackSpeed : 1.0
         )
+        let elapsedMs = (nextState.sampledAt - publishedPlaybackState.sampledAt) * 1000
+        let expectedPositionMs = Double(publishedPlaybackState.positionMs) +
+            (publishedPlaybackState.isPlaying ? elapsedMs * Double(publishedPlaybackState.playbackSpeed) : 0)
+        let positionJumped = abs(Double(nextState.positionMs) - expectedPositionMs) >= 1_000
+        let shouldPublish = force || playbackState.isPlaying != nextState.isPlaying ||
+            playbackState.durationMs != nextState.durationMs ||
+            playbackState.playbackSpeed != nextState.playbackSpeed ||
+            positionJumped
         playbackState = nextState
-
-        guard let published = publishedState, hasPublishedInfo else {
-            applyNowPlayingInfo()
-            return
-        }
-
-        let stateChanged = published.isPlaying != nextState.isPlaying ||
-            published.durationMs != nextState.durationMs ||
-            published.playbackSpeed != nextState.playbackSpeed
-
-        // Where iOS currently believes playback is, based on what we last published.
-        let elapsedSincePublish = ProcessInfo.processInfo.systemUptime - publishedAt
-        let rate = published.isPlaying ? Double(published.playbackSpeed) : 0
-        let expectedPositionMs = Double(published.positionMs) + elapsedSincePublish * 1_000 * rate
-        let drifted = abs(Double(nextState.positionMs) - expectedPositionMs) > Self.positionDriftToleranceMs
-
-        guard stateChanged || drifted else { return }
+        guard shouldPublish else { return }
         applyNowPlayingInfo()
     }
 
@@ -141,8 +131,7 @@ final class PlayerNowPlayingController {
         currentArtworkURL = nil
         metadata = Metadata()
         playbackState = PlaybackState()
-        publishedState = nil
-        hasPublishedInfo = false
+        publishedPlaybackState = PlaybackState()
         DispatchQueue.main.async {
             MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
         }
@@ -155,9 +144,6 @@ final class PlayerNowPlayingController {
 
     private func applyNowPlayingInfo() {
         guard let title = metadata.title, !title.isEmpty else { return }
-        publishedState = playbackState
-        publishedAt = ProcessInfo.processInfo.systemUptime
-        hasPublishedInfo = true
 
         let buildInfo = {
             var info: [String: Any] = [:]
@@ -179,6 +165,8 @@ final class PlayerNowPlayingController {
             }
 
             MPNowPlayingInfoCenter.default().nowPlayingInfo = info
+            self.publishedPlaybackState = self.playbackState
+            self.publishedPlaybackState.sampledAt = ProcessInfo.processInfo.systemUptime
         }
 
         if Thread.isMainThread {

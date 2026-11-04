@@ -109,6 +109,7 @@ import kotlin.math.roundToInt
 import com.nuvio.app.core.ui.glass.ambientLiquidGlass
 import com.nuvio.app.core.ui.glass.detailCardGlass
 import com.nuvio.app.core.ui.glass.detailCardSecondaryText
+import com.nuvio.app.core.i18n.localizedEpisodeTitle
 
 private val log = Logger.withTag("SeriesContent")
 
@@ -1056,7 +1057,7 @@ private fun EpisodeHorizontalCard(
             )
 
             Text(
-                text = video.title,
+                text = localizedEpisodeTitle(video.title, video.episode) ?: video.title,
                 style = MaterialTheme.typography.titleMedium.copy(
                     fontSize = metrics.titleTextSize,
                     fontWeight = FontWeight.ExtraBold,
@@ -1423,8 +1424,9 @@ private fun EpisodeListCard(
     onLongPress: (() -> Unit)? = null,
 ) {
     val matchStyle = episodeMatchStyle()
-    val titleText = remember(video.title, highlightQuery, matchStyle) {
-        highlightEpisodeMatches(video.title, highlightQuery, matchStyle)
+    val localizedTitle = localizedEpisodeTitle(video.title, video.episode) ?: video.title
+    val titleText = remember(localizedTitle, highlightQuery, matchStyle) {
+        highlightEpisodeMatches(localizedTitle, highlightQuery, matchStyle)
     }
     val overviewText = remember(video.overview, highlightQuery, matchStyle) {
         video.overview?.let { highlightEpisodeMatches(it, highlightQuery, matchStyle) }
