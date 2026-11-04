@@ -9,6 +9,7 @@ enum class PlayerToolbarButton(val storageId: String) {
     SHADERS("shaders"),
     CHAPTERS("chapters"),
     AUDIO("audio"),
+    NIGHT_MODE("night_mode"),
     QUALITY("quality"),
     SOURCES("sources"),
     EPISODES("episodes"),
@@ -61,6 +62,7 @@ data class PlayerToolbarLayout(val entries: List<PlayerToolbarEntry>) {
                 PlayerToolbarButton.SUBTITLES,
                 PlayerToolbarButton.SHADERS,
                 PlayerToolbarButton.CHAPTERS,
+                PlayerToolbarButton.NIGHT_MODE,
             ).map { PlayerToolbarEntry(it, visible = true) } +
                 listOf(
                     PlayerToolbarButton.AUDIO,

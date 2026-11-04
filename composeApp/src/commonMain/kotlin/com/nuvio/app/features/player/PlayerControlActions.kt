@@ -34,6 +34,7 @@ import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.LockOpen
 import androidx.compose.material.icons.rounded.PictureInPictureAlt
+import androidx.compose.material.icons.rounded.NightsStay
 import androidx.compose.material.icons.rounded.StayCurrentLandscape
 import androidx.compose.material.icons.rounded.StayCurrentPortrait
 import androidx.compose.material.icons.rounded.SkipNext
@@ -184,6 +185,8 @@ internal fun PlayerControlActions(
     speedPickerVisible: Boolean = false,
     onSpeedSelected: (Float) -> Unit = {},
     onSpeedPickerDismiss: () -> Unit = {},
+    nightModeEnabled: Boolean = false,
+    onNightModeClick: (() -> Unit)? = null,
     onResizeModeClick: () -> Unit,
     onVideoSettingsClick: (() -> Unit)?,
     onOpenInExternalPlayer: (() -> Unit)?,
@@ -241,6 +244,16 @@ internal fun PlayerControlActions(
             stringResource(Res.string.compose_player_audio), onAudioClick,
             painter = appIconPainter(AppIconResource.PlayerAudioFilled),
         )
+        onNightModeClick?.let {
+            this[PlayerToolbarButton.NIGHT_MODE] = PlayerControlAction(
+                "${stringResource(Res.string.player_night_mode)} ${
+                    stringResource(if (nightModeEnabled) Res.string.player_night_mode_on else Res.string.player_night_mode_off)
+                }",
+                it,
+                icon = Icons.Rounded.NightsStay,
+                tint = if (nightModeEnabled) MaterialTheme.colorScheme.primary else Color.White,
+            )
+        }
         onQualityClick?.let {
             this[PlayerToolbarButton.QUALITY] = PlayerControlAction(
                 qualityLabel?.takeIf { label -> label.isNotBlank() }
@@ -338,6 +351,7 @@ internal fun PlayerControlActions(
                                 icon = action.icon,
                                 painter = action.painter,
                                 iconSize = action.iconSize,
+                                tint = action.tint,
                             )
                             if (action.active) ActiveDot(Modifier.align(Alignment.TopEnd).padding(top = 9.dp, end = 9.dp))
                             action.popup?.invoke()
@@ -513,4 +527,5 @@ internal data class PlayerControlAction(
     val iconSize: Dp = 24.dp,
     val popup: (@Composable () -> Unit)? = null,
     val active: Boolean = false,
+    val tint: Color = Color.White,
 )
