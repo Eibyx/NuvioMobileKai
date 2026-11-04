@@ -1,3 +1,53 @@
+# Sincronización con el oficial y con luqman (4-nov-2026)
+
+Fusiones en la rama `kai`, sin rebase. Esta vez primero **luqman** y después el **oficial**: luqman ya había fusionado el oficial hasta su 0.6.6 y resuelto sus choques, así que en ese orden salen la mitad de conflictos (22 frente a 47).
+
+1. **luqman**: `luqmanfadlli/NuvioMobile-Enhanced`, rama `enhanced`, hasta su 0.6.6-beta (unos 25 commits propios más los 115 del oficial que traía).
+2. **Oficial**: `NuvioMedia/NuvioMobile`, rama `cmp-rewrite`, los 44 commits restantes hasta la 0.6.7.
+
+## Qué entró
+
+| Cambio | De | Notas |
+|---|---|---|
+| Apariencia de subtítulos: tipografías (también importadas), fondo, sombra, vista previa | Oficial | Para subtítulos de texto en ExoPlayer y mpv. Las fuentes importadas antes en Kai se pasan solas a las nuevas. |
+| Ajustes por grupos (Tú, Personalización, Multimedia, Servicios, Sistema), página de Diseño y Reproducción repartida en diez páginas | Oficial | Inicio, Streams, Ficha y la barra de navegación pasan a Diseño. |
+| Selección automática de motor (anime a mpv, HDR/Dolby Vision a ExoPlayer) y cambio de motor si falla | Oficial | Ver "Kai": Auto sigue siendo el predeterminado. |
+| Segmentos para saltar por capítulos (OP, ED, resumen) | Oficial | Con dos arreglos: las escenas post-créditos nunca se saltan y los créditos largos de una película cuentan como final. Las pruebas del oficial ya lo pedían. |
+| El vídeo se redimensiona junto al panel de la fiesta | Oficial | |
+| "Marcar como visto" en el menú de Seguir viendo | Oficial | |
+| Subtítulos de addons sin las cabeceras del stream | Oficial | Se cargan aparte, así su servidor no recibe el `Authorization` del stream. |
+| Títulos "Episodio N" traducidos, insignias de códec mejores, episodios no estrenados marcados | Oficial | |
+| Now Playing de iOS solo al cambiar la reproducción | Oficial | |
+| Modo noche de audio en mpv (y botón en todos los motores) | luqman | |
+| Botones del reproductor clásico personalizables (arriba y abajo) | luqman | El botón Shaders de Kai es uno más, después de Audio. |
+| Cuándo aparece "Saltar intro" (antes o después) | luqman | |
+| PublicMetaDB como servicio de seguimiento | luqman | |
+| Insignias en streams de plugins, panel de capítulos con blur | luqman | |
+| Traducciones | Ambos | En español manda Kai; los textos nuevos están traducidos (`strings_sync_066.xml`, `strings_publicmetadb.xml`). |
+
+## Qué se quedó de Kai
+
+| Parte | Cómo quedó |
+|---|---|
+| Un solo renderizador de ASS en ExoPlayer: el libass de libmpv | luqman vuelve a llevar también el nuvio-libass del oficial con sus modos (superposición, efecto de vídeo) y resolución. Kai sigue con uno solo y un único interruptor, ahora en Reproducción → Subtítulos. |
+| Directorio de fuentes para ASS (mpvRx) | En su propia carpeta para `sub-fonts-dir`; aparece en Reproducción → Subtítulos. |
+| Shaders | Ajustes en Reproducción → Vídeo; botón en la barra nueva y en la clásica. |
+| Estado del dispositivo en el reproductor | Interruptor en Reproducción → Interfaz. |
+| Fuente de la app y modo claro/oscuro | En Apariencia. |
+| Motor predeterminado Auto | El oficial lo pasó a ExoPlayer. En Kai, Auto manda el anime a mpv (con los shaders) y lo demás a ExoPlayer. Quien ya eligió motor lo conserva. |
+| mpvlib de mpvRx, glass, tamaños por clase, modo mini del reproductor | Integrados con los cambios nuevos (panel lateral con glass, controles por clase de tamaño también con el panel de la fiesta, sin modales en el modo mini). |
+| Versión 1.0.5, `store.json`, README, MPVKit de luqman en iOS | Sin cambios. |
+
+## Qué se descartó y por qué
+
+| Descartado | Por qué |
+|---|---|
+| nuvio-libass del oficial (AAR, modos de renderizado, resolución, reconstrucción del reproductor al elegir un ASS) | Un solo renderizador de ASS, como en la sincronización anterior. |
+| Caché VOD de ExoPlayer del oficial | luqman tiene la suya (caché en disco) y Kai usa esa. |
+| Test del oficial del modo de renderizado ASS | Probaba lo descartado; lo sustituye uno que comprueba el interruptor único. |
+
+---
+
 # Sincronización con el oficial y con luqman (27-oct-2026)
 
 Fusiones en la rama `kai`, en este orden y sin rebase:
