@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_playback_night_mode_button">Botón de modo noche</string>
+    <string name="settings_playback_night_mode_button_description">Muestra un botón en el reproductor que iguala las escenas fuertes y las suaves, para escuchar a poco volumen. Al ocultarlo también se apaga el modo noche. No afecta al passthrough</string>
+    <string name="player_night_mode">Modo noche</string>
+    <string name="player_night_mode_on">Activado</string>
+    <string name="player_night_mode_off">Desactivado</string>
+    <string name="settings_playback_legacy_bottom_buttons">Botones de la barra inferior</string>
+    <string name="settings_playback_legacy_bottom_buttons_description">Elige qué botones aparecen en la barra inferior y en qué orden.</string>
+    <string name="settings_playback_legacy_top_buttons">Botones de la barra superior</string>
+    <string name="settings_playback_legacy_top_buttons_description">Elige qué botones aparecen en la barra superior y en qué orden. Cerrar siempre se queda.</string>
+    <string name="settings_playback_legacy_buttons_shown">Visibles</string>
+    <string name="settings_playback_legacy_buttons_hidden">Ocultos</string>
+    <string name="settings_playback_legacy_buttons_hide">Ocultar</string>
+    <string name="settings_playback_legacy_buttons_show">Mostrar</string>
+    <string name="player_toolbar_button_orientation">Girar</string>
+    <string name="settings_playback_skip_intro_offset">Momento de "Saltar intro"</string>
+    <string name="settings_playback_skip_intro_offset_description">Muestra el botón "Saltar intro" antes o después de la marca de la intro, para versiones en las que la intro empieza en otro momento.</string>
+    <string name="settings_playback_skip_intro_offset_on_time">A su hora</string>
+    <string name="settings_playback_skip_intro_offset_earlier">%1$d s antes</string>
+    <string name="settings_playback_skip_intro_offset_later">%1$d s después</string>
+    <string name="settings_playback_skip_intro_offset_input">Segundos (negativo = antes)</string>
+    <string name="settings_playback_skip_intro_offset_unit">s</string>
+</resources>
