@@ -409,6 +409,7 @@ internal object SettingsConfigTransfer {
             put("hero_trailer_playback_enabled", state.heroTrailerPlaybackEnabled)
             put("hero_trailer_start_delay_seconds", state.heroTrailerStartDelaySeconds)
             put("hero_trailer_start_unmuted", state.heroTrailerStartUnmuted)
+            put("hero_logo_scale_percent", state.heroLogoScalePercent)
             put(
                 "hero_sources",
                 buildJsonArray {
@@ -435,6 +436,7 @@ internal object SettingsConfigTransfer {
         payload.boolean("hero_trailer_playback_enabled")?.let(HomeCatalogSettingsRepository::setHeroTrailerPlaybackEnabled)
         payload.int("hero_trailer_start_delay_seconds")?.let(HomeCatalogSettingsRepository::setHeroTrailerStartDelaySeconds)
         payload.boolean("hero_trailer_start_unmuted")?.let(HomeCatalogSettingsRepository::setHeroTrailerStartUnmuted)
+        payload.int("hero_logo_scale_percent")?.let(HomeCatalogSettingsRepository::setHeroLogoScalePercent)
         if (payload["hero_sources"] is JsonArray) {
             val heroSources = payload.strings("hero_sources").toSet()
             HomeCatalogSettingsRepository.snapshot().preferences

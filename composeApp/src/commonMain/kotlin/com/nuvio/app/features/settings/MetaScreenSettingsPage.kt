@@ -1,5 +1,6 @@
 package com.nuvio.app.features.settings
 
+import com.nuvio.app.core.ui.ArtworkLogoScale
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.expandVertically
@@ -65,6 +66,8 @@ import com.nuvio.app.features.details.MetaScreenSettingsRepository
 import com.nuvio.app.features.details.MetaScreenSettingsUiState
 import com.nuvio.app.supportsPosterNavigationMotion
 import nuvio.composeapp.generated.resources.Res
+import nuvio.composeapp.generated.resources.settings_logo_size
+import nuvio.composeapp.generated.resources.settings_logo_size_detail_description
 import nuvio.composeapp.generated.resources.action_reorder
 import nuvio.composeapp.generated.resources.action_reset
 import nuvio.composeapp.generated.resources.settings_homescreen_hidden
@@ -214,6 +217,17 @@ internal fun LazyListScope.metaScreenSettingsContent(
                         )
                     }
                 }
+                SettingsGroupDivider(isTablet = isTablet)
+                SettingsSliderRow(
+                    title = stringResource(Res.string.settings_logo_size),
+                    description = stringResource(Res.string.settings_logo_size_detail_description),
+                    value = uiState.logoScalePercent,
+                    formatValue = { "$it %" },
+                    valueRange = ArtworkLogoScale.MIN_PERCENT..ArtworkLogoScale.MAX_PERCENT,
+                    step = ArtworkLogoScale.STEP_PERCENT,
+                    isTablet = isTablet,
+                    onValueChange = { MetaScreenSettingsRepository.setLogoScalePercent(it) },
+                )
                 SettingsGroupDivider(isTablet = isTablet)
                 SettingsSwitchRow(
                     title = stringResource(Res.string.settings_meta_tab_layout),

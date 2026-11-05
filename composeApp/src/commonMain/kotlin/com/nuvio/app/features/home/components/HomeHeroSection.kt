@@ -1,5 +1,7 @@
 package com.nuvio.app.features.home.components
 
+import com.nuvio.app.features.home.HomeCatalogSettingsRepository
+import androidx.compose.runtime.collectAsState
 import com.nuvio.app.core.ui.NuvioWindowSize
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -827,11 +829,12 @@ private fun HeroContentBlock(
         horizontalAlignment = if (layout.isTablet) Alignment.Start else Alignment.CenterHorizontally,
     ) {
         if (logoUrl != null && !logoLoadError) {
+            val logoScale = HomeCatalogSettingsRepository.uiState.collectAsState().value.heroLogoScalePercent / 100f
             ArtworkLogoImage(
                 model = logoUrl,
                 contentDescription = item.name,
                 modifier = Modifier
-                    .fillMaxWidth(layout.logoWidthFraction)
+                    .fillMaxWidth((layout.logoWidthFraction * logoScale).coerceAtMost(1f))
                     .aspectRatio(2.6f)
                     .clickable(enabled = onItemClick != null) {
                         onItemClick?.invoke(item)

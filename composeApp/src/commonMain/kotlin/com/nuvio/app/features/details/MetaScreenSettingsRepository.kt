@@ -1,5 +1,6 @@
 package com.nuvio.app.features.details
 
+import com.nuvio.app.core.ui.ArtworkLogoScale
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -57,6 +58,8 @@ data class MetaScreenSettingsUiState(
     val showRatingMap: Boolean = true,
     /** The search, go-to and sort bar above the episode list (list style only). */
     val episodeNavigatorEnabled: Boolean = true,
+    /** Size of the title logo in the detail hero, in percent of its usual size. */
+    val logoScalePercent: Int = ArtworkLogoScale.DEFAULT_PERCENT,
 )
 
 enum class MetaScreenBackgroundMode {
@@ -151,6 +154,8 @@ private data class StoredMetaScreenSettingsPayload(
     val showRatingMap: Boolean = true,
     @SerialName("episode_navigator_enabled")
     val episodeNavigatorEnabled: Boolean = true,
+    @SerialName("logo_scale_percent")
+    val logoScalePercent: Int = ArtworkLogoScale.DEFAULT_PERCENT,
 )
 
 private data class MetaScreenSectionDefinition(
@@ -240,6 +245,7 @@ object MetaScreenSettingsRepository {
     private var episodeRatingsVisibility: EpisodeRatingsVisibility = EpisodeRatingsVisibility.SHOW_ALL
     private var showRatingMap: Boolean = true
     private var episodeNavigatorEnabled: Boolean = true
+    private var logoScalePercent: Int = ArtworkLogoScale.DEFAULT_PERCENT
     private var posterTransitionEnabled: Boolean = false
     private fun localizedString(resource: StringResource): String = runBlocking { getString(resource) }
 
@@ -271,6 +277,7 @@ object MetaScreenSettingsRepository {
                 episodeRatingsVisibility = EpisodeRatingsVisibility.parse(parsed.episodeRatingsVisibility)
                 showRatingMap = parsed.showRatingMap
                 episodeNavigatorEnabled = parsed.episodeNavigatorEnabled
+                logoScalePercent = ArtworkLogoScale.clamp(parsed.logoScalePercent)
                 preferences = parsed.items.mapNotNull { item ->
                     val key = runCatching { MetaScreenSectionKey.valueOf(item.key) }.getOrNull() ?: return@mapNotNull null
                     key to item
@@ -299,6 +306,7 @@ object MetaScreenSettingsRepository {
         episodeRatingsVisibility = EpisodeRatingsVisibility.SHOW_ALL
         showRatingMap = true
         episodeNavigatorEnabled = true
+        logoScalePercent = ArtworkLogoScale.DEFAULT_PERCENT
         _uiState.value = MetaScreenSettingsUiState()
         ensureLoaded()
     }
@@ -405,6 +413,16 @@ object MetaScreenSettingsRepository {
         persist()
     }
 
+    /** Size of the detail hero logo, in percent; clamped to [ArtworkLogoScale]'s bounds. */
+    fun setLogoScalePercent(percent: Int) {
+        ensureLoaded()
+        val clamped = ArtworkLogoScale.clamp(percent)
+        if (logoScalePercent == clamped) return
+        logoScalePercent = clamped
+        publish()
+        persist()
+    }
+
     fun setPosterTransitionEnabled(enabled: Boolean) {
         ensureLoaded()
         posterTransitionEnabled = enabled
@@ -441,6 +459,7 @@ object MetaScreenSettingsRepository {
         episodeRatingsVisibility = EpisodeRatingsVisibility.SHOW_ALL
         showRatingMap = true
         episodeNavigatorEnabled = true
+        logoScalePercent = ArtworkLogoScale.DEFAULT_PERCENT
         _uiState.value = MetaScreenSettingsUiState()
     }
 
@@ -511,6 +530,7 @@ object MetaScreenSettingsRepository {
         episodeRatingsVisibility = EpisodeRatingsVisibility.SHOW_ALL
         showRatingMap = true
         episodeNavigatorEnabled = true
+        logoScalePercent = ArtworkLogoScale.DEFAULT_PERCENT
         normalizePreferences()
         publish()
         persist()
@@ -588,6 +608,7 @@ object MetaScreenSettingsRepository {
             episodeRatingsVisibility = episodeRatingsVisibility,
             showRatingMap = showRatingMap,
             episodeNavigatorEnabled = episodeNavigatorEnabled,
+            logoScalePercent = logoScalePercent,
         )
     }
 
@@ -610,6 +631,7 @@ object MetaScreenSettingsRepository {
                     episodeRatingsVisibility = episodeRatingsVisibility.name,
                     showRatingMap = showRatingMap,
                     episodeNavigatorEnabled = episodeNavigatorEnabled,
+                    logoScalePercent = logoScalePercent,
                 ),
             ),
         )

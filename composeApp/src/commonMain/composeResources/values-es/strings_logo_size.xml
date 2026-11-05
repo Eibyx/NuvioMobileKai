@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_logo_size">Tamaño del logo</string>
+    <string name="settings_logo_size_home_description">Qué tan grande se ve el logo del título en el destacado de Inicio. 100 % es el tamaño de siempre.</string>
+    <string name="settings_logo_size_detail_description">Qué tan grande se ve el logo del título arriba de la ficha. 100 % es el tamaño de siempre.</string>
+</resources>

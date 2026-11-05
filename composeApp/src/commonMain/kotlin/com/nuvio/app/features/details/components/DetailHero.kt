@@ -1,5 +1,7 @@
 package com.nuvio.app.features.details.components
 
+import com.nuvio.app.features.details.MetaScreenSettingsRepository
+import androidx.compose.runtime.collectAsState
 import com.nuvio.app.core.ui.ArtworkLogoImage
 import com.nuvio.app.core.ui.ArtworkUnderStatusBar
 import com.nuvio.app.core.ui.isDarkAppearance
@@ -250,13 +252,14 @@ fun DetailHero(
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     if (logoUrl != null && !logoLoadError) {
+                        val logoScale = MetaScreenSettingsRepository.uiState.collectAsState().value.logoScalePercent / 100f
                         ArtworkLogoImage(
                             model = logoUrl,
                             contentDescription = stringResource(Res.string.detail_logo_content_description, meta.name),
                             modifier = Modifier
-                                .fillMaxWidth(if (isTablet) 0.56f else 0.6f)
+                                .fillMaxWidth(((if (isTablet) 0.56f else 0.6f) * logoScale).coerceAtMost(1f))
                                 .widthIn(max = contentMaxWidth)
-                                .height(if (isTablet) 72.dp else 80.dp),
+                                .height((if (isTablet) 72.dp else 80.dp) * logoScale),
                             alignment = Alignment.Center,
                             contentScale = ContentScale.Fit,
                             onError = { logoLoadError = true },

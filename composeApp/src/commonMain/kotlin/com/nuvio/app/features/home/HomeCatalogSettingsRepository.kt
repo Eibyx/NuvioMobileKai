@@ -1,5 +1,6 @@
 package com.nuvio.app.features.home
 
+import com.nuvio.app.core.ui.ArtworkLogoScale
 import androidx.compose.ui.text.intl.Locale
 import com.nuvio.app.features.addons.ManagedAddon
 import com.nuvio.app.features.collection.Collection
@@ -42,6 +43,8 @@ internal data class HomeCatalogSettingsUiState(
     val heroTrailerStartUnmuted: Boolean = false,
     val showCatalogType: Boolean = true,
     val hideUnreleasedContent: Boolean = false,
+    /** Size of the title logo in the Home hero, in percent of its usual size. */
+    val heroLogoScalePercent: Int = ArtworkLogoScale.DEFAULT_PERCENT,
     val items: List<HomeCatalogSettingsItem> = emptyList(),
 ) {
     val signature: String
@@ -59,6 +62,8 @@ internal data class HomeCatalogSettingsUiState(
             append(showCatalogType)
             append('|')
             append(hideUnreleasedContent)
+            append('|')
+            append(heroLogoScalePercent)
             append('|')
             append(
                 items.joinToString(separator = "|") { item ->
@@ -135,6 +140,7 @@ private data class StoredHomeCatalogSettingsPayload(
     val heroTrailerStartUnmuted: Boolean = false,
     val showCatalogType: Boolean = true,
     val hideUnreleasedContent: Boolean = false,
+    val heroLogoScalePercent: Int = ArtworkLogoScale.DEFAULT_PERCENT,
     val items: List<StoredHomeCatalogPreference> = emptyList(),
 )
 
@@ -172,6 +178,7 @@ object HomeCatalogSettingsRepository {
     private var heroTrailerStartUnmuted = false
     private var showCatalogType = true
     private var hideUnreleasedContent = false
+    private var heroLogoScalePercent = ArtworkLogoScale.DEFAULT_PERCENT
 
     fun onProfileChanged() {
         hasLoaded = false
@@ -183,6 +190,7 @@ object HomeCatalogSettingsRepository {
         heroTrailerStartUnmuted = false
         showCatalogType = true
         hideUnreleasedContent = false
+        heroLogoScalePercent = ArtworkLogoScale.DEFAULT_PERCENT
         definitions = emptyList()
         collectionDefinitions = emptyList()
         lastCatalogSync = null
@@ -204,6 +212,7 @@ object HomeCatalogSettingsRepository {
         heroTrailerStartUnmuted = false
         showCatalogType = true
         hideUnreleasedContent = false
+        heroLogoScalePercent = ArtworkLogoScale.DEFAULT_PERCENT
         _uiState.value = HomeCatalogSettingsUiState()
     }
 
@@ -298,6 +307,16 @@ object HomeCatalogSettingsRepository {
         persist()
     }
 
+    /** Size of the Home hero logo, in percent. Only how it looks here, so it is not pushed to other devices. */
+    fun setHeroLogoScalePercent(percent: Int) {
+        ensureLoaded()
+        val clamped = ArtworkLogoScale.clamp(percent)
+        if (heroLogoScalePercent == clamped) return
+        heroLogoScalePercent = clamped
+        publish()
+        persist()
+    }
+
     fun setHeroTrailerStartDelaySeconds(seconds: Int) {
         ensureLoaded()
         val clamped = seconds.coerceIn(
@@ -363,6 +382,7 @@ object HomeCatalogSettingsRepository {
         heroTrailerStartUnmuted = false
         showCatalogType = true
         hideUnreleasedContent = false
+        heroLogoScalePercent = ArtworkLogoScale.DEFAULT_PERCENT
         preferences = emptyMap()
         normalizePreferences()
         publish()
@@ -422,6 +442,7 @@ object HomeCatalogSettingsRepository {
             heroTrailerStartUnmuted = parsedPayload.heroTrailerStartUnmuted
             showCatalogType = parsedPayload.showCatalogType
             hideUnreleasedContent = parsedPayload.hideUnreleasedContent
+            heroLogoScalePercent = ArtworkLogoScale.clamp(parsedPayload.heroLogoScalePercent)
             preferences = parsedPayload.items.associateBy { it.key }
             publish()
             return
@@ -520,6 +541,7 @@ object HomeCatalogSettingsRepository {
             .sortedBy { it.order }
 
         _uiState.value = HomeCatalogSettingsUiState(
+            heroLogoScalePercent = heroLogoScalePercent,
             heroEnabled = heroEnabled,
             heroStyle = heroStyle,
             heroTrailerPlaybackEnabled = heroTrailerPlaybackEnabled,
@@ -542,6 +564,7 @@ object HomeCatalogSettingsRepository {
                     heroTrailerStartUnmuted = heroTrailerStartUnmuted,
                     showCatalogType = showCatalogType,
                     hideUnreleasedContent = hideUnreleasedContent,
+                    heroLogoScalePercent = heroLogoScalePercent,
                     items = preferences.values.sortedBy { it.order },
                 ),
             ),

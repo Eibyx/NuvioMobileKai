@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_logo_size">Logo size</string>
+    <string name="settings_logo_size_home_description">How large the title logo is in the Home hero. 100 % is the usual size.</string>
+    <string name="settings_logo_size_detail_description">How large the title logo is at the top of the detail page. 100 % is the usual size.</string>
+</resources>

@@ -1,5 +1,8 @@
 package com.nuvio.app.features.settings
 
+import com.nuvio.app.core.ui.ArtworkLogoScale
+import kotlinx.coroutines.flow.map
+import androidx.compose.runtime.collectAsState
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.clickable
@@ -47,6 +50,8 @@ import com.nuvio.app.features.home.HomeCatalogSettingsRepository
 import com.nuvio.app.features.home.HomeHeroStyle
 import com.nuvio.app.features.home.components.HomeEmptyStateCard
 import nuvio.composeapp.generated.resources.Res
+import nuvio.composeapp.generated.resources.settings_logo_size
+import nuvio.composeapp.generated.resources.settings_logo_size_home_description
 import nuvio.composeapp.generated.resources.action_retry
 import nuvio.composeapp.generated.resources.action_reset
 import nuvio.composeapp.generated.resources.layout_hide_unreleased
@@ -165,6 +170,22 @@ internal fun LazyListScope.homescreenSettingsContent(
                             onValueChange = HomeCatalogSettingsRepository::setHeroTrailerStartDelaySeconds,
                         )
                     }
+                }
+                if (heroEnabled) {
+                    val heroLogoScalePercent by HomeCatalogSettingsRepository.uiState
+                        .map { it.heroLogoScalePercent }
+                        .collectAsState(initial = HomeCatalogSettingsRepository.uiState.value.heroLogoScalePercent)
+                    SettingsGroupDivider(isTablet = isTablet)
+                    SettingsSliderRow(
+                        title = stringResource(Res.string.settings_logo_size),
+                        description = stringResource(Res.string.settings_logo_size_home_description),
+                        value = heroLogoScalePercent,
+                        formatValue = { "$it %" },
+                        valueRange = ArtworkLogoScale.MIN_PERCENT..ArtworkLogoScale.MAX_PERCENT,
+                        step = ArtworkLogoScale.STEP_PERCENT,
+                        isTablet = isTablet,
+                        onValueChange = HomeCatalogSettingsRepository::setHeroLogoScalePercent,
+                    )
                 }
                 SettingsGroupDivider(isTablet = isTablet)
                 SettingsSwitchRow(

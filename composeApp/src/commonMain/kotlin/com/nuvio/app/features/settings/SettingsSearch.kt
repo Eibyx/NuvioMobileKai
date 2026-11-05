@@ -877,6 +877,7 @@ internal fun settingsSearchEntries(
     val homeLayoutSection = stringResource(Res.string.settings_homescreen_section_hero)
     listOf(
         PlaybackSearchRow("home-hero", stringResource(Res.string.settings_homescreen_show_hero), stringResource(Res.string.settings_homescreen_show_hero_description)),
+        PlaybackSearchRow("home-logo-size", stringResource(Res.string.settings_logo_size), stringResource(Res.string.settings_logo_size_home_description)),
         PlaybackSearchRow("home-catalog-type", stringResource(Res.string.layout_catalog_type), stringResource(Res.string.layout_catalog_type_sub)),
         PlaybackSearchRow("home-hide-unreleased", stringResource(Res.string.layout_hide_unreleased), stringResource(Res.string.layout_hide_unreleased_sub)),
         PlaybackSearchRow("home-hero-sources", stringResource(Res.string.settings_homescreen_section_hero_sources)),
@@ -906,6 +907,7 @@ internal fun settingsSearchEntries(
     listOf(
         PlaybackSearchRow("meta-background-mode", stringResource(Res.string.settings_meta_background_mode), stringResource(Res.string.settings_meta_background_mode_description)),
         PlaybackSearchRow("meta-tabs", stringResource(Res.string.settings_meta_tab_layout), stringResource(Res.string.settings_meta_tab_layout_description)),
+        PlaybackSearchRow("meta-logo-size", stringResource(Res.string.settings_logo_size), stringResource(Res.string.settings_logo_size_detail_description)),
         PlaybackSearchRow(
             "meta-overall-ratings",
             stringResource(Res.string.layout_overall_ratings),
