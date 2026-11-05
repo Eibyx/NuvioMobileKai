@@ -31,12 +31,15 @@ class LibmpvBufferPlanTest {
         assertEquals("64MiB", plan.option("demuxer-max-bytes"))
         assertEquals("64MiB", plan.option("demuxer-max-back-bytes"))
         assertNull(plan.option("cache-secs"))
+        assertNull(plan.option("cache"))
         assertFalse(plan.onDisk)
     }
 
     @Test
     fun theTypedNumbersGoToMpvInRam() {
         val plan = libmpvBufferPlan(settings(), defaultMb = 64, cacheDir = null, freeDiskMb = null)
+        assertEquals("yes", plan.option("cache"))
+        assertEquals("yes", plan.option("demuxer-seekable-cache"))
         assertEquals("600", plan.option("cache-secs"))
         assertEquals("600", plan.option("demuxer-readahead-secs"))
         assertEquals("1024MiB", plan.option("demuxer-max-bytes"))
@@ -84,5 +87,14 @@ class LibmpvBufferPlanTest {
     fun secondsOutsideTheRangeAreClamped() {
         assertEquals("10", libmpvBufferPlan(settings(seconds = 1), 64, null, null).option("cache-secs"))
         assertEquals("7200", libmpvBufferPlan(settings(seconds = 99_999), 64, null, null).option("cache-secs"))
+    }
+
+    @Test
+    fun theCacheLineSaysHowFarAheadAndWhetherASeekIsLoaded() {
+        val ranges = listOf(LibmpvCachedRange(300.0, 430.5))
+        val line = describeLibmpvCache("seek", 382.4, 430.5, 61L * 1024 * 1024, 1_468_006L, ranges, seekTargetSec = 372.4)
+        assertEquals("cache seek pos=382s ahead=48s fw=61MB rate=1.4MB/s ranges=1 [300-430] seek=372s cached", line)
+        assertTrue(describeLibmpvCache("seek", 382.0, 430.0, null, null, ranges, seekTargetSec = 200.0).endsWith("seek=200s not-cached"))
+        assertEquals("cache periodic ranges=0", describeLibmpvCache("periodic", null, null, null, null, emptyList()))
     }
 }

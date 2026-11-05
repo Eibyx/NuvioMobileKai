@@ -1554,6 +1554,7 @@ private fun LibmpvPlayerSurface(
                 if (property == "pause" && !value) {
                     coroutineScope.launch(Dispatchers.Main.immediate) { audioFocus.request() }
                 }
+                if (property == "paused-for-cache" && value) view.logCacheState("stalled")
                 if (property == "eof-reached" || property == "pause" || property == "paused-for-cache" || property == "seeking") {
                     dispatchSnapshot(updateKeepScreenOn = true)
                 }
@@ -1683,6 +1684,14 @@ private fun LibmpvPlayerSurface(
         while (isActive) {
             delay(1_000L)
             view.pollShaders()
+        }
+    }
+
+    LaunchedEffect(playerViewRef) {
+        val view = playerViewRef ?: return@LaunchedEffect
+        while (isActive) {
+            delay(30_000L)
+            view.logCacheWhilePlaying()
         }
     }
 
@@ -2015,7 +2024,39 @@ private class NuvioLibmpvView(
 
     fun seekToMs(positionMs: Long) {
         executeMpv {
-            mpv.command("seek", (positionMs.coerceAtLeast(0L) / 1000.0).toString(), "absolute")
+            val target = positionMs.coerceAtLeast(0L) / 1000.0
+            logCacheStateNow("seek", target)
+            mpv.command("seek", target.toString(), "absolute")
+        }
+    }
+
+    /** For the log, every 30 s while it plays: how much is loaded and how fast it downloads. */
+    fun logCacheWhilePlaying() = executeMpv {
+        if (mpv.getPropertyBoolean("pause") != true) logCacheStateNow("periodic")
+    }
+
+    fun logCacheState(reason: String) = executeMpv { logCacheStateNow(reason) }
+
+    private fun logCacheStateNow(reason: String, seekTargetSec: Double? = null) {
+        runCatching {
+            val state = mpv.getPropertyNode("demuxer-cache-state") ?: return
+            val ranges = state["seekable-ranges"]?.asArray()?.mapNotNull { range ->
+                val start = range.nodeDouble("start") ?: return@mapNotNull null
+                val end = range.nodeDouble("end") ?: return@mapNotNull null
+                LibmpvCachedRange(start, end)
+            }.orEmpty()
+            InAppLogger.info(
+                "MPV/Android",
+                describeLibmpvCache(
+                    reason = reason,
+                    positionSec = mpv.getPropertyDouble("time-pos"),
+                    cacheEndSec = state.nodeDouble("cache-end"),
+                    forwardBytes = state.nodeLong("fw-bytes"),
+                    inputBytesPerSec = state.nodeLong("raw-input-rate"),
+                    ranges = ranges,
+                    seekTargetSec = seekTargetSec,
+                ),
+            )
         }
     }
 
@@ -2300,6 +2341,7 @@ private class NuvioLibmpvView(
 
     fun seekByMs(offsetMs: Long) {
         executeMpv {
+            mpv.getPropertyDouble("time-pos")?.let { logCacheStateNow("seek", it + offsetMs / 1000.0) }
             mpv.command("seek", (offsetMs / 1000.0).toString(), "relative")
         }
     }
@@ -2842,6 +2884,12 @@ private fun MPVNode.nodeInt(key: String): Int? =
 
 private fun MPVNode.nodeBoolean(key: String): Boolean? =
     runCatching { this[key]?.asBoolean() }.getOrNull()
+
+private fun MPVNode.nodeLong(key: String): Long? =
+    runCatching { this[key]?.asInt() }.getOrNull()
+
+private fun MPVNode.nodeDouble(key: String): Double? =
+    runCatching { this[key]?.let { it.asDouble() ?: it.asInt()?.toDouble() } }.getOrNull()
 
 private fun androidx.compose.ui.graphics.Color.toMpvColor(): String {
     val argb = toArgb()

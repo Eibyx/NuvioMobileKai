@@ -78,6 +78,10 @@ internal fun libmpvBufferPlan(
         back = back.coerceIn(LibmpvBufferLimits.backMbRange(onDisk = false))
     }
     val options = buildList {
+        // Always the network cache, and seeks inside what is already loaded (forwards or back)
+        // are served from it instead of starting the download again.
+        add("cache" to "yes")
+        add("demuxer-seekable-cache" to "yes")
         add("cache-secs" to "$seconds")
         add("demuxer-readahead-secs" to "$seconds")
         add("demuxer-max-bytes" to "${forward}MiB")
@@ -88,4 +92,42 @@ internal fun libmpvBufferPlan(
         }
     }
     return LibmpvBufferPlan(options, seconds, forward, back, onDisk)
+}
+
+/** A stretch of the file mpv has loaded, in seconds. */
+internal data class LibmpvCachedRange(val startSec: Double, val endSec: Double)
+
+/**
+ * One line for the log: where playback is, how far ahead it is loaded, how much that takes and
+ * how fast it downloads. With [seekTargetSec], whether the seek lands inside what is loaded.
+ */
+internal fun describeLibmpvCache(
+    reason: String,
+    positionSec: Double?,
+    cacheEndSec: Double?,
+    forwardBytes: Long?,
+    inputBytesPerSec: Long?,
+    ranges: List<LibmpvCachedRange>,
+    seekTargetSec: Double? = null,
+): String = buildString {
+    append("cache ").append(reason)
+    positionSec?.let { append(" pos=").append(it.toInt()).append("s") }
+    if (positionSec != null && cacheEndSec != null) {
+        append(" ahead=").append((cacheEndSec - positionSec).coerceAtLeast(0.0).toInt()).append("s")
+    }
+    forwardBytes?.let { append(" fw=").append(it / MIB).append("MB") }
+    inputBytesPerSec?.let { append(" rate=").append(oneDecimal(it.toDouble() / MIB)).append("MB/s") }
+    append(" ranges=").append(ranges.size)
+    ranges.forEach { append(" [").append(it.startSec.toInt()).append("-").append(it.endSec.toInt()).append("]") }
+    seekTargetSec?.let { target ->
+        val inside = ranges.any { target >= it.startSec && target <= it.endSec }
+        append(" seek=").append(target.toInt()).append("s ").append(if (inside) "cached" else "not-cached")
+    }
+}
+
+private const val MIB = 1024L * 1024L
+
+private fun oneDecimal(value: Double): String {
+    val tenths = kotlin.math.round(value * 10).toLong()
+    return "${tenths / 10}.${tenths % 10}"
 }
