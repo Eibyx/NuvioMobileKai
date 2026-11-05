@@ -526,6 +526,18 @@ class AppearanceScreenshotTest(private val appearance: AppearanceMode) {
         capture("detail_cinematic_without_episode_finder")
     }
 
+    /** The top of the detail page in Cinematic over dark artwork: the hero fades into the blurred background. */
+    @Test
+    @Config(sdk = [GLASS_SDK])
+    fun detailCinematicHeroOverDarkArtwork() {
+        showDetail(
+            MetaEpisodeCardStyle.List,
+            backgroundMode = MetaScreenBackgroundMode.Cinematic,
+            meta = singleSeasonSeries.copy(id = "tt-sample-dark-hero", background = DARK_BACKDROP, poster = DARK_BACKDROP),
+        )
+        capture("detail_cinematic_hero_dark_artwork")
+    }
+
     @Test
     @Config(sdk = [GLASS_SDK])
     fun detailCinematicOverWhiteArtwork() = cinematicOverSolidArtwork(WHITE_BACKDROP, "white")

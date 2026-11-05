@@ -1,5 +1,8 @@
 package com.nuvio.app.features.details.components
 
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.CompositingStrategy
 import com.nuvio.app.features.details.MetaScreenSettingsRepository
 import androidx.compose.runtime.collectAsState
 import com.nuvio.app.core.ui.ArtworkLogoImage
@@ -78,6 +81,12 @@ fun DetailHero(
     heroTrailerPlayWhenReady: () -> Boolean = { false },
     heroTrailerMuted: Boolean = true,
     heroGradientColor: Color? = null,
+    /**
+     * The blurred, veiled artwork of the cinematic background lies behind the page. In the light
+     * appearance the hero artwork then fades out into it, instead of into the plain page colour,
+     * so there is no white band between the two.
+     */
+    fadeIntoCinematicBackdrop: Boolean = false,
     onBackdropLoaded: (Painter, ImageBitmap?) -> Unit = { _, _ -> },
     onHeroTrailerMuteToggle: () -> Unit = {},
     onHeroTrailerReady: () -> Unit = {},
@@ -101,6 +110,7 @@ fun DetailHero(
             8.dp +
             ((40.dp - muteIconSize) / 2)
         val bottomGradientColor = heroGradientColor ?: MaterialTheme.colorScheme.background
+        val fadeArtworkOut = !isDark && fadeIntoCinematicBackdrop
         var logoLoadError by remember(meta.id, meta.logo) {
             mutableStateOf(false)
         }
@@ -132,6 +142,7 @@ fun DetailHero(
                             .fillMaxWidth()
                             .height(heroHeight)
                             .heroStretchZoom(stretchPx)
+                            .then(if (fadeArtworkOut) Modifier.fadeOutTowardsBottom() else Modifier)
                             .graphicsLayer {
                                 translationY = scrollOffset() * 0.5f
                                 scaleX = 1.08f
@@ -218,10 +229,13 @@ fun DetailHero(
 
                 if (!isDark) {
                     // Light: a long fade over the lower part of the artwork into the page, so the
-                    // logo and the dark text sit on the page colour whatever the image.
+                    // logo and the dark text sit on the page colour whatever the image. Over the
+                    // cinematic background the artwork itself fades out instead (above); the fade
+                    // only covers a playing trailer, which cannot be faded out the same way.
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
+                            .graphicsLayer { alpha = if (fadeArtworkOut) trailerAlpha else 1f }
                             .background(Brush.verticalGradient(colorStops = lightHeroFadeStops(bottomGradientColor))),
                     )
                 } else Box(
@@ -293,4 +307,19 @@ private fun detailHeroHeight(maxWidth: Dp, isTablet: Boolean): Dp =
         (maxWidth * 1.33f).coerceIn(420.dp, 760.dp)
     } else {
         (maxWidth * 0.42f).coerceIn(300.dp, 420.dp)
+    }
+
+/** Fades what is drawn out to transparent over the lower half, on the light fade's curve. */
+private fun Modifier.fadeOutTowardsBottom(): Modifier = this
+    .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+    .drawWithContent {
+        drawContent()
+        drawRect(
+            brush = Brush.verticalGradient(
+                colorStops = lightHeroFadeStops(Color.Black)
+                    .map { (stop, color) -> stop to Color.Black.copy(alpha = 1f - color.alpha) }
+                    .toTypedArray(),
+            ),
+            blendMode = BlendMode.DstIn,
+        )
     }

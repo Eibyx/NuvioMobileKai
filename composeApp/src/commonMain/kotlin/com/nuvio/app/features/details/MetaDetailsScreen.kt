@@ -1393,6 +1393,7 @@ fun MetaDetailsScreen(
                                                     heroTrailerPlayWhenReady = heroTrailerPlayWhenReady,
                                                     heroTrailerMuted = heroTrailerMuted,
                                                     heroGradientColor = heroGradientColor,
+                                                    fadeIntoCinematicBackdrop = cinematicGlassEnabled && backdropUrl != null,
                                                     onBackdropLoaded = onBackdropLoaded,
                                                     onHeroTrailerMuteToggle = { HeroTrailerAudioState.toggleMuted(HeroTrailerSurface.Details) },
                                                     onHeroTrailerReady = onHeroTrailerReady,
@@ -1542,7 +1543,11 @@ fun MetaDetailsScreen(
                                         }
                                     }
     
-                                    if (!useTabletLayout && backgroundMode.usesBackdropBackground && heroHeightPx.intValue > 0) {
+                                    // In the light appearance the cinematic hero already fades into the
+                                    // background itself, so this band would only add a lighter strip.
+                                    val heroFadesIntoBackdrop = !MaterialTheme.isDarkAppearance &&
+                                        cinematicGlassEnabled && backdropUrl != null
+                                    if (!useTabletLayout && backgroundMode.usesBackdropBackground && heroHeightPx.intValue > 0 && !heroFadesIntoBackdrop) {
                                         val blendColor = dominantBackdropColor.takeIf { dominantColorEnabled }
                                             ?: colorScheme.background
                                         Box(
