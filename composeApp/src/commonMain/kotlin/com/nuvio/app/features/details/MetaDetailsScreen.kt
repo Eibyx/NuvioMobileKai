@@ -1534,10 +1534,9 @@ fun MetaDetailsScreen(
                                         }
                                     }
     
-                                    // In the light appearance the cinematic hero already fades into the
-                                    // background itself, so this band would only add a lighter strip.
-                                    val heroFadesIntoBackdrop = !MaterialTheme.isDarkAppearance &&
-                                        cinematicGlassEnabled && backdropUrl != null
+                                    // Over the cinematic background the hero artwork feathers into it in both
+                                    // appearances, so a band of page colour here would start as a hard edge.
+                                    val heroFadesIntoBackdrop = cinematicBackground
                                     if (!useTabletLayout && backgroundMode.usesBackdropBackground && heroHeightPx.intValue > 0 && !heroFadesIntoBackdrop) {
                                         val blendColor = dominantBackdropColor.takeIf { dominantColorEnabled }
                                             ?: colorScheme.background
