@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_number_input_range">Between %1$d and %2$d %3$s</string>
+    <string name="settings_unit_seconds">s</string>
+    <string name="settings_playback_libmpv_buffer_section">mpv buffer</string>
+    <string name="settings_playback_libmpv_buffer_custom">Custom mpv buffer</string>
+    <string name="settings_playback_libmpv_buffer_custom_description">Set how much mpv loads ahead and keeps behind. Off: 64 MB each way. Applies from the next video.</string>
+    <string name="settings_playback_libmpv_buffer_ahead_time">Ahead (time)</string>
+    <string name="settings_playback_libmpv_buffer_ahead_time_description">How far ahead mpv loads, in seconds of video. It stops earlier if it reaches the size below.</string>
+    <string name="settings_playback_libmpv_buffer_ahead_size">Ahead (maximum size)</string>
+    <string name="settings_playback_libmpv_buffer_ahead_size_description">The most the buffer ahead may take, in MB. A 25 Mbps remux takes about 190 MB per minute.</string>
+    <string name="settings_playback_libmpv_buffer_behind">Behind</string>
+    <string name="settings_playback_libmpv_buffer_behind_description">What mpv keeps of what you already watched, in MB, to rewind without loading again.</string>
+    <string name="settings_playback_libmpv_buffer_on_disk">Keep the buffer on storage</string>
+    <string name="settings_playback_libmpv_buffer_on_disk_description">Uses the app's cache on storage instead of RAM, so it can be far bigger. Cleared when the video closes.</string>
+    <string name="settings_playback_libmpv_buffer_note">In RAM, up to 2048 MB ahead and 1024 MB behind. On storage, up to 65536 MB and 32768 MB, always leaving 2 GB free. If there is not enough room, both shrink. mpv uses these settings for anime with the Auto engine too.</string>
+</resources>

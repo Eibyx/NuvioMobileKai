@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_number_input_range">Entre %1$d y %2$d %3$s</string>
+    <string name="settings_unit_seconds">s</string>
+    <string name="settings_playback_libmpv_buffer_section">Búfer de mpv</string>
+    <string name="settings_playback_libmpv_buffer_custom">Búfer de mpv personalizado</string>
+    <string name="settings_playback_libmpv_buffer_custom_description">Decide cuánto carga mpv por adelantado y cuánto guarda de lo ya visto. Desactivado: 64 MB en cada sentido. Se aplica desde el siguiente vídeo.</string>
+    <string name="settings_playback_libmpv_buffer_ahead_time">Hacia delante (tiempo)</string>
+    <string name="settings_playback_libmpv_buffer_ahead_time_description">Cuánto carga mpv por adelantado, en segundos de vídeo. Se detiene antes si llega al tamaño de abajo.</string>
+    <string name="settings_playback_libmpv_buffer_ahead_size">Hacia delante (tamaño máximo)</string>
+    <string name="settings_playback_libmpv_buffer_ahead_size_description">Lo máximo que puede ocupar el búfer hacia delante, en MB. Un remux de 25 Mbps ocupa unos 190 MB por minuto.</string>
+    <string name="settings_playback_libmpv_buffer_behind">Hacia atrás</string>
+    <string name="settings_playback_libmpv_buffer_behind_description">Lo que mpv guarda de lo ya visto, en MB, para retroceder sin volver a cargar.</string>
+    <string name="settings_playback_libmpv_buffer_on_disk">Guardar el búfer en el almacenamiento</string>
+    <string name="settings_playback_libmpv_buffer_on_disk_description">Usa la caché de la app en el almacenamiento en vez de la RAM, así puede ser mucho mayor. Se borra al cerrar el vídeo.</string>
+    <string name="settings_playback_libmpv_buffer_note">En RAM, hasta 2048 MB hacia delante y 1024 MB hacia atrás. En el almacenamiento, hasta 65536 MB y 32768 MB, dejando siempre 2 GB libres. Si no hay sitio para todo, se reducen los dos. mpv usa estos ajustes también para el anime con el motor Auto.</string>
+</resources>

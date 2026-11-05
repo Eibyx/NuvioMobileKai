@@ -178,7 +178,55 @@ class SettingsPagesTest {
         compose.onNodeWithText("libmpv").performClick()
         assertEquals(AndroidPlaybackEngine.Libmpv, PlayerSettingsRepository.uiState.value.androidPlaybackEngine)
         goBack()
-        compose.onNodeWithText("Buffer and cache").assertDoesNotExist()
+        // mpv has its own buffer settings, so the page stays.
+        compose.onNodeWithText("Buffer and cache").performScrollTo().assertExists()
+    }
+
+    @Test
+    fun mpvBufferShowsWithMpvAndKeepsItsLimits() {
+        PlayerSettingsRepository.setAndroidPlaybackEngine(AndroidPlaybackEngine.Libmpv)
+        compose.setContent {
+            NuvioTheme {
+                LazyColumn(Modifier.fillMaxSize()) {
+                    playbackSettingsContent(false, SettingsPage.PlaybackBuffer) {}
+                }
+            }
+        }
+        // With libmpv only mpv's buffer shows, not ExoPlayer's.
+        compose.onNodeWithText("ExoPlayer Native Memory (Experimental)").assertDoesNotExist()
+        compose.onNodeWithText("Custom mpv buffer").performScrollTo().performClick()
+        assertTrue(PlayerSettingsRepository.uiState.value.libmpvCustomBufferEnabled)
+        assertEquals(true, PlayerSettingsStorage.loadLibmpvCustomBufferEnabled())
+        compose.onNodeWithText("Ahead (maximum size)", substring = true).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Keep the buffer on storage").performScrollTo().assertIsDisplayed()
+
+        compose.runOnIdle {
+            PlayerSettingsRepository.setLibmpvForwardBufferMaxMb(1536)
+            PlayerSettingsRepository.setLibmpvBackBufferMb(5000)
+        }
+        assertEquals(1536, PlayerSettingsStorage.loadLibmpvForwardBufferMaxMb())
+        // In RAM, behind stops at 1024 MB.
+        assertEquals(1024, PlayerSettingsRepository.uiState.value.libmpvBackBufferMb)
+
+        compose.onNodeWithText("Keep the buffer on storage").performScrollTo().performClick()
+        compose.runOnIdle { PlayerSettingsRepository.setLibmpvForwardBufferMaxMb(9000) }
+        assertEquals(9000, PlayerSettingsRepository.uiState.value.libmpvForwardBufferMaxMb)
+
+        // Back to RAM: the size comes down to the RAM limit, and stays after a reload.
+        compose.onNodeWithText("Keep the buffer on storage").performScrollTo().performClick()
+        assertEquals(2048, PlayerSettingsRepository.uiState.value.libmpvForwardBufferMaxMb)
+        compose.runOnIdle { PlayerSettingsRepository.onProfileChanged() }
+        assertEquals(2048, PlayerSettingsRepository.uiState.value.libmpvForwardBufferMaxMb)
+        assertFalse(PlayerSettingsRepository.uiState.value.libmpvBufferOnDisk)
+    }
+
+    @Test
+    fun typedNumbersAreCheckedAgainstTheRange() {
+        assertEquals("1536", cleanNumberInput("1,536 MB"))
+        assertEquals(1536, parseNumberInput("1536", 16..2048))
+        assertEquals(null, parseNumberInput("9000", 16..2048))
+        assertEquals(9000, parseNumberInput("9000", 16..65536))
+        assertEquals(null, parseNumberInput("", 16..2048))
     }
 
     @Test
@@ -248,7 +296,7 @@ class SettingsPagesTest {
             PlayerSettingsRepository.setAndroidPlaybackEngine(AndroidPlaybackEngine.Libmpv)
         }
         compose.runOnIdle {
-            assertTrue(entries.none { it.target == SettingsSearchTarget.Page(SettingsPage.PlaybackBuffer) })
+            assertEquals(SettingsSearchTarget.Page(SettingsPage.PlaybackBuffer), entries.single { it.key == "playback-libmpv-buffer" }.target)
             assertTrue(entries.any { it.target == SettingsSearchTarget.Page(SettingsPage.PlaybackVideo) })
         }
     }

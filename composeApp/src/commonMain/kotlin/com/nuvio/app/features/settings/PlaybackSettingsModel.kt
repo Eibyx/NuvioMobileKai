@@ -26,7 +26,8 @@ internal fun visiblePlaybackSections(
     p2pVisible: Boolean,
 ): List<PlaybackSection> = PlaybackSection.entries.filter { section ->
     when (section) {
-        PlaybackSection.Buffer -> !ios && engine != AndroidPlaybackEngine.Libmpv
+        // ExoPlayer and mpv both have buffer settings there now.
+        PlaybackSection.Buffer -> !ios
         PlaybackSection.P2p -> p2pVisible
         else -> true
     }

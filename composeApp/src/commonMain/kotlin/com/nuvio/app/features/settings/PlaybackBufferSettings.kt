@@ -7,6 +7,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.unit.dp
 import com.nuvio.app.features.player.AndroidPlaybackEngine
+import com.nuvio.app.features.player.LibmpvBufferLimits
 import com.nuvio.app.features.player.PlaybackMemoryInfo
 import com.nuvio.app.features.player.PlayerSettingsRepository
 import com.nuvio.app.features.player.PlayerSettingsUiState
@@ -23,8 +24,11 @@ internal fun PlaybackBufferSettings(
     settings: PlayerSettingsUiState,
 ) {
     val exoOptionsEnabled = !settings.externalPlayerEnabled && settings.androidPlaybackEngine != AndroidPlaybackEngine.Libmpv
+    // ExoPlayer's buffer for ExoPlayer and Auto; mpv's for libmpv and Auto (anime goes to mpv).
+    val showExoOptions = settings.androidPlaybackEngine != AndroidPlaybackEngine.Libmpv
+    val showLibmpvOptions = settings.androidPlaybackEngine != AndroidPlaybackEngine.ExoPlayer
     Column(verticalArrangement = Arrangement.spacedBy(if (isTablet) 18.dp else 12.dp)) {
-        SettingsSection(
+        if (showExoOptions) SettingsSection(
             title = stringResource(Res.string.settings_playback_page_buffer),
             isTablet = isTablet,
         ) {
@@ -168,6 +172,80 @@ internal fun PlaybackBufferSettings(
                         isTablet = isTablet,
                     )
                 }
+            }
+        }
+        if (showLibmpvOptions) LibmpvBufferSettings(isTablet, settings)
+    }
+}
+
+@Composable
+private fun LibmpvBufferSettings(
+    isTablet: Boolean,
+    settings: PlayerSettingsUiState,
+) {
+    val enabled = !settings.externalPlayerEnabled
+    val onDisk = settings.libmpvBufferOnDisk
+    SettingsSection(
+        title = stringResource(Res.string.settings_playback_libmpv_buffer_section),
+        isTablet = isTablet,
+    ) {
+        SettingsGroup(isTablet = isTablet) {
+            SettingsSwitchRow(
+                title = stringResource(Res.string.settings_playback_libmpv_buffer_custom),
+                description = stringResource(Res.string.settings_playback_libmpv_buffer_custom_description),
+                checked = settings.libmpvCustomBufferEnabled,
+                enabled = enabled,
+                isTablet = isTablet,
+                onCheckedChange = PlayerSettingsRepository::setLibmpvCustomBufferEnabled,
+            )
+            if (settings.libmpvCustomBufferEnabled) {
+                SettingsGroupDivider(isTablet = isTablet)
+                SettingsNumberRow(
+                    title = stringResource(Res.string.settings_playback_libmpv_buffer_ahead_time),
+                    description = stringResource(Res.string.settings_playback_libmpv_buffer_ahead_time_description),
+                    value = settings.libmpvForwardBufferSeconds,
+                    unit = stringResource(Res.string.settings_unit_seconds),
+                    range = LibmpvBufferLimits.forwardSecondsRange,
+                    isTablet = isTablet,
+                    enabled = enabled,
+                    onValueChange = PlayerSettingsRepository::setLibmpvForwardBufferSeconds,
+                )
+                SettingsGroupDivider(isTablet = isTablet)
+                SettingsNumberRow(
+                    title = stringResource(Res.string.settings_playback_libmpv_buffer_ahead_size),
+                    description = stringResource(Res.string.settings_playback_libmpv_buffer_ahead_size_description),
+                    value = settings.libmpvForwardBufferMaxMb,
+                    unit = "MB",
+                    range = LibmpvBufferLimits.forwardMbRange(onDisk),
+                    isTablet = isTablet,
+                    enabled = enabled,
+                    onValueChange = PlayerSettingsRepository::setLibmpvForwardBufferMaxMb,
+                )
+                SettingsGroupDivider(isTablet = isTablet)
+                SettingsNumberRow(
+                    title = stringResource(Res.string.settings_playback_libmpv_buffer_behind),
+                    description = stringResource(Res.string.settings_playback_libmpv_buffer_behind_description),
+                    value = settings.libmpvBackBufferMb,
+                    unit = "MB",
+                    range = LibmpvBufferLimits.backMbRange(onDisk),
+                    isTablet = isTablet,
+                    enabled = enabled,
+                    onValueChange = PlayerSettingsRepository::setLibmpvBackBufferMb,
+                )
+                SettingsGroupDivider(isTablet = isTablet)
+                SettingsSwitchRow(
+                    title = stringResource(Res.string.settings_playback_libmpv_buffer_on_disk),
+                    description = stringResource(Res.string.settings_playback_libmpv_buffer_on_disk_description),
+                    checked = onDisk,
+                    enabled = enabled,
+                    isTablet = isTablet,
+                    onCheckedChange = PlayerSettingsRepository::setLibmpvBufferOnDisk,
+                )
+                PlaybackSettingsNote(
+                    text = stringResource(Res.string.settings_playback_libmpv_buffer_note),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    isTablet = isTablet,
+                )
             }
         }
     }
