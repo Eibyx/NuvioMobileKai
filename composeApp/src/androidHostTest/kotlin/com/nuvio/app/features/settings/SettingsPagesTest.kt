@@ -13,6 +13,8 @@ import androidx.compose.ui.test.hasScrollToIndexAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasScrollToNodeAction
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
@@ -127,7 +129,9 @@ class SettingsPagesTest {
             compose.onNode(hasText(label) and hasClickAction()).performScrollTo().performClick()
             assertEquals(destination, opened)
         }
-        compose.onNode(hasText("Navigation Bar") and hasClickAction()).performScrollTo().performClick()
+        // The Navigation Bar row sits in a later list item, out of composition until the list scrolls.
+        compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Navigation Bar") and hasClickAction())
+        compose.onNode(hasText("Navigation Bar") and hasClickAction()).performClick()
         compose.onNodeWithText("Classic").performScrollTo().performClick()
         assertEquals(NavBarStyle.CLASSIC, ThemeSettingsRepository.navBarStyle.value)
         compose.runOnIdle { ThemeSettingsRepository.onProfileChanged() }

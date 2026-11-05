@@ -421,6 +421,21 @@ internal fun settingsSearchEntries(
     )
     addRow(
         page = SettingsPage.Appearance,
+        key = "app-background",
+        title = stringResource(Res.string.settings_app_background),
+        pageLabel = appearancePage,
+        section = stringResource(Res.string.settings_glass_ui_section),
+    )
+    addRow(
+        page = SettingsPage.Appearance,
+        key = "glass-ui",
+        title = stringResource(Res.string.settings_glass_ui),
+        description = stringResource(Res.string.settings_glass_ui_description),
+        pageLabel = appearancePage,
+        section = stringResource(Res.string.settings_glass_ui_section),
+    )
+    addRow(
+        page = SettingsPage.Appearance,
         key = "amoled",
         title = stringResource(Res.string.settings_appearance_amoled_black),
         description = stringResource(Res.string.settings_appearance_amoled_description),
@@ -444,12 +459,20 @@ internal fun settingsSearchEntries(
         section = stringResource(Res.string.settings_appearance_section_text),
     )
     addRow(
-        page = SettingsPage.Appearance,
+        page = SettingsPage.Layout,
         key = "dynamic-artwork-background",
         title = stringResource(Res.string.settings_appearance_dynamic_artwork_background),
         description = stringResource(Res.string.settings_appearance_dynamic_artwork_background_description),
         pageLabel = layoutPage,
-        section = stringResource(Res.string.settings_appearance_section_display),
+        section = stringResource(Res.string.settings_appearance_section_home),
+    )
+    addRow(
+        page = SettingsPage.Layout,
+        key = "catalog-accent",
+        title = stringResource(Res.string.settings_appearance_catalog_accent),
+        description = stringResource(Res.string.settings_appearance_catalog_accent_description),
+        pageLabel = layoutPage,
+        section = stringResource(Res.string.settings_appearance_section_home),
     )
     if (liquidGlassNativeTabBarSupported) {
         addRow(
@@ -770,6 +793,8 @@ internal fun settingsSearchEntries(
                 PlaybackSearchRow("vod-cache", stringResource(Res.string.settings_playback_vod_disk_cache), stringResource(Res.string.settings_playback_vod_disk_cache_description), page = SettingsPage.PlaybackBuffer),
                 PlaybackSearchRow("libmpv-buffer", stringResource(Res.string.settings_playback_libmpv_buffer_custom), stringResource(Res.string.settings_playback_libmpv_buffer_custom_description), page = SettingsPage.PlaybackBuffer),
                 PlaybackSearchRow("exo-chapters", stringResource(Res.string.settings_playback_exo_chapters), stringResource(Res.string.settings_playback_exo_chapters_description), page = SettingsPage.PlaybackInterface),
+                PlaybackSearchRow("remember-audio-delay", stringResource(Res.string.settings_playback_remember_audio_delay), stringResource(Res.string.settings_playback_remember_audio_delay_description), page = SettingsPage.PlaybackAudio),
+                PlaybackSearchRow("downmix", stringResource(Res.string.settings_playback_downmix), stringResource(Res.string.settings_playback_downmix_description), page = SettingsPage.PlaybackAudio),
             ),
         )
         addPlaybackRows(
@@ -1057,6 +1082,14 @@ internal fun settingsSearchEntries(
         section = stringResource(Res.string.settings_notifications_section_test),
     )
 
+    addRow(
+        page = SettingsPage.TraktAuthentication,
+        key = "private-viewing",
+        title = stringResource(Res.string.settings_playback_private_viewing),
+        description = stringResource(Res.string.settings_playback_private_viewing_description),
+        pageLabel = trackingPage,
+        section = stringResource(Res.string.settings_tracking_privacy_section),
+    )
     addRow(
         page = SettingsPage.TraktAuthentication,
         key = "trakt-authentication",

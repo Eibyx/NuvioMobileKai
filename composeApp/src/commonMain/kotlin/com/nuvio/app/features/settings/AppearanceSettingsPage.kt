@@ -73,10 +73,6 @@ import nuvio.composeapp.generated.resources.settings_appearance_mode_system
 import nuvio.composeapp.generated.resources.settings_appearance_system_font_scale
 import nuvio.composeapp.generated.resources.settings_appearance_system_font_scale_description
 import com.nuvio.app.core.ui.glass.isLiquidGlassAvailable
-import nuvio.composeapp.generated.resources.settings_appearance_dynamic_artwork_background
-import nuvio.composeapp.generated.resources.settings_appearance_dynamic_artwork_background_description
-import nuvio.composeapp.generated.resources.settings_appearance_catalog_accent
-import nuvio.composeapp.generated.resources.settings_appearance_catalog_accent_description
 import nuvio.composeapp.generated.resources.settings_appearance_liquid_glass_effects
 import nuvio.composeapp.generated.resources.settings_appearance_liquid_glass_effects_description
 import nuvio.composeapp.generated.resources.settings_appearance_section_display
@@ -134,13 +130,12 @@ internal fun LazyListScope.appearanceSettingsContent(
             }
         }
     }
+    appBackgroundSettingsItem(isTablet = isTablet)
     item {
         var showLanguageSheet by remember { mutableStateOf(false) }
         var showLanguageRestartDialog by remember { mutableStateOf(false) }
         val layoutDirection = LocalLayoutDirection.current
         var showAppIconPicker by remember { mutableStateOf(false) }
-        val dynamicArtworkBackgroundEnabled by ThemeSettingsRepository.dynamicArtworkBackgroundEnabled.collectAsStateWithLifecycle()
-        val showCatalogAccentEnabled by ThemeSettingsRepository.showCatalogAccentEnabled.collectAsStateWithLifecycle()
         val liquidGlassEffectsEnabled by ThemeSettingsRepository.liquidGlassEffectsEnabled.collectAsStateWithLifecycle()
         SettingsSection(
             title = stringResource(Res.string.settings_appearance_section_display),
@@ -153,24 +148,6 @@ internal fun LazyListScope.appearanceSettingsContent(
                     checked = amoledEnabled,
                     isTablet = isTablet,
                     onCheckedChange = onAmoledToggle,
-                )
-                SettingsGroupDivider(isTablet = isTablet)
-                SettingsSwitchRow(
-                    title = stringResource(Res.string.settings_appearance_dynamic_artwork_background),
-                    description = stringResource(
-                        Res.string.settings_appearance_dynamic_artwork_background_description,
-                    ),
-                    checked = dynamicArtworkBackgroundEnabled,
-                    isTablet = isTablet,
-                    onCheckedChange = ThemeSettingsRepository::setDynamicArtworkBackground,
-                )
-                SettingsGroupDivider(isTablet = isTablet)
-                SettingsSwitchRow(
-                    title = stringResource(Res.string.settings_appearance_catalog_accent),
-                    description = stringResource(Res.string.settings_appearance_catalog_accent_description),
-                    checked = showCatalogAccentEnabled,
-                    isTablet = isTablet,
-                    onCheckedChange = ThemeSettingsRepository::setShowCatalogAccent,
                 )
                 if (isLiquidGlassAvailable()) {
                     SettingsGroupDivider(isTablet = isTablet)

@@ -4,6 +4,7 @@ import com.nuvio.app.core.ui.NuvioWindowSize
 import com.nuvio.app.core.ui.NuvioDarkSurface
 import com.nuvio.app.core.ui.isDarkAppearance
 import com.nuvio.app.core.ui.surfaceOverlay
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -73,6 +74,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import com.nuvio.app.core.build.AppFeaturePolicy
+import com.nuvio.app.core.ui.ArtworkBackdrop
 import com.nuvio.app.core.ui.NuvioBackButton
 import com.nuvio.app.core.ui.nuvio
 import com.nuvio.app.core.ui.NuvioInputField
@@ -81,6 +83,8 @@ import com.nuvio.app.core.ui.NuvioBottomSheetDivider
 import com.nuvio.app.core.ui.NuvioModalBottomSheet
 import com.nuvio.app.core.ui.NuvioToastController
 import com.nuvio.app.core.ui.dismissNuvioBottomSheet
+import com.nuvio.app.core.ui.featherArtwork
+import com.nuvio.app.core.ui.rememberArtworkBackdrop
 import com.nuvio.app.features.downloads.DownloadsRepository
 import com.nuvio.app.features.details.MetaScreenSettingsRepository
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -230,11 +234,9 @@ fun StreamsScreen(
         }
     }
 
-    val heroArtwork = if (isEpisode) {
-        episodeThumbnail ?: background ?: poster
-    } else {
-        background ?: poster
-    }
+    val heroArtwork = episodeThumbnail?.takeIf { isEpisode && it.isNotBlank() }
+        ?: background?.takeIf { it.isNotBlank() }
+        ?: poster?.takeIf { it.isNotBlank() }
     val isEpisodeWatched = episodeProgress?.isEffectivelyCompleted == true || watchedItemKeys(
         type = parentMetaType,
         id = parentMetaId,
@@ -478,99 +480,35 @@ internal fun MobileStreamsLayout(
     onRefresh: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val content: @Composable () -> Unit = {
-        MobileStreamsLayoutContent(
-            isEpisode = isEpisode,
-            showSearchField = showSearchField,
-            searchQuery = searchQuery,
-            onSearchQueryChange = onSearchQueryChange,
-            backgroundMode = backgroundMode,
-            title = title,
-            logo = logo,
-            heroArtwork = heroArtwork,
-            seasonNumber = seasonNumber,
-            episodeNumber = episodeNumber,
-            episodeTitle = episodeTitle,
-            blurEpisodeThumbnail = blurEpisodeThumbnail,
-            uiState = uiState,
-            debridEnabled = debridEnabled,
-            appendInstantServiceToDefaultName = appendInstantServiceToDefaultName,
-            resumePositionMs = resumePositionMs,
-            resumeProgressFraction = resumeProgressFraction,
-            onStreamSelected = onStreamSelected,
-            onStreamLongPress = onStreamLongPress,
-            onRefresh = onRefresh,
-            modifier = modifier,
-        )
-    }
-    // The light appearance keeps its own colours in Cinematic too: glass over a light veil, like the
-    // detail page. (NuvioDarkSurface does nothing in the dark appearance.)
-    content()
-}
-
-@Composable
-private fun MobileStreamsLayoutContent(
-    isEpisode: Boolean,
-    showSearchField: Boolean,
-    searchQuery: String,
-    onSearchQueryChange: (String) -> Unit,
-    backgroundMode: StreamBackgroundMode,
-    title: String,
-    logo: String?,
-    heroArtwork: String?,
-    seasonNumber: Int?,
-    episodeNumber: Int?,
-    episodeTitle: String?,
-    blurEpisodeThumbnail: Boolean,
-    uiState: StreamsUiState,
-    debridEnabled: Boolean,
-    appendInstantServiceToDefaultName: Boolean,
-    resumePositionMs: Long?,
-    resumeProgressFraction: Float?,
-    onStreamSelected: (stream: StreamItem, resumePositionMs: Long?, resumeProgressFraction: Float?) -> Unit,
-    onStreamLongPress: (StreamItem) -> Unit,
-    onRefresh: () -> Unit,
-    modifier: Modifier,
-) {
+    val cinematic = backgroundMode == StreamBackgroundMode.Cinematic && heroArtwork != null
     val streamsGlassBackdrop = rememberNuvioBackdrop()
-    val streamsGlassEnabled = backgroundMode == StreamBackgroundMode.Cinematic && heroArtwork != null
     val isDark = MaterialTheme.isDarkAppearance
     val pageColor = MaterialTheme.colorScheme.background
     Box(modifier = modifier.fillMaxSize()) {
-        if (backgroundMode == StreamBackgroundMode.Cinematic && heroArtwork != null) {
-            AsyncImage(
-                model = heroArtwork,
-                contentDescription = null,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .blur(12.dp)
-                    .nuvioBackdropSource(streamsGlassBackdrop),
-                contentScale = ContentScale.Crop,
-            )
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    // Dark: a black veil; light: a veil of the page colour, as on the detail page.
-                    .background((if (isDark) Color.Black else pageColor).copy(alpha = if (isEpisode) 0.72f else 0.62f)),
+        if (cinematic) {
+            // The official pre-blurred artwork backdrop, with Kai's glass source. Dark: a black veil;
+            // light: a veil of the page colour, as on the detail page.
+            ArtworkBackdrop(
+                image = rememberArtworkBackdrop(heroArtwork),
+                modifier = Modifier.nuvioBackdropSource(streamsGlassBackdrop),
+                scrim = SolidColor((if (isDark) Color.Black else pageColor).copy(alpha = if (isEpisode) 0.72f else 0.62f)),
             )
         }
 
-        val streamBlendColor = MaterialTheme.colorScheme.background
-
         CompositionLocalProvider(
-            LocalLiquidGlassBackdrop provides if (streamsGlassEnabled) streamsGlassBackdrop else null,
-            LocalGlassOverArtwork provides streamsGlassEnabled,
+            LocalLiquidGlassBackdrop provides if (cinematic) streamsGlassBackdrop else null,
+            LocalGlassOverArtwork provides cinematic,
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
                 if (isEpisode && seasonNumber != null && episodeNumber != null) {
-                    EpisodeHeroBlock(
+                    EpisodeHeader(
                         seasonNumber = seasonNumber,
                         episodeNumber = episodeNumber,
                         episodeTitle = episodeTitle ?: title,
                         thumbnail = heroArtwork,
+                        cinematic = cinematic,
                         blurred = blurEpisodeThumbnail,
                         showTitle = title,
-                        meltIntoBackdrop = streamsGlassEnabled && !isDark,
                     )
                 } else {
                     MovieHeroBlock(
@@ -579,70 +517,49 @@ private fun MobileStreamsLayoutContent(
                     )
                 }
 
-                Box(
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f),
                 ) {
-                    // The light hero melts into the backdrop itself; a band of page colour would cut it off.
-                    if (isEpisode && backgroundMode == StreamBackgroundMode.Cinematic && isDark) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(132.dp)
-                                .background(
-                                    Brush.verticalGradient(
-                                        colors = listOf(
-                                            streamBlendColor.copy(alpha = 0.98f),
-                                            streamBlendColor.copy(alpha = 0.84f),
-                                            streamBlendColor.copy(alpha = 0.52f),
-                                            Color.Transparent,
-                                        ),
-                                    ),
-                                ),
+                    if ((resumePositionMs != null && resumePositionMs > 0L) || (resumeProgressFraction != null && resumeProgressFraction > 0f)) {
+                        ResumeBanner(
+                            positionMs = resumePositionMs,
+                            progressFraction = resumeProgressFraction,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                        )
+                    }
+                    ProviderFilterRow(
+                        groups = uiState.groups,
+                        selectedFilter = uiState.selectedFilter,
+                        onFilterSelected = { addonId -> StreamsRepository.selectFilter(addonId) },
+                        onRefresh = onRefresh,
+                    )
+
+                    if (showSearchField) {
+                        StreamSearchField(
+                            query = searchQuery,
+                            onQueryChange = onSearchQueryChange,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
                         )
                     }
 
-                    Column(modifier = Modifier.fillMaxSize()) {
-                        if ((resumePositionMs != null && resumePositionMs > 0L) || (resumeProgressFraction != null && resumeProgressFraction > 0f)) {
-                            ResumeBanner(
-                                positionMs = resumePositionMs,
-                                progressFraction = resumeProgressFraction,
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                            )
-                        }
-                        ProviderFilterRow(
-                            groups = uiState.groups,
-                            selectedFilter = uiState.selectedFilter,
-                            onFilterSelected = { addonId -> StreamsRepository.selectFilter(addonId) },
-                            onRefresh = onRefresh,
-                        )
-
-                        if (showSearchField) {
-                            StreamSearchField(
-                                query = searchQuery,
-                                onQueryChange = onSearchQueryChange,
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                            )
-                        }
-
-                        val listUiState = rememberStreamSearchResult(uiState, searchQuery, showSearchField)
-                        if (listUiState.isEmptyBecauseOfSearch) {
-                            StreamSearchEmptyBlock(modifier = Modifier.weight(1f))
-                            return@Column
-                        }
-
-                        StreamList(
-                            uiState = listUiState.uiState,
-                            debridEnabled = debridEnabled,
-                            appendInstantServiceToDefaultName = appendInstantServiceToDefaultName,
-                            onStreamSelected = onStreamSelected,
-                            onStreamLongPress = onStreamLongPress,
-                            resumePositionMs = resumePositionMs,
-                            resumeProgressFraction = resumeProgressFraction,
-                            modifier = Modifier.weight(1f),
-                        )
+                    val listUiState = rememberStreamSearchResult(uiState, searchQuery, showSearchField)
+                    if (listUiState.isEmptyBecauseOfSearch) {
+                        StreamSearchEmptyBlock(modifier = Modifier.weight(1f))
+                        return@Column
                     }
+
+                    StreamList(
+                        uiState = listUiState.uiState,
+                        debridEnabled = debridEnabled,
+                        appendInstantServiceToDefaultName = appendInstantServiceToDefaultName,
+                        onStreamSelected = onStreamSelected,
+                        onStreamLongPress = onStreamLongPress,
+                        resumePositionMs = resumePositionMs,
+                        resumeProgressFraction = resumeProgressFraction,
+                        modifier = Modifier.weight(1f),
+                    )
                 }
             }
         }
@@ -760,185 +677,153 @@ private fun MovieHeroBlock(
 // ---------------------------------------------------------------------------
 
 @Composable
-private fun EpisodeHeroBlock(
+private fun EpisodeHeader(
     seasonNumber: Int,
     episodeNumber: Int,
     episodeTitle: String,
     thumbnail: String?,
+    cinematic: Boolean,
     blurred: Boolean,
     showTitle: String,
-    meltIntoBackdrop: Boolean = false,
-    modifier: Modifier = Modifier,
 ) {
-    if (meltIntoBackdrop) {
-        ArtworkUnderStatusBar()
-        EpisodeHeroBlockContent(
-            seasonNumber = seasonNumber,
-            episodeNumber = episodeNumber,
-            episodeTitle = episodeTitle,
-            thumbnail = thumbnail,
-            blurred = blurred,
-            showTitle = showTitle,
-            meltIntoBackdrop = true,
-            modifier = modifier,
-        )
-        return
+    val header: @Composable () -> Unit = {
+        Box(modifier = Modifier.fillMaxWidth()) {
+            EpisodeHeaderArtwork(
+                imageUrl = thumbnail,
+                cinematic = cinematic,
+                blurred = blurred,
+                modifier = Modifier.matchParentSize(),
+            )
+            EpisodeHeroBlock(
+                seasonNumber = seasonNumber,
+                episodeNumber = episodeNumber,
+                episodeTitle = episodeTitle,
+                showTitle = showTitle,
+            )
+        }
     }
-    // Otherwise the artwork header and its gradient stay dark in the light appearance.
-    NuvioDarkSurface(underStatusBar = true) {
-        EpisodeHeroBlockContent(
-            seasonNumber = seasonNumber,
-            episodeNumber = episodeNumber,
-            episodeTitle = episodeTitle,
-            thumbnail = thumbnail,
-            blurred = blurred,
-            showTitle = showTitle,
-            modifier = modifier,
-        )
+    if (cinematic) {
+        // Over the cinematic background the artwork feathers into it, in the page's own colours.
+        ArtworkUnderStatusBar()
+        header()
+    } else {
+        // Otherwise the artwork header and its gradient stay dark in the light appearance.
+        NuvioDarkSurface(underStatusBar = true) { header() }
     }
 }
 
 @Composable
-private fun EpisodeHeroBlockContent(
-    seasonNumber: Int,
-    episodeNumber: Int,
-    episodeTitle: String,
-    thumbnail: String?,
+private fun EpisodeHeaderArtwork(
+    imageUrl: String?,
+    cinematic: Boolean,
     blurred: Boolean,
-    showTitle: String,
     modifier: Modifier,
-    meltIntoBackdrop: Boolean = false,
 ) {
-    val heroBlendColor = MaterialTheme.colorScheme.background
-
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(220.dp),
-    ) {
-        // Thumbnail image
-        if (thumbnail != null) {
+    if (cinematic && blurred) return
+    val isDark = MaterialTheme.isDarkAppearance
+    val background = MaterialTheme.colorScheme.background
+    Box(modifier = if (cinematic) modifier.featherArtwork() else modifier) {
+        if (imageUrl != null) {
             AsyncImage(
-                model = thumbnail,
+                model = imageUrl,
                 contentDescription = null,
                 modifier = Modifier
                     .fillMaxSize()
-                    .then(if (blurred) Modifier.blur(18.dp) else Modifier)
-                    .then(if (meltIntoBackdrop) Modifier.fadeOutTowardsBottom() else Modifier),
+                    .then(if (blurred) Modifier.blur(18.dp) else Modifier),
                 contentScale = ContentScale.Crop,
             )
         }
 
-        if (meltIntoBackdrop) {
-            // The image fades into the blurred artwork and its light veil, like the detail page hero;
-            // a soft wash of the page colour keeps the dark titles readable on bright thumbnails.
+        if (cinematic && !isDark) {
+            // Light: a soft wash of the page colour keeps the dark titles readable on bright thumbnails.
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(
                         Brush.verticalGradient(
-                            // Back to nothing at the bottom edge, where the list's backdrop continues.
-                            colorStops = arrayOf(
-                                0.0f to Color.Transparent,
-                                0.4f to Color.Transparent,
-                                0.75f to heroBlendColor.copy(alpha = 0.45f),
-                                1.0f to Color.Transparent,
-                            ),
+                            0.0f to Color.Transparent,
+                            0.4f to Color.Transparent,
+                            0.75f to background.copy(alpha = 0.45f),
+                            1.0f to background.copy(alpha = 0.6f),
                         ),
                     ),
             )
         } else {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.1f)),
-        )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = if (cinematic) 0.34f else 0.1f)),
+            )
+        }
 
-        // Gradient overlay bottom-up
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        colorStops = arrayOf(
+        if (!cinematic) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
                             0.0f to Color.Transparent,
                             0.58f to Color.Transparent,
                             0.8f to Color.Black.copy(alpha = 0.42f),
-                            0.93f to heroBlendColor.copy(alpha = 0.84f),
-                            1.0f to heroBlendColor,
+                            0.93f to background.copy(alpha = 0.84f),
+                            1.0f to background,
                         ),
-                        startY = 0f,
-                        endY = Float.POSITIVE_INFINITY,
                     ),
-                ),
-        )
-
-        }
-
-        // Safe-area push-down for status bar, then content pinned to bottom
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top))
-                .padding(LocalVerticalBarPadding.current)
-                .padding(horizontal = 16.dp)
-                .padding(bottom = 12.dp),
-            verticalArrangement = Arrangement.Bottom,
-        ) {
-            // Episode label
-            Text(
-                text = stringResource(Res.string.streams_episode_badge, seasonNumber, episodeNumber),
-                style = MaterialTheme.typography.labelMedium.copy(
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                ),
-                color = MaterialTheme.colorScheme.primary,
-            )
-            Spacer(modifier = Modifier.height(2.dp))
-            // Episode title
-            Text(
-                text = localizedEpisodeTitle(episodeTitle, episodeNumber) ?: episodeTitle,
-                style = MaterialTheme.typography.titleLarge.copy(
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
-                ),
-                color = MaterialTheme.colorScheme.onBackground,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Spacer(modifier = Modifier.height(2.dp))
-            // Show title
-            Text(
-                text = showTitle,
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium,
-                ),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
             )
         }
     }
 }
 
-/** Masks the image so it fades out over its lower half and shows what is behind it. */
-private fun Modifier.fadeOutTowardsBottom(): Modifier = this
-    .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
-    .drawWithContent {
-        drawContent()
-        drawRect(
-            brush = Brush.verticalGradient(
-                colorStops = arrayOf(
-                    0.0f to Color.Black,
-                    0.45f to Color.Black,
-                    0.75f to Color.Black.copy(alpha = 0.55f),
-                    1.0f to Color.Transparent,
-                ),
+@Composable
+private fun EpisodeHeroBlock(
+    seasonNumber: Int,
+    episodeNumber: Int,
+    episodeTitle: String,
+    showTitle: String,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(220.dp)
+            .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top))
+            .padding(LocalVerticalBarPadding.current)
+            .padding(horizontal = 16.dp)
+            .padding(bottom = 12.dp),
+        verticalArrangement = Arrangement.Bottom,
+    ) {
+        Text(
+            text = stringResource(Res.string.streams_episode_badge, seasonNumber, episodeNumber),
+            style = MaterialTheme.typography.labelMedium.copy(
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
             ),
-            blendMode = BlendMode.DstIn,
+            color = MaterialTheme.colorScheme.primary,
+        )
+        Spacer(modifier = Modifier.height(2.dp))
+        Text(
+            text = localizedEpisodeTitle(episodeTitle, episodeNumber) ?: episodeTitle,
+            style = MaterialTheme.typography.titleLarge.copy(
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold,
+            ),
+            color = MaterialTheme.colorScheme.onBackground,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Spacer(modifier = Modifier.height(2.dp))
+        Text(
+            text = showTitle,
+            style = MaterialTheme.typography.bodyMedium.copy(
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium,
+            ),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
     }
+}
 
 // ---------------------------------------------------------------------------
 // Stream List

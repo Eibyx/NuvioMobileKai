@@ -17,9 +17,7 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 import nuvio.composeapp.generated.resources.Res
-import nuvio.composeapp.generated.resources.autosync_toast_failed
-import nuvio.composeapp.generated.resources.autosync_toast_failed_no_reference
-import nuvio.composeapp.generated.resources.autosync_toast_failed_unsupported
+import nuvio.composeapp.generated.resources.autosync_toast_no_fit
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.getString
 
@@ -67,6 +65,9 @@ internal class AutoSyncPlayerCoordinator(
         appliedListener = null
     }
 
+    /** Kai has no nuvio-libass track to retime, so there is nothing to forget. */
+    fun forgetLibassCopies() = Unit
+
     fun attachWithoutAutoSync(url: String, attach: (String) -> Unit) {
         cancel()
         val generationBefore = sidecar.currentGenerationFor(url)
@@ -103,7 +104,6 @@ internal class AutoSyncPlayerCoordinator(
             ?.takeIf { it.isNotBlank() } ?: getPreferredLanguage()
         if (!sidecar.canAttachAddonSubtitleViaSidecar(url, useLibass)) {
             fallbackAttach(url)
-            showFailure(token, Res.string.autosync_toast_failed_unsupported)
             return
         }
 
@@ -117,7 +117,6 @@ internal class AutoSyncPlayerCoordinator(
                 rawBodyLoader = { bodyDeferred.await() ?: error("Subtitle body unavailable") },
             )) {
             fallbackAttach(url)
-            showFailure(token, Res.string.autosync_toast_failed)
             return
         }
         onMimeTypeSelected(PlayerSubtitleUtils.mimeTypeFromUrl(url))
@@ -162,11 +161,7 @@ internal class AutoSyncPlayerCoordinator(
                 if (token != operationToken) return@launch
                 if (resolved == null) {
                     restoreOriginalIfRelevant()
-                    showFailure(token, when (outcome) {
-                        AutoSyncAnalysisOutcome.NO_SUBTITLE_TRACKS,
-                        AutoSyncAnalysisOutcome.NO_USABLE_REFERENCE -> Res.string.autosync_toast_failed_no_reference
-                        else -> Res.string.autosync_toast_failed
-                    })
+                    showNoFit(token, outcome)
                     return@launch
                 }
 
@@ -197,7 +192,6 @@ internal class AutoSyncPlayerCoordinator(
                 if (token != operationToken) return@launch
                 if (!applied) {
                     restoreOriginalIfRelevant()
-                    showFailure(token, Res.string.autosync_toast_failed)
                     return@launch
                 }
                 onMimeTypeSelected(PlayerSubtitleUtils.mimeTypeFromUrl(chosenUrl))
@@ -209,8 +203,12 @@ internal class AutoSyncPlayerCoordinator(
             } catch (_: Exception) {
                 if (token != operationToken) return@launch
                 restoreOriginalIfRelevant()
-                showFailure(token, Res.string.autosync_toast_failed)
             }
         }
+    }
+
+    /** Only a confirmed no-fit is worth telling the viewer; every other failure stays silent. */
+    private fun showNoFit(token: Long, outcome: AutoSyncAnalysisOutcome?) {
+        if (outcome == AutoSyncAnalysisOutcome.NO_FIT) showFailure(token, Res.string.autosync_toast_no_fit)
     }
 }

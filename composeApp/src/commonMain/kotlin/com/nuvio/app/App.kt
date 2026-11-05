@@ -1,5 +1,6 @@
 package com.nuvio.app
 
+import com.nuvio.app.core.ui.background.AppBackgroundHost
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -71,7 +72,10 @@ fun App(
 }
 
 @Composable
-internal fun AppEnvironment(content: @Composable () -> Unit) {
+internal fun AppEnvironment(
+    drawAppBackground: Boolean = true,
+    content: @Composable () -> Unit,
+) {
     if (!platformProvidesImageLoader) {
         setSingletonImageLoaderFactory { context ->
             ImageLoader.Builder(context)
@@ -118,6 +122,12 @@ internal fun AppEnvironment(content: @Composable () -> Unit) {
         appFont = fontSettings.font,
         useSystemFontScale = fontSettings.useSystemFontScale,
     ) {
-        content()
+        if (drawAppBackground) {
+            AppBackgroundHost {
+                content()
+            }
+        } else {
+            content()
+        }
     }
 }

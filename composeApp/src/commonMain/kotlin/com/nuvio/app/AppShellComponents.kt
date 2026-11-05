@@ -1,6 +1,8 @@
 package com.nuvio.app
 
 import com.nuvio.app.features.details.FavoritePerson
+import com.nuvio.app.features.settings.ThemeSettingsRepository
+import com.nuvio.app.core.ui.background.OpaqueAppSurfaces
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -76,6 +78,7 @@ import com.nuvio.app.features.library.LibrarySection
 import com.nuvio.app.features.library.LibrarySortOption
 import com.nuvio.app.features.livetv.LiveTvChannel
 import com.nuvio.app.features.livetv.LiveTvScreen
+import com.nuvio.app.features.livetv.LiveTvVodPlayback
 import com.nuvio.app.features.profiles.AvatarRepository
 import com.nuvio.app.features.profiles.NuvioProfile
 import com.nuvio.app.features.profiles.ProfileBackgroundBackdrop
@@ -157,6 +160,7 @@ internal data class AppTabActions(
     val onContinueWatchingClick: ((ContinueWatchingItem) -> Unit)? = null,
     val onContinueWatchingLongPress: ((ContinueWatchingItem) -> Unit)? = null,
     val onLiveTvChannelClick: (LiveTvChannel) -> Unit = {},
+    val onLiveTvVodClick: (LiveTvVodPlayback) -> Unit = {},
     val onSwitchProfile: (() -> Unit)? = null,
     val onEditProfile: (() -> Unit)? = null,
     val onSettingsPageClick: ((pageName: String, title: String) -> Unit)? = null,
@@ -196,19 +200,22 @@ internal fun AppTabHost(
         when (tab) {
             AppScreenTab.Home -> {
                 key(state.homeContentGeneration) {
-                    HomeScreen(
-                        modifier = Modifier.fillMaxSize(),
-                        animateCollectionGifs = state.animateHomeCollectionGifs,
-                        scrollToTopRequests = requests.homeScrollToTopRequests,
-                        onCatalogClick = actions.onCatalogClick,
-                        onPosterClick = actions.onPosterClick,
-                        onPosterLongClick = actions.onPosterLongClick,
-                        onContinueWatchingClick = actions.onContinueWatchingClick,
-                        onContinueWatchingLongPress = actions.onContinueWatchingLongPress,
-                        continueWatchingDisintegrationRequest = state.continueWatchingDisintegrationRequest,
-                        onFolderClick = actions.onFolderClick,
-                        onFirstCatalogRendered = actions.onInitialHomeContentRendered,
-                    )
+                    val homeDynamicBackground by ThemeSettingsRepository.dynamicArtworkBackgroundEnabled.collectAsStateWithLifecycle()
+                    OpaqueAppSurfaces(enabled = homeDynamicBackground) {
+                        HomeScreen(
+                            modifier = Modifier.fillMaxSize(),
+                            animateCollectionGifs = state.animateHomeCollectionGifs,
+                            scrollToTopRequests = requests.homeScrollToTopRequests,
+                            onCatalogClick = actions.onCatalogClick,
+                            onPosterClick = actions.onPosterClick,
+                            onPosterLongClick = actions.onPosterLongClick,
+                            onContinueWatchingClick = actions.onContinueWatchingClick,
+                            onContinueWatchingLongPress = actions.onContinueWatchingLongPress,
+                            continueWatchingDisintegrationRequest = state.continueWatchingDisintegrationRequest,
+                            onFolderClick = actions.onFolderClick,
+                            onFirstCatalogRendered = actions.onInitialHomeContentRendered,
+                        )
+                    }
                 }
             }
 
@@ -245,6 +252,7 @@ internal fun AppTabHost(
                 LiveTvScreen(
                     scrollToTopRequests = requests.liveTvScrollToTopRequests,
                     onChannelClick = actions.onLiveTvChannelClick,
+                    onVodClick = actions.onLiveTvVodClick,
                 )
             }
 

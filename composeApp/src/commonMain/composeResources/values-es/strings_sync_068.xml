@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Reproductor: audio (oficial 0.6.8) -->
+    <string name="compose_player_audio_amplification">Amplificación</string>
+    <string name="compose_player_audio_amplification_keep">Mantener en los siguientes vídeos</string>
+    <string name="compose_player_audio_delay">Retardo del audio</string>
+    <string name="compose_player_center_mix">Nivel del canal central</string>
+    <string name="settings_playback_remember_audio_delay">Recordar el retardo del audio por dispositivo</string>
+    <string name="settings_playback_remember_audio_delay_description">Recupera el retardo del audio fijado en el reproductor cada vez que vuelve a sonar la misma salida: el altavoz del móvil, unos auriculares con cable o cada dispositivo Bluetooth</string>
+    <string name="settings_playback_downmix_section">Downmix</string>
+    <string name="settings_playback_downmix">Activar downmix</string>
+    <string name="settings_playback_downmix_description">Mezcla el audio envolvente en el número de canales de abajo con el decodificador FFmpeg de la app. Necesita la prioridad de decodificador de vídeo “Preferir decodificadores de la app (FFmpeg)”. La salida Bluetooth siempre recibe un downmix 2.0.</string>
+    <string name="settings_playback_downmix_channels">Número de canales</string>
+    <string name="settings_playback_downmix_maintain_volume">Mantener el volumen original en el downmix</string>
+    <string name="settings_playback_downmix_maintain_volume_description">Si está desactivado, la normalización del downmix puede bajar el volumen general.</string>
+
+    <!-- Subtítulos -->
+    <string name="subtitle_outline_blur">Desenfoque del contorno</string>
+    <string name="subtitle_outline_blur_description">Suaviza solo el contorno. El texto del subtítulo sigue nítido.</string>
+
+    <!-- Seguimiento -->
+    <string name="settings_tracking_privacy_section">Privacidad</string>
+
+    <!-- Fondo de la app y Glass UI (luqman) -->
+    <string name="settings_app_background">Fondo</string>
+    <string name="settings_app_background_choose_photo">Elegir de la galería</string>
+    <string name="settings_app_background_error">No se pudo cargar esa imagen.</string>
+    <string name="settings_app_background_local">Foto de la galería</string>
+    <string name="settings_app_background_none">Predeterminado</string>
+    <string name="settings_app_background_remove">Quitar el fondo</string>
+    <string name="settings_app_background_url">URL de la imagen</string>
+    <string name="settings_app_background_url_hint">https://… (JPG, PNG, GIF o WebP)</string>
+    <string name="settings_app_background_use_url">Usar la URL de una imagen</string>
+    <string name="settings_glass_ui">Glass UI (experimental)</string>
+    <string name="settings_glass_ui_description">Convierte tarjetas, paneles y diálogos en cristal esmerilado sobre el fondo de la app.</string>
+    <string name="settings_glass_ui_section">Glass UI</string>
+    <string name="settings_glass_ui_style">Estilo del cristal</string>
+    <string name="settings_glass_ui_style_balanced">Equilibrado</string>
+    <string name="settings_glass_ui_style_dark">Oscuro</string>
+    <string name="settings_glass_ui_style_vivid">Vivo</string>
+
+    <!-- TV en directo (luqman) -->
+    <string name="live_tv_action_clear_recents">Borrar recientes</string>
+    <string name="live_tv_action_grid_view">Vista de cuadrícula</string>
+    <string name="live_tv_action_list_view">Vista de lista</string>
+    <string name="live_tv_action_search">Buscar canales</string>
+    <string name="live_tv_filter_recents">Recientes</string>
+    <string name="live_tv_section_guide">Guía</string>
+    <string name="live_tv_section_on_demand">A la carta</string>
+    <string name="live_tv_section_sports">Deportes</string>
+    <string name="live_tv_guide_empty_title">Sin datos de la guía</string>
+    <string name="live_tv_guide_empty_message">Añade una fuente EPG en los ajustes de TV en directo para ver qué echan.</string>
+    <string name="live_tv_on_demand_empty_title">No hay nada aquí</string>
+    <string name="live_tv_on_demand_empty_message">Ningún título coincide con esta categoría o búsqueda.</string>
+    <string name="live_tv_on_demand_episode">E%1$d · %2$s</string>
+    <string name="live_tv_on_demand_load_failed">No se pudo cargar A la carta</string>
+    <string name="live_tv_on_demand_movies">Películas</string>
+    <string name="live_tv_on_demand_no_episodes">No se encontraron episodios</string>
+    <string name="live_tv_on_demand_search_placeholder">Buscar títulos</string>
+    <string name="live_tv_on_demand_season">Temporada %1$d</string>
+    <string name="live_tv_on_demand_series">Series</string>
+    <string name="live_tv_on_demand_unavailable_title">A la carta no está disponible</string>
+    <string name="live_tv_on_demand_unavailable_message">A la carta funciona con proveedores Xtream Codes. Añade uno en los ajustes de TV en directo.</string>
+    <string name="live_tv_sports_broadcast">TV: %1$s</string>
+    <string name="live_tv_sports_empty_title">Sin eventos</string>
+    <string name="live_tv_sports_empty_message">Ahora mismo no hay eventos en directo ni próximos.</string>
+    <string name="live_tv_sports_filter_live">En directo</string>
+    <string name="live_tv_sports_live_badge">EN DIRECTO</string>
+    <string name="live_tv_sports_load_failed">No se pudieron cargar los deportes</string>
+    <string name="live_tv_sports_no_channels">Ningún canal de tus listas coincide</string>
+</resources>

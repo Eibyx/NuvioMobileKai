@@ -1,8 +1,5 @@
 package com.nuvio.app.features.details.components
 
-import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.graphics.BlendMode
-import androidx.compose.ui.graphics.CompositingStrategy
 import com.nuvio.app.features.details.MetaScreenSettingsRepository
 import androidx.compose.runtime.collectAsState
 import com.nuvio.app.core.ui.ArtworkLogoImage
@@ -34,8 +31,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.VolumeOff
-import androidx.compose.material.icons.rounded.VolumeUp
+import androidx.compose.material.icons.automirrored.rounded.VolumeOff
+import androidx.compose.material.icons.automirrored.rounded.VolumeUp
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -58,6 +55,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.graphicsLayer
 import coil3.compose.AsyncImage
+import com.nuvio.app.core.ui.featherArtwork
 import com.nuvio.app.core.ui.heroStretchHeight
 import com.nuvio.app.core.ui.heroStretchZoom
 import com.nuvio.app.features.details.MetaDetails
@@ -81,12 +79,7 @@ fun DetailHero(
     heroTrailerPlayWhenReady: () -> Boolean = { false },
     heroTrailerMuted: Boolean = true,
     heroGradientColor: Color? = null,
-    /**
-     * The blurred, veiled artwork of the cinematic background lies behind the page. In the light
-     * appearance the hero artwork then fades out into it, instead of into the plain page colour,
-     * so there is no white band between the two.
-     */
-    fadeIntoCinematicBackdrop: Boolean = false,
+    cinematicBackground: Boolean = false,
     onBackdropLoaded: (Painter, ImageBitmap?) -> Unit = { _, _ -> },
     onHeroTrailerMuteToggle: () -> Unit = {},
     onHeroTrailerReady: () -> Unit = {},
@@ -110,7 +103,6 @@ fun DetailHero(
             8.dp +
             ((40.dp - muteIconSize) / 2)
         val bottomGradientColor = heroGradientColor ?: MaterialTheme.colorScheme.background
-        val fadeArtworkOut = !isDark && fadeIntoCinematicBackdrop
         var logoLoadError by remember(meta.id, meta.logo) {
             mutableStateOf(false)
         }
@@ -132,59 +124,66 @@ fun DetailHero(
                     .fillMaxSize(),
                 contentAlignment = Alignment.BottomCenter,
             ) {
-                val imageUrl = meta.background ?: meta.poster
-                if (imageUrl != null) {
-                    AsyncImage(
-                        model = imageUrl,
-                        contentDescription = meta.name,
-                        modifier = Modifier
-                            .align(Alignment.TopCenter)
-                            .fillMaxWidth()
-                            .height(heroHeight)
-                            .heroStretchZoom(stretchPx)
-                            .then(if (fadeArtworkOut) Modifier.fadeOutTowardsBottom() else Modifier)
-                            .graphicsLayer {
-                                translationY = scrollOffset() * 0.5f
-                                scaleX = 1.08f
-                                scaleY = 1.08f
-                        },
-                        alignment = if (isTablet) Alignment.TopCenter else Alignment.Center,
-                        contentScale = ContentScale.Crop,
-                        onSuccess = { state ->
-                            onBackdropLoaded(
-                                state.painter,
-                                loadedBackdropImageBitmap(state.result),
-                            )
-                        },
-                    )
-                } else {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(MaterialTheme.colorScheme.surface),
-                    )
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .then(if (cinematicBackground) Modifier.featherArtwork() else Modifier),
+                ) {
+                    val imageUrl = meta.background ?: meta.poster
+                    if (imageUrl != null) {
+                        AsyncImage(
+                            model = imageUrl,
+                            contentDescription = meta.name,
+                            modifier = Modifier
+                                .align(Alignment.TopCenter)
+                                .fillMaxWidth()
+                                .height(heroHeight)
+                                .heroStretchZoom(stretchPx)
+                                .graphicsLayer {
+                                    translationY = scrollOffset() * 0.5f
+                                    scaleX = 1.08f
+                                    scaleY = 1.08f
+                                },
+                            alignment = if (isTablet) Alignment.TopCenter else Alignment.Center,
+                            contentScale = ContentScale.Crop,
+                            onSuccess = { state ->
+                                onBackdropLoaded(
+                                    state.painter,
+                                    loadedBackdropImageBitmap(state.result),
+                                )
+                            },
+                        )
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(MaterialTheme.colorScheme.surface),
+                        )
+                    }
+                    if (heroTrailerSourceUrl != null) {
+                        HeroTrailerPlayerSurface(
+                            sourceUrl = heroTrailerSourceUrl,
+                            sourceAudioUrl = heroTrailerSourceAudioUrl,
+                            playWhenReady = heroTrailerPlayWhenReady() && !MiniPlayerController.isActive,
+                            muted = heroTrailerMuted,
+                            modifier = Modifier
+                                .align(Alignment.TopCenter)
+                                .fillMaxWidth()
+                                .height(heroHeight)
+                                .heroStretchZoom(stretchPx)
+                                .graphicsLayer {
+                                    alpha = trailerAlpha
+                                    translationY = scrollOffset() * 0.5f
+                                    scaleX = 1.08f
+                                    scaleY = 1.08f
+                                },
+                            onReady = onHeroTrailerReady,
+                            onEnded = onHeroTrailerEnded,
+                            onError = onHeroTrailerError,
+                        )
+                    }
                 }
                 if (heroTrailerSourceUrl != null) {
-                    HeroTrailerPlayerSurface(
-                        sourceUrl = heroTrailerSourceUrl,
-                        sourceAudioUrl = heroTrailerSourceAudioUrl,
-                        playWhenReady = heroTrailerPlayWhenReady() && !MiniPlayerController.isActive,
-                        muted = heroTrailerMuted,
-                        modifier = Modifier
-                            .align(Alignment.TopCenter)
-                            .fillMaxWidth()
-                            .height(heroHeight)
-                            .heroStretchZoom(stretchPx)
-                            .graphicsLayer {
-                                alpha = trailerAlpha
-                                translationY = scrollOffset() * 0.5f
-                                scaleX = 1.08f
-                                scaleY = 1.08f
-                            },
-                        onReady = onHeroTrailerReady,
-                        onEnded = onHeroTrailerEnded,
-                        onError = onHeroTrailerError,
-                    )
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
@@ -219,7 +218,7 @@ fun DetailHero(
                         label = "detail_hero_trailer_mute_icon",
                     ) { muted ->
                         Icon(
-                            imageVector = if (muted) Icons.Rounded.VolumeOff else Icons.Rounded.VolumeUp,
+                            imageVector = if (muted) Icons.AutoMirrored.Rounded.VolumeOff else Icons.AutoMirrored.Rounded.VolumeUp,
                             contentDescription = null,
                             tint = Color.White,
                             modifier = Modifier.size(muteIconSize),
@@ -227,36 +226,37 @@ fun DetailHero(
                     }
                 }
 
-                if (!isDark) {
+                if (cinematicBackground) {
+                    // The artwork (and a playing trailer) feathers into the cinematic background.
+                } else if (!isDark) {
                     // Light: a long fade over the lower part of the artwork into the page, so the
-                    // logo and the dark text sit on the page colour whatever the image. Over the
-                    // cinematic background the artwork itself fades out instead (above); the fade
-                    // only covers a playing trailer, which cannot be faded out the same way.
+                    // logo and the dark text sit on the page colour whatever the image.
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .graphicsLayer { alpha = if (fadeArtworkOut) trailerAlpha else 1f }
                             .background(Brush.verticalGradient(colorStops = lightHeroFadeStops(bottomGradientColor))),
                     )
-                } else Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(if (isTablet) 360.dp else 320.dp)
-                        .align(Alignment.BottomCenter)
-                        .background(
-                            Brush.verticalGradient(
-                                colorStops = arrayOf(
-                                    0.00f to Color.Transparent,
-                                    0.16f to bottomGradientColor.copy(alpha = 0.04f),
-                                    0.32f to bottomGradientColor.copy(alpha = 0.14f),
-                                    0.50f to bottomGradientColor.copy(alpha = 0.34f),
-                                    0.68f to bottomGradientColor.copy(alpha = 0.62f),
-                                    0.84f to bottomGradientColor.copy(alpha = 0.84f),
-                                    1.00f to bottomGradientColor,
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(if (isTablet) 360.dp else 320.dp)
+                            .align(Alignment.BottomCenter)
+                            .background(
+                                Brush.verticalGradient(
+                                    colorStops = arrayOf(
+                                        0.00f to Color.Transparent,
+                                        0.16f to bottomGradientColor.copy(alpha = 0.04f),
+                                        0.32f to bottomGradientColor.copy(alpha = 0.14f),
+                                        0.50f to bottomGradientColor.copy(alpha = 0.34f),
+                                        0.68f to bottomGradientColor.copy(alpha = 0.62f),
+                                        0.84f to bottomGradientColor.copy(alpha = 0.84f),
+                                        1.00f to bottomGradientColor,
+                                    ),
                                 ),
                             ),
-                        ),
-                )
+                    )
+                }
 
                 Column(
                     modifier = Modifier
@@ -307,19 +307,4 @@ private fun detailHeroHeight(maxWidth: Dp, isTablet: Boolean): Dp =
         (maxWidth * 1.33f).coerceIn(420.dp, 760.dp)
     } else {
         (maxWidth * 0.42f).coerceIn(300.dp, 420.dp)
-    }
-
-/** Fades what is drawn out to transparent over the lower half, on the light fade's curve. */
-private fun Modifier.fadeOutTowardsBottom(): Modifier = this
-    .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
-    .drawWithContent {
-        drawContent()
-        drawRect(
-            brush = Brush.verticalGradient(
-                colorStops = lightHeroFadeStops(Color.Black)
-                    .map { (stop, color) -> stop to Color.Black.copy(alpha = 1f - color.alpha) }
-                    .toTypedArray(),
-            ),
-            blendMode = BlendMode.DstIn,
-        )
     }

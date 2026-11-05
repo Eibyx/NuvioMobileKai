@@ -14,7 +14,6 @@ final class PlayerNowPlayingController {
         var positionMs: Int64 = 0
         var durationMs: Int64 = 0
         var playbackSpeed: Float = 1.0
-        var sampledAt: TimeInterval = ProcessInfo.processInfo.systemUptime
     }
 
     private struct RemoteCommandTarget {
@@ -25,7 +24,6 @@ final class PlayerNowPlayingController {
     private weak var owner: MPVPlayerViewController?
     private var metadata = Metadata()
     private var playbackState = PlaybackState()
-    private var publishedPlaybackState = PlaybackState()
     private var currentArtworkImage: UIImage?
     private var currentArtworkURL: String?
     private var artworkTask: URLSessionDataTask?
@@ -165,8 +163,6 @@ final class PlayerNowPlayingController {
             }
 
             MPNowPlayingInfoCenter.default().nowPlayingInfo = info
-            self.publishedPlaybackState = self.playbackState
-            self.publishedPlaybackState.sampledAt = ProcessInfo.processInfo.systemUptime
         }
 
         if Thread.isMainThread {

@@ -1,3 +1,46 @@
+# Sincronización con el oficial y con luqman (5-nov-2026)
+
+Una sola fusión en la rama `kai`, sin rebase: **luqman** (`luqmanfadlli/NuvioMobile-Enhanced`, rama `enhanced`) ya había fusionado el **oficial** (`NuvioMedia/NuvioMobile`, rama `cmp-rewrite`) hasta su 0.6.8-beta, así que con luqman entra todo: unos 42 commits propios de luqman y los 20 del oficial. Hubo 25 archivos en conflicto.
+
+## Qué entró
+
+| Cambio | De | Notas |
+|---|---|---|
+| Retardo del audio en el reproductor (Android), recordado por salida (altavoz, cable, cada Bluetooth) | Oficial | ExoPlayer con su `AudioDelayMediaSource`; mpv con `audio-delay`. Ajuste "Recordar el retardo del audio por dispositivo". |
+| Amplificación del audio y downmix con nivel del canal central (Android) | Oficial | En mpv el volumen puede pasar del 100 % (`volume-max=400`), añadido a las opciones de mpv de Kai. |
+| Reanudar un torrent cortado en el fotograma donde se paró | Oficial | |
+| Si Auto cambia de motor tras un fallo, sigue con la misma fuente; los fallos de carga de mpv se ven en el reproductor | Oficial | El aviso de error de mpv usa el `END_FILE` de mpvRx. |
+| Fondo cinemático ya desenfocado en la ficha y en Streams (sin `blur` en tiempo real) | Oficial | Con el velo y el glass de Kai. La imagen de cabecera se funde con el fondo (`featherArtwork`) también en el tema claro, y sustituye al fundido propio que tenía Kai. |
+| AutoSync: compara ASS/SSA por sus diálogos, cae a SRT/VTT si ningún ASS encaja y solo avisa cuando el subtítulo no corresponde al vídeo | Oficial | Ver "Descartado". |
+| Fondo de la app desde la galería o una URL y **Glass UI (experimental)** con estilos oscuro, equilibrado y vivo | luqman | En Apariencia; desactivado por defecto. Fondo dinámico y acento del catálogo pasan a Diseño → Inicio. |
+| TV en directo: pestañas Guía, Deportes y A la carta, vista de cuadrícula o lista, recientes y favoritos | luqman | |
+| Desenfoque del contorno de los subtítulos (también nativo en iOS) | luqman | |
+| Subtítulos de texto en PiP y en el mini reproductor de iOS; iOS ya no salta unos segundos al abrir el Centro de control | luqman | |
+| Arreglos de WeTrakr, Simkl y ajustes de plugins; "Visionado privado" pasa a Seguimiento | luqman | |
+| Gradle 9.8.2 y AGP 9.4.0 | luqman | |
+| Traducciones | Ambos | En español manda Kai; los textos nuevos están en `strings_sync_068.xml` y el aviso de AutoSync en `autosync_toast_strings.xml`. |
+
+## Qué se quedó de Kai
+
+| Parte | Cómo quedó |
+|---|---|
+| mpvlib de mpvRx (MPVLib + MpvSession) | El oficial pasa a un `MpvSurfaceView` propio para soltar las superficies en el hilo de mpv. Kai sigue con su vista y su sesión; las funciones nuevas (retardo, amplificación, errores) van sobre ella. |
+| Un solo renderizador de ASS en ExoPlayer (libass de libmpv) | Igual que antes. El retardo del audio se aplica en la única ruta de Kai. |
+| Tema claro en ficha y Streams | La cabecera del episodio sigue oscura en el claro salvo con fondo cinemático, donde se funde con él y lleva un velo del color de la página. |
+| Capítulos visibles por defecto, panel lateral con su tinte, ajustes de Apariencia (modo claro/oscuro, fuente) | Integrados con las filas nuevas de búsqueda de ajustes. |
+| Workflows de release y de iOS | Sin cambios: no se toma la opción de saltar fases de Kotlin/Native que luqman añadió a sus workflows. La propiedad de Gradle que la activa entra, pero no hace nada si no se pasa. |
+| Versión 2.0.0, `store.json` | Sin cambios. |
+
+## Qué se descartó y por qué
+
+| Descartado | Por qué |
+|---|---|
+| AutoSync de subtítulos ASS/SSA dibujados por nuvio-libass (`AutoSyncLibassSubtitles`) y la subida de nuvio-libass a 0.0.13 | Depende del nuvio-libass del oficial, que Kai no usa (un solo renderizador de ASS). Con el ASS de Kai, AutoSync sigue dejando el subtítulo tal cual, ahora sin aviso de error. |
+| `MpvSurfaceView` del oficial y su test | Va con la librería mpv del oficial (`is.xyz.mpv.MPV`), no con la de mpvRx. |
+| Cambios de luqman en `mobile-release.yml` e `ios-test-build.yml` | Release y build de iOS son de Kai. |
+
+---
+
 # Sincronización con el oficial y con luqman (4-nov-2026)
 
 Fusiones en la rama `kai`, sin rebase. Esta vez primero **luqman** y después el **oficial**: luqman ya había fusionado el oficial hasta su 0.6.6 y resuelto sus choques, así que en ese orden salen la mitad de conflictos (22 frente a 47).
