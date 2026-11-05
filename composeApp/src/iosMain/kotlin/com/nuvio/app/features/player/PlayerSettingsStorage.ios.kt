@@ -1119,6 +1119,26 @@ actual object PlayerSettingsStorage {
 
     actual fun savePlaybackBackBufferSeconds(value: Int) {}
 
+    actual fun loadLibmpvCustomBufferEnabled(): Boolean? = null
+
+    actual fun saveLibmpvCustomBufferEnabled(value: Boolean) {}
+
+    actual fun loadLibmpvForwardBufferSeconds(): Int? = null
+
+    actual fun saveLibmpvForwardBufferSeconds(value: Int) {}
+
+    actual fun loadLibmpvForwardBufferMaxMb(): Int? = null
+
+    actual fun saveLibmpvForwardBufferMaxMb(value: Int) {}
+
+    actual fun loadLibmpvBackBufferMb(): Int? = null
+
+    actual fun saveLibmpvBackBufferMb(value: Int) {}
+
+    actual fun loadLibmpvBufferOnDisk(): Boolean? = null
+
+    actual fun saveLibmpvBufferOnDisk(value: Boolean) {}
+
     actual fun loadPlaybackTargetBufferMb(): Int? = null
 
     actual fun savePlaybackTargetBufferMb(value: Int) {}

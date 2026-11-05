@@ -85,6 +85,11 @@ data class PlayerSettingsUiState(
     val playbackStartBufferSeconds: Int = 3,
     val playbackRebufferSeconds: Int = 5,
     val playbackBackBufferSeconds: Int = 10,
+    val libmpvCustomBufferEnabled: Boolean = false,
+    val libmpvForwardBufferSeconds: Int = LibmpvBufferLimits.DEFAULT_FORWARD_SECONDS,
+    val libmpvForwardBufferMaxMb: Int = LibmpvBufferLimits.DEFAULT_FORWARD_MB,
+    val libmpvBackBufferMb: Int = LibmpvBufferLimits.DEFAULT_BACK_MB,
+    val libmpvBufferOnDisk: Boolean = false,
     val playbackTargetBufferMb: Int = 256,
     val vodDiskCacheSizeMb: Int = 2048,
     val streamAutoPlayMode: StreamAutoPlayMode = StreamAutoPlayMode.MANUAL,
@@ -185,6 +190,11 @@ object PlayerSettingsRepository {
     private var playbackStartBufferSeconds = 3
     private var playbackRebufferSeconds = 5
     private var playbackBackBufferSeconds = 10
+    private var libmpvCustomBufferEnabled = false
+    private var libmpvForwardBufferSeconds = LibmpvBufferLimits.DEFAULT_FORWARD_SECONDS
+    private var libmpvForwardBufferMaxMb = LibmpvBufferLimits.DEFAULT_FORWARD_MB
+    private var libmpvBackBufferMb = LibmpvBufferLimits.DEFAULT_BACK_MB
+    private var libmpvBufferOnDisk = false
     private var playbackTargetBufferMb = 256
     private var vodDiskCacheSizeMb = 2048
     private var streamAutoPlayMode = StreamAutoPlayMode.MANUAL
@@ -289,6 +299,11 @@ object PlayerSettingsRepository {
         playbackStartBufferSeconds = 3
         playbackRebufferSeconds = 5
         playbackBackBufferSeconds = 10
+        libmpvCustomBufferEnabled = false
+        libmpvForwardBufferSeconds = LibmpvBufferLimits.DEFAULT_FORWARD_SECONDS
+        libmpvForwardBufferMaxMb = LibmpvBufferLimits.DEFAULT_FORWARD_MB
+        libmpvBackBufferMb = LibmpvBufferLimits.DEFAULT_BACK_MB
+        libmpvBufferOnDisk = false
         playbackTargetBufferMb = 256
         vodDiskCacheSizeMb = 2048
         streamAutoPlayMode = StreamAutoPlayMode.MANUAL
@@ -423,6 +438,11 @@ object PlayerSettingsRepository {
         playbackStartBufferSeconds = PlayerSettingsStorage.loadPlaybackStartBufferSeconds() ?: 3
         playbackRebufferSeconds = PlayerSettingsStorage.loadPlaybackRebufferSeconds() ?: 5
         playbackBackBufferSeconds = PlayerSettingsStorage.loadPlaybackBackBufferSeconds() ?: 10
+        libmpvCustomBufferEnabled = PlayerSettingsStorage.loadLibmpvCustomBufferEnabled() ?: false
+        libmpvForwardBufferSeconds = PlayerSettingsStorage.loadLibmpvForwardBufferSeconds() ?: LibmpvBufferLimits.DEFAULT_FORWARD_SECONDS
+        libmpvForwardBufferMaxMb = PlayerSettingsStorage.loadLibmpvForwardBufferMaxMb() ?: LibmpvBufferLimits.DEFAULT_FORWARD_MB
+        libmpvBackBufferMb = PlayerSettingsStorage.loadLibmpvBackBufferMb() ?: LibmpvBufferLimits.DEFAULT_BACK_MB
+        libmpvBufferOnDisk = PlayerSettingsStorage.loadLibmpvBufferOnDisk() ?: false
         playbackTargetBufferMb = PlayerSettingsStorage.loadPlaybackTargetBufferMb() ?: 256
         vodDiskCacheSizeMb = PlayerSettingsStorage.loadVodDiskCacheSizeMb() ?: 2048
         streamAutoPlayMode = PlayerSettingsStorage.loadStreamAutoPlayMode()
@@ -946,6 +966,60 @@ object PlayerSettingsRepository {
         PlayerSettingsStorage.savePlaybackBackBufferSeconds(value)
     }
 
+    fun setLibmpvCustomBufferEnabled(value: Boolean) {
+        ensureLoaded()
+        if (libmpvCustomBufferEnabled == value) return
+        libmpvCustomBufferEnabled = value
+        publish()
+        PlayerSettingsStorage.saveLibmpvCustomBufferEnabled(value)
+    }
+
+    fun setLibmpvForwardBufferSeconds(value: Int) {
+        ensureLoaded()
+        val clamped = value.coerceIn(LibmpvBufferLimits.forwardSecondsRange)
+        if (libmpvForwardBufferSeconds == clamped) return
+        libmpvForwardBufferSeconds = clamped
+        publish()
+        PlayerSettingsStorage.saveLibmpvForwardBufferSeconds(clamped)
+    }
+
+    fun setLibmpvForwardBufferMaxMb(value: Int) {
+        ensureLoaded()
+        val clamped = value.coerceIn(LibmpvBufferLimits.forwardMbRange(libmpvBufferOnDisk))
+        if (libmpvForwardBufferMaxMb == clamped) return
+        libmpvForwardBufferMaxMb = clamped
+        publish()
+        PlayerSettingsStorage.saveLibmpvForwardBufferMaxMb(clamped)
+    }
+
+    fun setLibmpvBackBufferMb(value: Int) {
+        ensureLoaded()
+        val clamped = value.coerceIn(LibmpvBufferLimits.backMbRange(libmpvBufferOnDisk))
+        if (libmpvBackBufferMb == clamped) return
+        libmpvBackBufferMb = clamped
+        publish()
+        PlayerSettingsStorage.saveLibmpvBackBufferMb(clamped)
+    }
+
+    /** Moving the buffer back to RAM brings sizes typed for the disk down to the RAM limits. */
+    fun setLibmpvBufferOnDisk(value: Boolean) {
+        ensureLoaded()
+        if (libmpvBufferOnDisk == value) return
+        libmpvBufferOnDisk = value
+        PlayerSettingsStorage.saveLibmpvBufferOnDisk(value)
+        val forward = libmpvForwardBufferMaxMb.coerceIn(LibmpvBufferLimits.forwardMbRange(value))
+        if (forward != libmpvForwardBufferMaxMb) {
+            libmpvForwardBufferMaxMb = forward
+            PlayerSettingsStorage.saveLibmpvForwardBufferMaxMb(forward)
+        }
+        val back = libmpvBackBufferMb.coerceIn(LibmpvBufferLimits.backMbRange(value))
+        if (back != libmpvBackBufferMb) {
+            libmpvBackBufferMb = back
+            PlayerSettingsStorage.saveLibmpvBackBufferMb(back)
+        }
+        publish()
+    }
+
     fun setPlaybackTargetBufferMb(value: Int) {
         ensureLoaded()
         if (playbackTargetBufferMb == value) return
@@ -1378,6 +1452,11 @@ object PlayerSettingsRepository {
             playbackStartBufferSeconds = playbackStartBufferSeconds,
             playbackRebufferSeconds = playbackRebufferSeconds,
             playbackBackBufferSeconds = playbackBackBufferSeconds,
+            libmpvCustomBufferEnabled = libmpvCustomBufferEnabled,
+            libmpvForwardBufferSeconds = libmpvForwardBufferSeconds,
+            libmpvForwardBufferMaxMb = libmpvForwardBufferMaxMb,
+            libmpvBackBufferMb = libmpvBackBufferMb,
+            libmpvBufferOnDisk = libmpvBufferOnDisk,
             playbackTargetBufferMb = playbackTargetBufferMb,
             vodDiskCacheSizeMb = vodDiskCacheSizeMb,
             streamAutoPlayMode = streamAutoPlayMode,

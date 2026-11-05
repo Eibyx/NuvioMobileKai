@@ -133,6 +133,16 @@ internal expect object PlayerSettingsStorage {
     fun savePlaybackRebufferSeconds(value: Int)
     fun loadPlaybackBackBufferSeconds(): Int?
     fun savePlaybackBackBufferSeconds(value: Int)
+    fun loadLibmpvCustomBufferEnabled(): Boolean?
+    fun saveLibmpvCustomBufferEnabled(value: Boolean)
+    fun loadLibmpvForwardBufferSeconds(): Int?
+    fun saveLibmpvForwardBufferSeconds(value: Int)
+    fun loadLibmpvForwardBufferMaxMb(): Int?
+    fun saveLibmpvForwardBufferMaxMb(value: Int)
+    fun loadLibmpvBackBufferMb(): Int?
+    fun saveLibmpvBackBufferMb(value: Int)
+    fun loadLibmpvBufferOnDisk(): Boolean?
+    fun saveLibmpvBufferOnDisk(value: Boolean)
     fun loadPlaybackTargetBufferMb(): Int?
     fun savePlaybackTargetBufferMb(value: Int)
     fun loadVodDiskCacheSizeMb(): Int?

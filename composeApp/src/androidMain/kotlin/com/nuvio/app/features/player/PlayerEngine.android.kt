@@ -1860,6 +1860,33 @@ private class NuvioLibmpvView(
         }
     }
 
+    /**
+     * The demuxer buffer: the default, or the one set in Playback > Buffer and cache. On disk it
+     * lives in the app cache; mpv unlinks its files at once, and leftovers are cleared here.
+     */
+    private fun applyBufferOptions() {
+        val settings = PlayerSettingsRepository.uiState.value
+        val diskDir = if (settings.libmpvCustomBufferEnabled && settings.libmpvBufferOnDisk) {
+            runCatching {
+                java.io.File(context.cacheDir, LIBMPV_BUFFER_DIR).apply {
+                    mkdirs()
+                    listFiles()?.forEach { it.delete() }
+                }
+            }.getOrNull()
+        } else {
+            null
+        }
+        val freeMb = diskDir?.let { runCatching { android.os.StatFs(it.path).availableBytes / (1024L * 1024L) }.getOrNull() }
+        val plan = libmpvBufferPlan(settings, libmpvDefaultBufferMb(), diskDir?.path, freeMb)
+        plan.options.forEach { (option, value) -> mpv.setOptionString(option, value).logIfMpvError(option) }
+        InAppLogger.info(
+            "MPV/Android",
+            "buffer ahead=${plan.forwardSeconds?.let { "${it}s/" }.orEmpty()}${plan.forwardMb}MB " +
+                "behind=${plan.backMb}MB ${if (plan.onDisk) "disk" else "ram"}" +
+                (if (settings.libmpvBufferOnDisk && settings.libmpvCustomBufferEnabled && !plan.onDisk) " (no room on disk)" else ""),
+        )
+    }
+
     override fun initOptions() {
         InAppLogger.info("MPV/Android", "Initializing libmpv yuv420p=$yuv420pEnabled")
         mpv.setOptionString("profile", "fast")
@@ -1873,8 +1900,7 @@ private class NuvioLibmpvView(
         mpv.setOptionString("tls-verify", "yes")
         mpv.setOptionString("tls-ca-file", "${context.filesDir.path}/cacert.pem")
         mpv.setOptionString("demuxer-lavf-o", "protocol_whitelist=[file,crypto,data,http,https,tcp,tls]").logIfMpvError("demuxer-lavf-o")
-        mpv.setOptionString("demuxer-max-bytes", "${libmpvCacheBytes()}").logIfMpvError("demuxer-max-bytes")
-        mpv.setOptionString("demuxer-max-back-bytes", "${libmpvCacheBytes()}").logIfMpvError("demuxer-max-back-bytes")
+        applyBufferOptions()
         mpv.setOptionString("vd-lavc-film-grain", "cpu")
         SubtitleFontFiles.directoryPath()?.let { mpv.setOptionString("sub-fonts-dir", it).logIfMpvError("sub-fonts-dir") }
         // Fonts attached to the file first; then the font directory (copied into sub-fonts-dir),
@@ -2784,8 +2810,10 @@ private fun MPVNode.toMpvNodeSummary(): String =
         .getOrElse { "<unavailable>" }
         .let { if (it.length <= 240) it else it.take(240) + "…" }
 
-private fun libmpvCacheBytes(): Int =
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) 64 * 1024 * 1024 else 32 * 1024 * 1024
+private const val LIBMPV_BUFFER_DIR = "mpv-buffer"
+
+private fun libmpvDefaultBufferMb(): Int =
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) 64 else 32
 
 private fun Int.logIfMpvError(option: String) {
     if (this < 0) {

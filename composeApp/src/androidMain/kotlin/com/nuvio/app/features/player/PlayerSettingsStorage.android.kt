@@ -96,6 +96,11 @@ actual object PlayerSettingsStorage {
     private const val nightModeButtonEnabledKey = "night_mode_button_enabled"
     private const val nightModeEnabledKey = "night_mode_enabled"
     private const val playbackBackBufferSecondsKey = "playback_back_buffer_seconds"
+    private const val libmpvCustomBufferEnabledKey = "libmpv_custom_buffer_enabled"
+    private const val libmpvForwardBufferSecondsKey = "libmpv_forward_buffer_seconds"
+    private const val libmpvForwardBufferMaxMbKey = "libmpv_forward_buffer_max_mb"
+    private const val libmpvBackBufferMbKey = "libmpv_back_buffer_mb"
+    private const val libmpvBufferOnDiskKey = "libmpv_buffer_on_disk"
     private const val playbackMaxBufferSecondsKey = "playback_max_buffer_seconds"
     private const val playbackMinBufferSecondsKey = "playback_min_buffer_seconds"
     private const val playbackRebufferSecondsKey = "playback_rebuffer_seconds"
@@ -1136,6 +1141,71 @@ actual object PlayerSettingsStorage {
         preferences
             ?.edit()
             ?.putInt(ProfileScopedKey.of(playbackBackBufferSecondsKey), value)
+            ?.apply()
+    }
+
+    actual fun loadLibmpvCustomBufferEnabled(): Boolean? =
+        preferences?.let { sharedPreferences ->
+            val key = ProfileScopedKey.of(libmpvCustomBufferEnabledKey)
+            if (sharedPreferences.contains(key)) sharedPreferences.getBoolean(key, false) else null
+        }
+
+    actual fun saveLibmpvCustomBufferEnabled(value: Boolean) {
+        preferences
+            ?.edit()
+            ?.putBoolean(ProfileScopedKey.of(libmpvCustomBufferEnabledKey), value)
+            ?.apply()
+    }
+
+    actual fun loadLibmpvForwardBufferSeconds(): Int? =
+        preferences?.let { sharedPreferences ->
+            val key = ProfileScopedKey.of(libmpvForwardBufferSecondsKey)
+            if (sharedPreferences.contains(key)) sharedPreferences.getInt(key, 0) else null
+        }
+
+    actual fun saveLibmpvForwardBufferSeconds(value: Int) {
+        preferences
+            ?.edit()
+            ?.putInt(ProfileScopedKey.of(libmpvForwardBufferSecondsKey), value)
+            ?.apply()
+    }
+
+    actual fun loadLibmpvForwardBufferMaxMb(): Int? =
+        preferences?.let { sharedPreferences ->
+            val key = ProfileScopedKey.of(libmpvForwardBufferMaxMbKey)
+            if (sharedPreferences.contains(key)) sharedPreferences.getInt(key, 0) else null
+        }
+
+    actual fun saveLibmpvForwardBufferMaxMb(value: Int) {
+        preferences
+            ?.edit()
+            ?.putInt(ProfileScopedKey.of(libmpvForwardBufferMaxMbKey), value)
+            ?.apply()
+    }
+
+    actual fun loadLibmpvBackBufferMb(): Int? =
+        preferences?.let { sharedPreferences ->
+            val key = ProfileScopedKey.of(libmpvBackBufferMbKey)
+            if (sharedPreferences.contains(key)) sharedPreferences.getInt(key, 0) else null
+        }
+
+    actual fun saveLibmpvBackBufferMb(value: Int) {
+        preferences
+            ?.edit()
+            ?.putInt(ProfileScopedKey.of(libmpvBackBufferMbKey), value)
+            ?.apply()
+    }
+
+    actual fun loadLibmpvBufferOnDisk(): Boolean? =
+        preferences?.let { sharedPreferences ->
+            val key = ProfileScopedKey.of(libmpvBufferOnDiskKey)
+            if (sharedPreferences.contains(key)) sharedPreferences.getBoolean(key, false) else null
+        }
+
+    actual fun saveLibmpvBufferOnDisk(value: Boolean) {
+        preferences
+            ?.edit()
+            ?.putBoolean(ProfileScopedKey.of(libmpvBufferOnDiskKey), value)
             ?.apply()
     }
 
