@@ -125,6 +125,7 @@ class ShaderPresetsTest {
         assertEquals(ShaderPresets.NVSCALER, ShaderController.presetFor(remembered, anime.copy(presetOverride = ShaderPresets.NVSCALER)))
         assertTrue(ShaderContentKind.isAnime(hasAnimeId = true, genres = emptyList(), hasAniListLink = false))
         assertTrue(ShaderContentKind.isAnime(hasAnimeId = false, genres = listOf("Animation"), hasAniListLink = false))
+        assertTrue(ShaderContentKind.isAnime(hasAnimeId = false, genres = listOf("Animación"), hasAniListLink = false))
         assertTrue(ShaderContentKind.isAnime(hasAnimeId = false, genres = emptyList(), hasAniListLink = true))
         assertFalse(ShaderContentKind.isAnime(hasAnimeId = false, genres = listOf("Drama"), hasAniListLink = false))
     }

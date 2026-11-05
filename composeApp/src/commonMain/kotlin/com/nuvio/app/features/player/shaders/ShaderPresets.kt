@@ -1,5 +1,8 @@
 package com.nuvio.app.features.player.shaders
 
+import com.nuvio.app.features.player.isAnimationGenre
+import com.nuvio.app.features.player.isAnimeGenre
+
 /** One shader of a chain, and whether it uses its "Apply always" variant. */
 data class ChainEntry(val shaderId: String, val forced: Boolean = false)
 
@@ -156,9 +159,9 @@ object ShaderPresets {
         ids.sortedBy { traits(it)?.stage?.ordinal ?: ShaderStage.Scaling.ordinal }
 }
 
-/** Whether a title is anime, for the Automatic mode: linked on AniList, an anime id (mal:, kitsu:...) or the Animation genre. */
+/** Whether a title is anime, for the Automatic mode: linked on AniList, an anime id (mal:, kitsu:...) or the Animation genre, in any language. */
 object ShaderContentKind {
     fun isAnime(hasAnimeId: Boolean, genres: List<String>, hasAniListLink: Boolean): Boolean =
         hasAniListLink || hasAnimeId ||
-            genres.any { it.equals("Animation", ignoreCase = true) || it.equals("Anime", ignoreCase = true) }
+            genres.any { isAnimationGenre(it) || isAnimeGenre(it) }
 }

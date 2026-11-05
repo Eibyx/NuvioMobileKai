@@ -37,6 +37,7 @@ import androidx.compose.ui.layout.onSizeChanged
 import com.nuvio.app.features.player.seekpreview.rememberSeekPreviewController
 import com.nuvio.app.features.player.skip.PlayerNextEpisodeRules
 import com.nuvio.app.core.logging.InAppLogger
+import com.nuvio.app.features.anilist.AniListTracker
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.unit.Dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -306,8 +307,12 @@ internal fun PlayerScreenRuntime.RenderPlayerRuntimeUi(
         val resolvedAutoEngineState = remember(sourcePlaybackKey) {
             mutableStateOf<AndroidPlaybackEngine?>(null)
         }
+        val autoEngineReason = remember(sourcePlaybackKey) { mutableStateOf<String?>(null) }
+        val hasAniListLink = remember(parentMetaId) {
+            runCatching { AniListTracker.knownMediaTitle(parentMetaId) != null }.getOrDefault(false)
+        }
         if (!initialLoadCompleted || resolvedAutoEngineState.value == null) {
-            resolvedAutoEngineState.value = resolveAutoPlaybackEngine(
+            val choice = autoPlaybackEngineChoice(
                 playbackEngineSetting = playerSettingsUiState.androidPlaybackEngine,
                 videoId = activeVideoId,
                 streamFilename = activeTorrentFilename ?: activeStreamFilename,
@@ -316,9 +321,16 @@ internal fun PlayerScreenRuntime.RenderPlayerRuntimeUi(
                 contentTitle = title,
                 genres = playerMeta?.genres.orEmpty(),
                 country = playerMeta?.country,
+                language = playerMeta?.language,
+                hasAniListLink = hasAniListLink,
             )
+            resolvedAutoEngineState.value = choice?.engine
+            autoEngineReason.value = choice?.let { "${it.engine} (${it.reason})" }
         }
         val resolvedAutoEngine = resolvedAutoEngineState.value
+        LaunchedEffect(autoEngineReason.value) {
+            autoEngineReason.value?.let { InAppLogger.info("Player/AutoEngine", "auto -> $it") }
+        }
 
         if (playerSurfaceSourceUrl != null) {
             key(playbackKey) {

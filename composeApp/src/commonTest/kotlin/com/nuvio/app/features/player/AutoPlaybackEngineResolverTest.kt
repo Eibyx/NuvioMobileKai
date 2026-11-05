@@ -229,6 +229,40 @@ class AutoPlaybackEngineResolverTest {
         assertEquals(AndroidPlaybackEngine.ExoPlayer, resolve(videoId = "", title = ""))
     }
 
+    @Test
+    fun spanishCatalogsStillSendAnimeToMpv() {
+        // Frieren from a Spanish catalog: "Animación" and "Japón", or only the original language.
+        assertEquals(AndroidPlaybackEngine.Libmpv, resolve(genres = listOf("Animación", "Acción y Aventura"), country = "Japón"))
+        assertEquals(AndroidPlaybackEngine.Libmpv, resolve(genres = listOf("Animación"), country = "JP"))
+        assertEquals(AndroidPlaybackEngine.Libmpv, resolve(genres = listOf("Animación"), language = "ja"))
+        assertEquals(AndroidPlaybackEngine.Libmpv, resolve(genres = listOf("Animação"), country = "Japão"))
+        assertEquals(AndroidPlaybackEngine.ExoPlayer, resolve(genres = listOf("Animación"), country = "Estados Unidos", language = "en"))
+    }
+
+    @Test
+    fun aTitleOnTheUsersAniListGoesToMpv() {
+        assertEquals(AndroidPlaybackEngine.Libmpv, resolve(videoId = "tt22248376:2:3", hasAniListLink = true))
+        assertEquals("anilist", choice(videoId = "tt22248376:2:3", hasAniListLink = true)?.reason)
+        // HDR still wins: mpv would turn it into SDR.
+        assertEquals(AndroidPlaybackEngine.ExoPlayer, resolve(filename = "Show.2160p.HDR.mkv", hasAniListLink = true))
+    }
+
+    @Test
+    fun theChoiceSaysWhy() {
+        assertEquals("japanese-animation", choice(genres = listOf("Animación"), country = "Japón")?.reason)
+        assertEquals("default", choice(genres = listOf("Drama"))?.reason)
+        assertNull(choice(setting = AndroidPlaybackEngine.ExoPlayer))
+    }
+
+    private fun choice(
+        setting: AndroidPlaybackEngine = AndroidPlaybackEngine.Auto,
+        videoId: String? = null,
+        filename: String? = null,
+        genres: List<String> = emptyList(),
+        country: String? = null,
+        hasAniListLink: Boolean = false,
+    ) = autoPlaybackEngineChoice(setting, videoId, filename, null, null, null, genres, country, null, hasAniListLink)
+
     private fun resolve(
         setting: AndroidPlaybackEngine = AndroidPlaybackEngine.Auto,
         videoId: String? = null,
@@ -238,6 +272,8 @@ class AutoPlaybackEngineResolverTest {
         title: String? = null,
         genres: List<String> = emptyList(),
         country: String? = null,
+        language: String? = null,
+        hasAniListLink: Boolean = false,
     ): AndroidPlaybackEngine? = resolveAutoPlaybackEngine(
         playbackEngineSetting = setting,
         videoId = videoId,
@@ -247,5 +283,7 @@ class AutoPlaybackEngineResolverTest {
         contentTitle = title,
         genres = genres,
         country = country,
+        language = language,
+        hasAniListLink = hasAniListLink,
     )
 }
