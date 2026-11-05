@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_appearance_high_quality_artwork">Imágenes en alta calidad</string>
+    <string name="settings_appearance_high_quality_artwork_description">Carga los fondos, pósteres, logos e imágenes de episodios de TMDB y MetaHub a la resolución de tu pantalla. Se ven más nítidos, pero gastan más datos la primera vez que se carga cada imagen.</string>
+</resources>

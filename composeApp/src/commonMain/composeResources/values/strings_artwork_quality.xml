@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_appearance_high_quality_artwork">High Quality Images</string>
+    <string name="settings_appearance_high_quality_artwork_description">Loads backdrops, posters, logos and episode images from TMDB and MetaHub at the resolution of your screen. Sharper, but uses more data the first time each image loads.</string>
+</resources>
