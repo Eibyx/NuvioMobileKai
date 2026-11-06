@@ -72,14 +72,20 @@ class SettingsPagesTest {
         }
         compose.onNodeWithText("Layout").performScrollTo().performClick()
         assertEquals(SettingsPage.Layout, opened)
-        compose.onNodeWithText("Playback").performScrollTo().performClick()
+        // "Playback" is also the title of its group: the row is the one that opens the page.
+        compose.onNode(hasText("Playback") and hasClickAction()).performScrollTo().performClick()
         assertEquals(SettingsPage.Playback, opened)
-        compose.onNodeWithText("Tracking").performScrollTo().performClick()
+        compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Addons") and hasClickAction())
+        compose.onNode(hasText("Addons") and hasClickAction()).performClick()
+        assertEquals(SettingsPage.Addons, opened)
+        compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Tracking") and hasClickAction())
+        compose.onNode(hasText("Tracking") and hasClickAction()).performClick()
         assertEquals(SettingsPage.TraktAuthentication, opened)
+        compose.onNodeWithText("Sources").assertExists()
     }
 
     @Test
-    fun tabletServicesGroupContainsIntegrationsAndTracking() {
+    fun tabletDataGroupContainsMetadataAndTracking() {
         var opened: SettingsPage? = null
         compose.setContent {
             NuvioTheme {
@@ -92,7 +98,7 @@ class SettingsPagesTest {
                 }
             }
         }
-        compose.onNodeWithText("Integrations").assertIsDisplayed()
+        compose.onNodeWithText("TMDB Enrichment").assertIsDisplayed()
         compose.onNodeWithText("Tracking").performClick()
         assertEquals(SettingsPage.TraktAuthentication, opened)
         compose.onNodeWithText("Appearance").assertDoesNotExist()
@@ -126,7 +132,9 @@ class SettingsPagesTest {
             "Streams" to "streams",
             "Detail Page" to "details",
         ).forEach { (label, destination) ->
-            compose.onNode(hasText(label) and hasClickAction()).performScrollTo().performClick()
+            // Rows further down sit in list items that are composed only once the list reaches them.
+            compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText(label) and hasClickAction())
+            compose.onNode(hasText(label) and hasClickAction()).performClick()
             assertEquals(destination, opened)
         }
         // The Navigation Bar row sits in a later list item, out of composition until the list scrolls.
@@ -296,7 +304,7 @@ class SettingsPagesTest {
             ).forEach { (key, page) ->
                 assertEquals(SettingsSearchTarget.Page(page), entries.single { it.key == key }.target)
             }
-            assertEquals("Services", entries.single { it.key == "tracking" }.category)
+            assertEquals("Data & tracking", entries.single { it.key == "tracking" }.category)
             PlayerSettingsRepository.setAndroidPlaybackEngine(AndroidPlaybackEngine.Libmpv)
         }
         compose.runOnIdle {
