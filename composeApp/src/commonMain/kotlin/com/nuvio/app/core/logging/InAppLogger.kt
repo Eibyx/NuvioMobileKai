@@ -57,7 +57,7 @@ object InAppLogger {
     fun error(tag: String, message: String) = log(InAppLogLevel.Error, tag, message)
 
     fun log(level: InAppLogLevel, tag: String, message: String) {
-        val trimmedMessage = message.trim()
+        val trimmedMessage = redactLocalStreamTokens(message.trim())
         if (trimmedMessage.isEmpty()) return
 
         val timestamp = currentInAppLogTimestamp()
@@ -122,10 +122,11 @@ object InAppLogger {
         } else {
             withoutQuery
         }
-        return if (withoutCredentials.length <= maxLength) {
-            withoutCredentials
+        val safe = redactLocalStreamTokens(withoutCredentials)
+        return if (safe.length <= maxLength) {
+            safe
         } else {
-            withoutCredentials.take(maxLength) + "…"
+            safe.take(maxLength) + "…"
         }
     }
 

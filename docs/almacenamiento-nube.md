@@ -12,6 +12,8 @@ Los vídeos de las carpetas que elijas aparecen como fuentes al buscar streams d
 3. En Nuvio: pega el ID y el secreto de cliente y pulsa **Iniciar sesión con Google** (solo Android). También puedes pegar un *refresh token* emitido para ese mismo cliente.
 4. Se pide solo el permiso `drive.readonly`.
 
+Sobre el tipo de cliente: Google bloqueó la redirección *loopback* para los clientes de tipo Android, iOS y Chrome, pero la mantiene para los de tipo **App de escritorio**, que es el que usa Nuvio, igual que rclone. El flujo usa navegador del sistema (no WebView), PKCE S256, `state` y `127.0.0.1` con puerto aleatorio, como pide la guía *OAuth 2.0 for Desktop Apps*. Para apps Android, Google recomienda su SDK con un cliente de tipo Android. Eso obliga a registrar el paquete y la firma de Nuvio en el proyecto de cada usuario y no da acceso sin conexión, así que no encaja con "trae tu propio cliente". Mientras la app OAuth no esté verificada, Google muestra un aviso al iniciar sesión y la limita a 100 usuarios: para uso personal basta.
+
 **TeraBox (experimental)**
 1. Pega la cookie de una sesión web de TeraBox, o solo su valor `ndus`, igual que en rclone-extra.
 2. Trátala como una contraseña: da acceso completo a la cuenta. Si alguna vez la compartiste, cierra esa sesión en TeraBox y usa una nueva.

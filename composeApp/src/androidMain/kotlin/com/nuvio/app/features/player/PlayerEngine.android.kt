@@ -96,6 +96,7 @@ import com.nuvio.app.features.autosync.rememberLibmpvAutoSyncCoordinator
 import com.nuvio.app.R
 import com.nuvio.app.core.diagnostics.PlaybackDiagnostics
 import com.nuvio.app.core.logging.InAppLogger
+import com.nuvio.app.core.logging.redactLocalStreamTokens
 import com.nuvio.app.features.player.shaders.MpvRenderBackend
 import com.nuvio.app.features.player.shaders.ShaderPlaybackSession
 import com.nuvio.app.features.streams.normalizeStreamType
@@ -4212,7 +4213,7 @@ private fun isLoopbackPlaybackSource(value: String): Boolean = runCatching {
 }.getOrDefault(false)
 
 private fun diagnosticPlayerMessage(value: String?): String =
-    value?.replace('\n', ' ')?.replace('\r', ' ')?.take(160) ?: "none"
+    value?.let { redactLocalStreamTokens(it) }?.replace('\n', ' ')?.replace('\r', ' ')?.take(160) ?: "none"
 
 private fun diagnosticThrowableChain(value: Throwable): String =
     generateSequence(value) { it.cause }

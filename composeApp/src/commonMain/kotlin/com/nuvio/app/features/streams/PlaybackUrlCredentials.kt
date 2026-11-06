@@ -68,4 +68,5 @@ internal fun String.hasLikelyExpiringPlaybackCredentials(): Boolean {
         }
 }
 
-internal fun String.redactedForLogs(): String = substringBefore('?').substringBefore('#')
+internal fun String.redactedForLogs(): String =
+    com.nuvio.app.core.logging.redactLocalStreamTokens(substringBefore('?').substringBefore('#'))
