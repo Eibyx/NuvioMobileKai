@@ -17,6 +17,10 @@ internal data class CloudMatchRequest(
     val episode: Int? = null,
     /** The same episode counted from the first episode of the show, for fansub numbering. */
     val absoluteEpisode: Int? = null,
+    /** What the stream card shows: the catalogue's (TMDB) title, episode title and runtime. */
+    val displayTitle: String? = null,
+    val episodeTitle: String? = null,
+    val runtimeMinutes: Int? = null,
 )
 
 internal class CloudMatch(val file: CloudFile, val release: ParsedRelease, val manual: Boolean)
@@ -81,13 +85,17 @@ internal object CloudMatcher {
     ): Boolean {
         val season = request.season ?: return false
         val episode = request.episode ?: return false
+        // An AniList entry tied to another season (or to specials, season 0: TMDB files OVAs such as
+        // Hellsing: The Dawn under the show) is evidence for that season only.
+        val relevant = aliases.filter { it.seasonHint == null || it.seasonHint == season }
+        if (relevant.isEmpty()) return false
         val first = release.episode ?: return false
         val last = release.lastEpisode ?: first
         fun covers(number: Int) = number in first..last
         if (release.season != null) return release.season == season && covers(episode)
         // No season in the name: first season, an AniList entry for this season, or an absolute number.
         if (season == 1 && covers(episode)) return true
-        if (aliases.any { it.seasonHint == season } && covers(episode)) return true
+        if (relevant.any { it.seasonHint == season } && covers(episode)) return true
         val absolute = request.absoluteEpisode ?: return false
         return absolute != episode && covers(absolute)
     }

@@ -54,7 +54,7 @@ internal object CloudStreams {
         val files = CloudStorageRepository.index(account.id)?.files.orEmpty()
         val matches = CloudMatcher.match(files, request, account.manualLinks)
         log.d { "${matches.size} matches in a ${account.kind.id} account" }
-        return matches.map { match -> match.toStream(account) }
+        return matches.map { match -> match.toStream(account, request) }
     }
 
     internal suspend fun request(type: String, videoId: String, season: Int?, episode: Int?): CloudMatchRequest? {
@@ -83,7 +83,11 @@ internal object CloudStreams {
             .filter { (it.season ?: 0) > 0 && (it.episode ?: 0) > 0 }
             .groupingBy { it.season!! }
             .eachCount()
+        val video = meta?.videos.orEmpty().firstOrNull { it.season == requestSeason && it.episode == requestEpisode }
         return CloudMatchRequest(
+            displayTitle = meta?.name?.takeIf { it.isNotBlank() },
+            episodeTitle = video?.title?.takeIf { it.isNotBlank() && !GENERIC_EPISODE_TITLE.matches(it.trim()) },
+            runtimeMinutes = video?.runtime ?: meta?.runtime?.let { runtime -> DIGITS.find(runtime)?.value?.toIntOrNull() },
             isSeries = isSeries,
             contentIds = (listOf(parentId) + ids.catalogIds()).toSet(),
             aliases = aliases,
@@ -102,7 +106,7 @@ internal object CloudStreams {
      * Laid out like the debrid add-on results: a headline of tags and one line per fact. The
      * provider is not repeated: the source chip above the list already names it.
      */
-    private fun CloudMatch.toStream(account: CloudAccount): StreamItem {
+    private fun CloudMatch.toStream(account: CloudAccount, request: CloudMatchRequest): StreamItem {
         val release = release
         val quality = (release.resolution ?: file.height?.let { "${it}p" })?.uppercase()
         val format = (release.container ?: file.name.substringAfterLast('.', "")).uppercase().takeIf { it.isNotBlank() }
@@ -113,12 +117,20 @@ internal object CloudStreams {
             format?.let { "📼 $it" },
             if (manual) "📌 MANUAL" else null,
         ).joinToString(" • ")
-        val episodeLine = release.episode?.let { number ->
-            release.season?.let { "📺 EPISODE: S${it.twoDigits()} • E${number.twoDigits()}" } ?: "📺 EPISODE: ${number.twoDigits()}"
+        // Title, year and episode as the catalogue (TMDB) has them, not as the file is named.
+        val title = request.displayTitle ?: release.title.takeIf { it.isNotBlank() }
+        val year = request.year ?: release.year
+        val episodeLine = if (request.isSeries && request.season != null && request.episode != null) {
+            "📺 EPISODE: S${request.season.twoDigits()} • E${request.episode.twoDigits()}" +
+                (release.episode?.takeIf { it != request.episode }?.let { " (FILE ${it.twoDigits()})" } ?: "")
+        } else {
+            null
         }
+        val runtimeMs = file.durationMs ?: request.runtimeMinutes?.let { it * 60_000L }
         val lines = listOfNotNull(
-            release.title.takeIf { it.isNotBlank() }?.let { "🎬 TITLE: $it" + (release.year?.let { year -> " ($year)" } ?: "") },
+            title?.let { "🎬 TITLE: $it" + (year?.let { value -> " ($value)" } ?: "") },
             episodeLine,
+            request.episodeTitle?.let { "📝 EP TITLE: $it" },
             release.videoCodec?.let { "🎞️ CODEC: ${codecLabel(it)}" },
             release.audio?.let { "🔊 AUDIO: $it" },
             sidecars.takeIf { it.isNotEmpty() }?.let { list ->
@@ -126,12 +138,12 @@ internal object CloudStreams {
             },
             listOfNotNull(
                 file.sizeBytes.takeIf { it > 0 }?.let { "📦 SIZE: ${formatBytes(it)}" },
-                file.durationMs?.let { "RUNTIME: ${runtime(it)}" },
+                runtimeMs?.let { "RUNTIME: ${runtime(it)}" },
             ).joinToString(" • ").takeIf { it.isNotBlank() },
             release.group?.let { "🏷️ GROUP: $it" },
             "📁 ${file.parentPath.substringAfterLast('/').ifBlank { "/" }}",
             "📄 ${file.name}",
-            if (manual) "🔗 LINKED MANUALLY" else "🔗 TITLE MATCHED",
+            if (manual) "🔗 ID MATCHED (MANUAL)" else "🎯 MATCH: TITLE • ${if (request.isSeries) "EPISODE" else "YEAR"}",
         )
         return StreamItem(
             name = headline.ifBlank { file.name },
@@ -182,6 +194,8 @@ internal object CloudStreams {
         else -> "${(bytes + 500L) / 1_000L} KB"
     }
 
+    private val GENERIC_EPISODE_TITLE = Regex("(?i)(episode|episodio|ep\\.?)\\s*\\d+")
+    private val DIGITS = Regex("\\d+")
     private val YEAR = Regex("""(19|20)\d{2}""")
     private const val META_TIMEOUT_MS = 8_000L
 }

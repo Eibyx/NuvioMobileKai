@@ -55,6 +55,21 @@ class CloudMatcherTest {
     }
 
     @Test
+    fun anAniListEntryForSpecialsDoesNotMatchTheFirstSeason() {
+        // TMDB files the OVA Hellsing: The Dawn as specials (season 0) of Hellsing Ultimate.
+        val ultimate = file("/ANIME/[RedLineSP] Hellsing Ultimate [BD 1080p]/[RedLineSP] Hellsing Ultimate [BD 1080p] - 01.mkv")
+        val dawn = file("/ANIME/[RedLineSP] Hellsing - The Dawn [BD 1080p]/[RedLineSP] The Dawn [BD 1080p] - 01.mkv")
+        val request = series(
+            1, 1, 1,
+            CloudTitleAlias("Hellsing Ultimate"),
+            CloudTitleAlias("Hellsing Ultimate", seasonHint = 1),
+            CloudTitleAlias("Hellsing: The Dawn", seasonHint = 0),
+            CloudTitleAlias("The Dawn", seasonHint = 0),
+        )
+        assertEquals(listOf(ultimate.id), CloudMatcher.match(listOf(ultimate, dawn), request).map { it.file.id })
+    }
+
+    @Test
     fun explicitSeasonMustAgree() {
         val files = listOf(file("/TV/Clevatess.S02E12.1080p.mkv"), file("/TV/Clevatess.S01E12.1080p.mkv"))
         val matches = CloudMatcher.match(files, series(2, 12, 24, CloudTitleAlias("Clevatess")))
