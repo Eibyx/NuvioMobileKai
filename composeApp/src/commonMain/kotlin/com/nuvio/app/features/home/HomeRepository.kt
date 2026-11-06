@@ -34,6 +34,7 @@ import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.math.absoluteValue
+import com.nuvio.app.core.logging.InAppLogger
 import kotlin.random.Random
 import kotlin.time.Clock
 import kotlin.time.TimeSource
@@ -282,10 +283,11 @@ object HomeRepository {
         }
         val sections = entries.map { (_, section) -> section }
 
+        val heroRandom = Random((requestKey?.hashCode() ?: 0).absoluteValue + 1)
+        val heroSourceDefinitions = currentDefinitions
+            .filter { definition -> preferences[definition.key]?.heroSourceEnabled != false }
         val catalogHeroItems = if (snapshot.heroEnabled) {
-            val heroRandom = Random((requestKey?.hashCode() ?: 0).absoluteValue + 1)
-            currentDefinitions
-                .filter { definition -> preferences[definition.key]?.heroSourceEnabled != false }
+            heroSourceDefinitions
                 .mapNotNull { definition -> cachedSections[definition.cacheKey] }
                 .map { section -> section.withPosterOverlay().withReleaseFilter() }
                 .flatMap { section -> section.items }
@@ -305,10 +307,30 @@ object HomeRepository {
             ) {
                 visibleHeroItems
             } else {
-                catalogHeroItems.ifEmpty { cachedCollectionHeroItems }
+                catalogHeroItems.ifEmpty { cachedCollectionHeroItems }.ifEmpty {
+                    // The chosen hero sources gave nothing (not loaded, empty or all unreleased):
+                    // titles from the rows on Home, rather than an empty space at the top for good.
+                    if (isHeroResolutionPending(isLoading)) {
+                        emptyList()
+                    } else {
+                        sections.flatMap { section -> section.items }
+                            .distinctBy { item -> "${item.type}:${item.id}" }
+                            .shuffled(heroRandom)
+                            .take(HOME_HERO_ITEM_LIMIT)
+                    }
+                }
             }
         } else {
             emptyList()
+        }
+        if (snapshot.heroEnabled && !isLoading) {
+            logHeroSources(
+                sources = heroSourceDefinitions.size,
+                loaded = heroSourceDefinitions.count { cachedSections[it.cacheKey] != null },
+                sourceItems = catalogHeroItems.size,
+                collectionItems = cachedCollectionHeroItems.size,
+                shown = heroItems.size,
+            )
         }
 
         _uiState.value = HomeUiState(
@@ -317,6 +339,22 @@ object HomeRepository {
             sections = sections,
             errorMessage = if (sections.isEmpty()) lastErrorMessage else null,
         )
+    }
+
+    private var lastHeroSourcesLog: String? = null
+
+    /** Once per change: how many hero sources there are, how many loaded, and where the shown items come from. */
+    private fun logHeroSources(sources: Int, loaded: Int, sourceItems: Int, collectionItems: Int, shown: Int) {
+        val from = when {
+            shown == 0 -> "none"
+            sourceItems > 0 -> "sources"
+            collectionItems > 0 -> "collections"
+            else -> "rows"
+        }
+        val line = "hero sources=$sources loaded=$loaded items=$sourceItems shown=$shown from=$from"
+        if (line == lastHeroSourcesLog) return
+        lastHeroSourcesLog = line
+        InAppLogger.info("Home/Hero", line)
     }
 
     private fun isHeroResolutionPending(isLoading: Boolean): Boolean {
