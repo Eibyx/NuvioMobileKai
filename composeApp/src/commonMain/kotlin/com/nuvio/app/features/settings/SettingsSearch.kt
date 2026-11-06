@@ -595,6 +595,12 @@ internal fun settingsSearchEntries(
         title = stringResource(Res.string.compose_settings_page_media_servers),
         description = stringResource(Res.string.settings_content_discovery_media_servers_description),
     )
+    addPage(
+        page = SettingsPage.CloudStorage,
+        key = "cloud-storage",
+        title = stringResource(Res.string.compose_settings_page_cloud_storage),
+        description = stringResource(Res.string.cloud_storage_entry_description),
+    )
     if (pluginsEnabled) {
         addPage(
             page = SettingsPage.Plugins,

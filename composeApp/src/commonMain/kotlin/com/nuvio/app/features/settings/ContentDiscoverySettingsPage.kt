@@ -7,6 +7,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nuvio.app.core.build.AppFeaturePolicy
 import com.nuvio.app.features.search.SearchHistoryRepository
 import nuvio.composeapp.generated.resources.Res
+import nuvio.composeapp.generated.resources.cloud_storage_entry_description
+import nuvio.composeapp.generated.resources.compose_settings_page_cloud_storage
 import nuvio.composeapp.generated.resources.compose_settings_page_addons
 import nuvio.composeapp.generated.resources.compose_settings_page_media_servers
 import nuvio.composeapp.generated.resources.compose_settings_page_plugins
@@ -26,6 +28,7 @@ internal fun LazyListScope.contentDiscoveryContent(
     onAddonsClick: () -> Unit,
     onPluginsClick: () -> Unit,
     onMediaServersClick: () -> Unit,
+    onCloudStorageClick: () -> Unit = {},
 ) {
     item {
         val recentSearchesEnabled by remember {
@@ -72,6 +75,12 @@ internal fun LazyListScope.contentDiscoveryContent(
                     description = stringResource(Res.string.settings_content_discovery_media_servers_description),
                     isTablet = isTablet,
                     onClick = onMediaServersClick,
+                )
+                SettingsNavigationRow(
+                    title = stringResource(Res.string.compose_settings_page_cloud_storage),
+                    description = stringResource(Res.string.cloud_storage_entry_description),
+                    isTablet = isTablet,
+                    onClick = onCloudStorageClick,
                 )
                 if (showPluginsEntry) {
                     SettingsNavigationRow(

@@ -1,5 +1,6 @@
 package com.nuvio.app.features.servers
 
+import com.nuvio.app.features.cloudstorage.CloudStreams
 import com.nuvio.app.features.streams.AddonStreamGroup
 import com.nuvio.app.features.streams.StreamBehaviorHints
 import com.nuvio.app.features.streams.StreamItem
@@ -54,15 +55,17 @@ internal object ServerStreams {
             val connection = ServerRepository.connection(ref.connectionId) ?: return emptyList()
             return listOf(source(connection, preferred = true) { candidates(ref) })
         }
-        val connections = ServerRepository.enabledConnections().ifEmpty { return emptyList() }
-        val request = ServerMatcher.shared.request(type, videoId, season, episode) ?: return emptyList()
+        // Personal cloud storage (Google Drive, TeraBox) answers like a media server.
+        val cloudSources = CloudStreams.sources(type, videoId, season, episode)
+        val connections = ServerRepository.enabledConnections().ifEmpty { return cloudSources }
+        val request = ServerMatcher.shared.request(type, videoId, season, episode) ?: return cloudSources
         return connections
             .filter { ServerMatcher.shared.supports(it, request.kind) }
             .map { connection ->
                 source(connection, preferred = connection.useCatalogMetadata) {
                     ServerMatcher.shared.match(connection, request, forceRefresh).flatMap { candidates(it) }
                 }
-            }
+            } + cloudSources
     }
 
     private fun source(

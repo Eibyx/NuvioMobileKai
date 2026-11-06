@@ -11,6 +11,7 @@ import androidx.compose.material.icons.filled.LiveTv
 import androidx.compose.material.icons.filled.NewReleases
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.Explore
 import androidx.compose.material.icons.filled.Extension
@@ -222,6 +223,16 @@ internal enum class SettingsPage(
         category = SettingsCategory.Watch,
         parentPage = MediaServers,
     ),
+    CloudStorage(
+        titleRes = Res.string.compose_settings_page_cloud_storage,
+        category = SettingsCategory.Watch,
+        parentPage = ContentDiscovery,
+    ),
+    CloudStorageAccount(
+        titleRes = Res.string.compose_settings_page_cloud_storage_account,
+        category = SettingsCategory.Watch,
+        parentPage = CloudStorage,
+    ),
     Homescreen(
         titleRes = Res.string.compose_settings_page_homescreen,
         category = SettingsCategory.Look,
@@ -307,6 +318,8 @@ internal val SettingsPage.icon: ImageVector
         SettingsPage.Plugins -> Icons.Default.Power
         SettingsPage.MediaServers -> Icons.Default.Dns
         SettingsPage.MediaServer -> Icons.Default.Dns
+        SettingsPage.CloudStorage -> Icons.Default.Cloud
+        SettingsPage.CloudStorageAccount -> Icons.Default.Cloud
         SettingsPage.Homescreen -> Icons.Default.Dashboard
         SettingsPage.MetaScreen -> Icons.Default.Description
         SettingsPage.Integrations -> Icons.Default.Link

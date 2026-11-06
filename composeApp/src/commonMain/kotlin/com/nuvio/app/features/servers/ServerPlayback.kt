@@ -1,5 +1,8 @@
 package com.nuvio.app.features.servers
 
+import com.nuvio.app.features.cloudstorage.CloudPlayback
+import com.nuvio.app.features.cloudstorage.CloudStreams
+
 import co.touchlab.kermit.Logger
 import com.nuvio.app.features.player.AndroidPlaybackEngine
 import com.nuvio.app.features.player.PlayerSettingsRepository
@@ -30,6 +33,7 @@ internal object ServerPlayback {
 
     suspend fun prepare(stream: StreamItem): StreamItem {
         val target = stream.serverTarget ?: return stream
+        if (CloudStreams.isCloudTarget(target)) return CloudPlayback.prepare(stream)
         val (provider, playback, session) = ServerRepository.call(target.item.connectionId) { provider, session ->
             Triple(provider, provider.preparePlayback(session, ServerPlaybackRequest(target, capabilities())), session)
         }
@@ -119,6 +123,7 @@ internal object ServerPlayback {
     }
 
     fun stop(url: String?) {
+        CloudPlayback.stop(url)
         val playback = url?.let { synchronized(lock) { active.remove(it) } } ?: return
         playback.stop()
     }

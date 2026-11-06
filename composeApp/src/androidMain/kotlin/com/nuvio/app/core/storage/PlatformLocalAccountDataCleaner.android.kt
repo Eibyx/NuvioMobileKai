@@ -46,6 +46,7 @@ internal actual object PlatformLocalAccountDataCleaner {
         "nuvio_collections",
         "nuvio_plugins",
         "nuvio_member_access",
+        "nuvio_cloud_storage",
     )
 
     private var appContext: Context? = null

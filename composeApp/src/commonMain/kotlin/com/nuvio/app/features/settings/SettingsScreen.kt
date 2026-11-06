@@ -821,6 +821,7 @@ private fun MobileSettingsScreen(
                     onAddonsClick = onAddonsClick,
                     onPluginsClick = onPluginsClick,
                     onMediaServersClick = { onPageChange(SettingsPage.MediaServers) },
+                    onCloudStorageClick = { onPageChange(SettingsPage.CloudStorage) },
                 )
                 SettingsPage.Addons -> addonsSettingsContent()
                 SettingsPage.MediaServers -> mediaServersSettingsContent(
@@ -828,6 +829,14 @@ private fun MobileSettingsScreen(
                     onServerClick = { onPageChange(SettingsPage.MediaServer) },
                 )
                 SettingsPage.MediaServer -> mediaServerSettingsContent(
+                    isTablet = false,
+                    onBack = onNavigateBack,
+                )
+                SettingsPage.CloudStorage -> cloudStorageSettingsContent(
+                    isTablet = false,
+                    onAccountClick = { onPageChange(SettingsPage.CloudStorageAccount) },
+                )
+                SettingsPage.CloudStorageAccount -> cloudStorageAccountSettingsContent(
                     isTablet = false,
                     onBack = onNavigateBack,
                 )
@@ -1286,6 +1295,7 @@ private fun TabletSettingsScreen(
                         onAddonsClick = { openInlinePage(SettingsPage.Addons) },
                         onPluginsClick = { openInlinePage(SettingsPage.Plugins) },
                         onMediaServersClick = { openInlinePage(SettingsPage.MediaServers) },
+                        onCloudStorageClick = { openInlinePage(SettingsPage.CloudStorage) },
                     )
                     SettingsPage.Addons -> addonsSettingsContent()
                     SettingsPage.MediaServers -> mediaServersSettingsContent(
@@ -1293,6 +1303,14 @@ private fun TabletSettingsScreen(
                         onServerClick = { openInlinePage(SettingsPage.MediaServer) },
                     )
                     SettingsPage.MediaServer -> mediaServerSettingsContent(
+                        isTablet = true,
+                        onBack = onNavigateBack,
+                    )
+                    SettingsPage.CloudStorage -> cloudStorageSettingsContent(
+                        isTablet = true,
+                        onAccountClick = { openInlinePage(SettingsPage.CloudStorageAccount) },
+                    )
+                    SettingsPage.CloudStorageAccount -> cloudStorageAccountSettingsContent(
                         isTablet = true,
                         onBack = onNavigateBack,
                     )

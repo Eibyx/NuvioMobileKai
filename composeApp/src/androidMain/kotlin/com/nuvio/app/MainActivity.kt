@@ -185,6 +185,7 @@ open class MainActivity : AppCompatActivity() {
         TraktSettingsStorage.initialize(applicationContext)
         PlatformMdbListAuthPersistence.initialize(applicationContext)
         ServerStorage.initialize(applicationContext)
+        com.nuvio.app.features.cloudstorage.CloudVault.initialize(applicationContext)
         PlatformMdbListSyncStorage.initialize(applicationContext)
         PlatformAniListAuthPersistence.initialize(applicationContext)
         PlatformAniListSyncStorage.initialize(applicationContext)
