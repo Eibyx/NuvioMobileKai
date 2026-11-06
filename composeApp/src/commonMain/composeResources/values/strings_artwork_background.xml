@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_artwork_background">Background</string>
+    <string name="settings_artwork_background_description">Behind Home and the detail page.</string>
+    <string name="settings_artwork_background_normal">Normal</string>
+    <string name="settings_artwork_background_normal_description">The page colour of the theme.</string>
+    <string name="settings_artwork_background_dynamic">Dynamic colour</string>
+    <string name="settings_artwork_background_dynamic_description">A soft wash in the colours of the artwork.</string>
+    <string name="settings_artwork_background_glass">Glass</string>
+    <string name="settings_artwork_background_glass_description">The artwork itself, blurred behind the page like frosted glass.</string>
+</resources>

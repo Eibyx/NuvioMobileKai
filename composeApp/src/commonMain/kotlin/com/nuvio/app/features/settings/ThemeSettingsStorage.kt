@@ -16,6 +16,8 @@ internal expect object ThemeSettingsStorage {
     fun isTabBarBehaviorDeviceLocal(): Boolean
     fun loadDynamicArtworkBackgroundEnabled(): Boolean?
     fun saveDynamicArtworkBackgroundEnabled(enabled: Boolean)
+    fun loadArtworkGlassBackgroundEnabled(): Boolean?
+    fun saveArtworkGlassBackgroundEnabled(enabled: Boolean)
     fun loadShowCatalogAccentEnabled(): Boolean?
     fun saveShowCatalogAccentEnabled(enabled: Boolean)
     fun loadHighQualityArtworkEnabled(): Boolean?

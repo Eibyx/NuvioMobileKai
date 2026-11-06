@@ -34,6 +34,19 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nuvio.app.core.ui.floatingNavigationGlowSupported
 import com.nuvio.app.core.ui.labelRes
 import nuvio.composeapp.generated.resources.Res
+import nuvio.composeapp.generated.resources.settings_artwork_background_glass_description
+import nuvio.composeapp.generated.resources.settings_artwork_background_glass
+import nuvio.composeapp.generated.resources.settings_artwork_background_dynamic_description
+import nuvio.composeapp.generated.resources.settings_artwork_background_dynamic
+import nuvio.composeapp.generated.resources.settings_artwork_background_normal_description
+import nuvio.composeapp.generated.resources.settings_artwork_background_normal
+import nuvio.composeapp.generated.resources.settings_artwork_background_description
+import nuvio.composeapp.generated.resources.settings_artwork_background
+import org.jetbrains.compose.resources.StringResource
+import com.nuvio.app.features.details.MetaScreenSettingsRepository
+import com.nuvio.app.features.details.MetaScreenBackgroundMode
+import com.nuvio.app.core.ui.Chip
+import com.nuvio.app.core.ui.ArtworkBackgroundStyle
 import nuvio.composeapp.generated.resources.collections_header
 import nuvio.composeapp.generated.resources.compose_settings_page_continue_watching
 import nuvio.composeapp.generated.resources.compose_settings_page_homescreen
@@ -46,8 +59,6 @@ import nuvio.composeapp.generated.resources.settings_appearance_nav_bar_style
 import nuvio.composeapp.generated.resources.settings_appearance_poster_customization_description
 import nuvio.composeapp.generated.resources.settings_appearance_section_detail_page
 import nuvio.composeapp.generated.resources.settings_appearance_section_home
-import nuvio.composeapp.generated.resources.settings_appearance_dynamic_artwork_background
-import nuvio.composeapp.generated.resources.settings_appearance_dynamic_artwork_background_description
 import nuvio.composeapp.generated.resources.settings_appearance_catalog_accent
 import nuvio.composeapp.generated.resources.settings_appearance_catalog_accent_description
 import nuvio.composeapp.generated.resources.settings_appearance_section_streams
@@ -70,7 +81,7 @@ internal fun LazyListScope.layoutSettingsContent(
     onPosterCustomizationClick: () -> Unit,
 ) {
     item {
-        val dynamicArtworkBackgroundEnabled by ThemeSettingsRepository.dynamicArtworkBackgroundEnabled.collectAsStateWithLifecycle()
+        val artworkBackgroundStyle by ThemeSettingsRepository.artworkBackgroundStyle.collectAsStateWithLifecycle()
         val showCatalogAccentEnabled by ThemeSettingsRepository.showCatalogAccentEnabled.collectAsStateWithLifecycle()
         SettingsSection(
             title = stringResource(Res.string.settings_appearance_section_home),
@@ -105,15 +116,20 @@ internal fun LazyListScope.layoutSettingsContent(
                     onClick = onPosterCustomizationClick,
                 )
                 SettingsGroupDivider(isTablet = isTablet)
-                SettingsSwitchRow(
-                    title = stringResource(Res.string.settings_appearance_dynamic_artwork_background),
-                    description = stringResource(
-                        Res.string.settings_appearance_dynamic_artwork_background_description,
-                    ),
-                    checked = dynamicArtworkBackgroundEnabled,
+                SettingsChipRow(
+                    title = stringResource(Res.string.settings_artwork_background),
+                    description = stringResource(Res.string.settings_artwork_background_description),
                     isTablet = isTablet,
-                    onCheckedChange = ThemeSettingsRepository::setDynamicArtworkBackground,
-                )
+                    footer = stringResource(artworkBackgroundStyle.descriptionRes),
+                ) {
+                    ArtworkBackgroundStyle.entries.forEach { style ->
+                        Chip(
+                            label = stringResource(style.labelRes),
+                            selected = artworkBackgroundStyle == style,
+                            onClick = { applyArtworkBackgroundEverywhere(style) },
+                        )
+                    }
+                }
                 SettingsGroupDivider(isTablet = isTablet)
                 SettingsSwitchRow(
                     title = stringResource(Res.string.settings_appearance_catalog_accent),
@@ -302,3 +318,32 @@ private fun TabBarBehaviorBottomSheet(
         }
     }
 }
+
+/**
+ * One choice for Home and the detail page: the detail page's own background follows it (Normal,
+ * its dominant colour, or its cinematic blurred backdrop). It can still be changed on its own page.
+ */
+internal fun applyArtworkBackgroundEverywhere(style: ArtworkBackgroundStyle) {
+    ThemeSettingsRepository.setArtworkBackgroundStyle(style)
+    MetaScreenSettingsRepository.setBackgroundMode(
+        when (style) {
+            ArtworkBackgroundStyle.Normal -> MetaScreenBackgroundMode.Normal
+            ArtworkBackgroundStyle.DynamicColor -> MetaScreenBackgroundMode.DominantColor
+            ArtworkBackgroundStyle.Glass -> MetaScreenBackgroundMode.Cinematic
+        },
+    )
+}
+
+private val ArtworkBackgroundStyle.labelRes: StringResource
+    get() = when (this) {
+        ArtworkBackgroundStyle.Normal -> Res.string.settings_artwork_background_normal
+        ArtworkBackgroundStyle.DynamicColor -> Res.string.settings_artwork_background_dynamic
+        ArtworkBackgroundStyle.Glass -> Res.string.settings_artwork_background_glass
+    }
+
+private val ArtworkBackgroundStyle.descriptionRes: StringResource
+    get() = when (this) {
+        ArtworkBackgroundStyle.Normal -> Res.string.settings_artwork_background_normal_description
+        ArtworkBackgroundStyle.DynamicColor -> Res.string.settings_artwork_background_dynamic_description
+        ArtworkBackgroundStyle.Glass -> Res.string.settings_artwork_background_glass_description
+    }

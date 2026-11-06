@@ -18,6 +18,7 @@ actual object ThemeSettingsStorage {
     private const val amoledEnabledKey = "amoled_enabled"
     private const val liquidGlassNativeTabBarEnabledKey = "liquid_glass_native_tab_bar_enabled"
     private const val dynamicArtworkBackgroundEnabledKey = "dynamic_artwork_background_enabled"
+    private const val artworkGlassBackgroundEnabledKey = "artwork_glass_background_enabled"
     private const val showCatalogAccentEnabledKey = "show_catalog_accent_enabled"
     private const val highQualityArtworkEnabledKey = "high_quality_artwork_enabled"
     private const val tabBarBehaviorKey = "tab_bar_behavior"
@@ -177,6 +178,23 @@ actual object ThemeSettingsStorage {
         NSUserDefaults.standardUserDefaults.setBool(
             enabled,
             forKey = ProfileScopedKey.of(dynamicArtworkBackgroundEnabledKey),
+        )
+    }
+
+    actual fun loadArtworkGlassBackgroundEnabled(): Boolean? {
+        val defaults = NSUserDefaults.standardUserDefaults
+        val key = ProfileScopedKey.of(artworkGlassBackgroundEnabledKey)
+        return if (defaults.objectForKey(key) != null) {
+            defaults.boolForKey(key)
+        } else {
+            null
+        }
+    }
+
+    actual fun saveArtworkGlassBackgroundEnabled(enabled: Boolean) {
+        NSUserDefaults.standardUserDefaults.setBool(
+            enabled,
+            forKey = ProfileScopedKey.of(artworkGlassBackgroundEnabledKey),
         )
     }
 

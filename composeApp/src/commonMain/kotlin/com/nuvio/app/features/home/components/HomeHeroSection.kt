@@ -87,6 +87,8 @@ import com.nuvio.app.core.ui.ArtworkLogoImage
 import com.nuvio.app.core.ui.ArtworkUnderStatusBar
 import com.nuvio.app.core.ui.isDarkAppearance
 import com.nuvio.app.core.ui.LocalDynamicArtworkBackgroundColor
+import com.nuvio.app.core.ui.fadeOutTowardsBottom
+import com.nuvio.app.core.ui.LocalArtworkGlassBackgroundActive
 import com.nuvio.app.core.ui.rememberDynamicArtworkBackgroundEnabled
 import com.nuvio.app.core.ui.PrefetchArtworkDominantColors
 import com.nuvio.app.core.ui.heroStretchHeight
@@ -448,11 +450,14 @@ internal fun HomeHeroSection(
                 Box(
                     modifier = Modifier.fillMaxSize(),
                 ) {
+                    // Over the glass background the artwork fades out into it instead of into a colour.
+                    val fadesIntoGlass = !isCardStyle && LocalArtworkGlassBackgroundActive.current
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(layout.heroHeight)
-                            .heroStretchZoom(stretchPx),
+                            .heroStretchZoom(stretchPx)
+                            .then(if (fadesIntoGlass) Modifier.fadeOutTowardsBottom() else Modifier),
                     ) {
                         visiblePages.forEach { layer ->
                             val item = items[layer.itemIndex]
@@ -533,7 +538,7 @@ internal fun HomeHeroSection(
                         }
                     }
 
-                    if (!isCardStyle && !isDark) {
+                    if (!isCardStyle && !isDark && !fadesIntoGlass) {
                         // Light: the artwork stays untouched at the top and melts into the page over
                         // its lower part, so the dark text below sits on the page colour whatever the image.
                         val heroFadeColorState = LocalDynamicArtworkBackgroundColor.current
@@ -548,7 +553,7 @@ internal fun HomeHeroSection(
                         )
                     }
 
-                    if (!isCardStyle && isDark) {
+                    if (!isCardStyle && isDark && !fadesIntoGlass) {
                         val heroFadeColorState = LocalDynamicArtworkBackgroundColor.current
                         val themeBackground = MaterialTheme.colorScheme.background
                         Box(

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_artwork_background">Fondo</string>
+    <string name="settings_artwork_background_description">Detrás de Inicio y de la ficha.</string>
+    <string name="settings_artwork_background_normal">Normal</string>
+    <string name="settings_artwork_background_normal_description">El color de la página del tema.</string>
+    <string name="settings_artwork_background_dynamic">Color dinámico</string>
+    <string name="settings_artwork_background_dynamic_description">Un tinte suave con los colores de la imagen.</string>
+    <string name="settings_artwork_background_glass">Cristal</string>
+    <string name="settings_artwork_background_glass_description">La propia imagen, difuminada detrás de la página como un cristal esmerilado.</string>
+</resources>

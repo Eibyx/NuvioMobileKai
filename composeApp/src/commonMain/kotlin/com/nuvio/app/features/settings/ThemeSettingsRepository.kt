@@ -1,5 +1,6 @@
 package com.nuvio.app.features.settings
 
+import com.nuvio.app.core.ui.ArtworkBackgroundStyle
 import com.nuvio.app.core.ui.AppTheme
 import com.nuvio.app.core.ui.CustomThemeColors
 import com.nuvio.app.core.ui.NativeTabBridge
@@ -49,7 +50,12 @@ object ThemeSettingsRepository {
     val liquidGlassNativeTabBarEnabled: StateFlow<Boolean> = _liquidGlassNativeTabBarEnabled.asStateFlow()
 
     private val _dynamicArtworkBackgroundEnabled = MutableStateFlow(false)
+    /** Home draws its own background from the artwork (a colour wash or the blurred image). */
     val dynamicArtworkBackgroundEnabled: StateFlow<Boolean> = _dynamicArtworkBackgroundEnabled.asStateFlow()
+
+    private val _artworkBackgroundStyle = MutableStateFlow(ArtworkBackgroundStyle.Normal)
+    /** Behind Home: the plain page, a wash in the artwork's colour, or the blurred artwork (glass). */
+    val artworkBackgroundStyle: StateFlow<ArtworkBackgroundStyle> = _artworkBackgroundStyle.asStateFlow()
 
     private val _showCatalogAccentEnabled = MutableStateFlow(false)
     val showCatalogAccentEnabled: StateFlow<Boolean> = _showCatalogAccentEnabled.asStateFlow()
@@ -118,7 +124,7 @@ object ThemeSettingsRepository {
         _amoledEnabled.value = false
         _tabBarBehavior.value = NuvioTabBarBehavior.Default
         _liquidGlassNativeTabBarEnabled.value = NuvioTabBarBehavior.Default.isEnabled
-        _dynamicArtworkBackgroundEnabled.value = false
+        applyArtworkBackgroundStyle(ArtworkBackgroundStyle.Normal)
         _showCatalogAccentEnabled.value = false
         _highQualityArtworkEnabled.value = true
         NativeTabBridge.publishAccentColor(
@@ -161,8 +167,12 @@ object ThemeSettingsRepository {
                 ThemeSettingsStorage.loadLiquidGlassNativeTabBarEnabled(),
             )
         applyTabBarBehavior(behavior)
-        _dynamicArtworkBackgroundEnabled.value =
-            ThemeSettingsStorage.loadDynamicArtworkBackgroundEnabled() ?: false
+        applyArtworkBackgroundStyle(
+            ArtworkBackgroundStyle.from(
+                dynamicColor = ThemeSettingsStorage.loadDynamicArtworkBackgroundEnabled() ?: false,
+                glass = ThemeSettingsStorage.loadArtworkGlassBackgroundEnabled() ?: false,
+            ),
+        )
         _showCatalogAccentEnabled.value =
             ThemeSettingsStorage.loadShowCatalogAccentEnabled() ?: false
         _highQualityArtworkEnabled.value =
@@ -239,10 +249,20 @@ object ThemeSettingsRepository {
     }
 
     fun setDynamicArtworkBackground(enabled: Boolean) {
+        setArtworkBackgroundStyle(if (enabled) ArtworkBackgroundStyle.DynamicColor else ArtworkBackgroundStyle.Normal)
+    }
+
+    fun setArtworkBackgroundStyle(style: ArtworkBackgroundStyle) {
         ensureLoaded()
-        if (_dynamicArtworkBackgroundEnabled.value == enabled) return
-        _dynamicArtworkBackgroundEnabled.value = enabled
-        ThemeSettingsStorage.saveDynamicArtworkBackgroundEnabled(enabled)
+        if (_artworkBackgroundStyle.value == style) return
+        applyArtworkBackgroundStyle(style)
+        ThemeSettingsStorage.saveDynamicArtworkBackgroundEnabled(style == ArtworkBackgroundStyle.DynamicColor)
+        ThemeSettingsStorage.saveArtworkGlassBackgroundEnabled(style == ArtworkBackgroundStyle.Glass)
+    }
+
+    private fun applyArtworkBackgroundStyle(style: ArtworkBackgroundStyle) {
+        _artworkBackgroundStyle.value = style
+        _dynamicArtworkBackgroundEnabled.value = style != ArtworkBackgroundStyle.Normal
     }
 
     fun setShowCatalogAccent(enabled: Boolean) {

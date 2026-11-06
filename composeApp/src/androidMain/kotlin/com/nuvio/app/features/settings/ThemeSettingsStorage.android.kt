@@ -20,6 +20,7 @@ actual object ThemeSettingsStorage {
     private const val amoledEnabledKey = "amoled_enabled"
     private const val liquidGlassNativeTabBarEnabledKey = "liquid_glass_native_tab_bar_enabled"
     private const val dynamicArtworkBackgroundEnabledKey = "dynamic_artwork_background_enabled"
+    private const val artworkGlassBackgroundEnabledKey = "artwork_glass_background_enabled"
     private const val showCatalogAccentEnabledKey = "show_catalog_accent_enabled"
     private const val highQualityArtworkEnabledKey = "high_quality_artwork_enabled"
     private const val tabBarBehaviorKey = "tab_bar_behavior"
@@ -167,6 +168,19 @@ actual object ThemeSettingsStorage {
         preferences
             ?.edit()
             ?.putBoolean(ProfileScopedKey.of(dynamicArtworkBackgroundEnabledKey), enabled)
+            ?.apply()
+    }
+
+    actual fun loadArtworkGlassBackgroundEnabled(): Boolean? =
+        preferences?.let { prefs ->
+            val key = ProfileScopedKey.of(artworkGlassBackgroundEnabledKey)
+            if (prefs.contains(key)) prefs.getBoolean(key, false) else null
+        }
+
+    actual fun saveArtworkGlassBackgroundEnabled(enabled: Boolean) {
+        preferences
+            ?.edit()
+            ?.putBoolean(ProfileScopedKey.of(artworkGlassBackgroundEnabledKey), enabled)
             ?.apply()
     }
 
