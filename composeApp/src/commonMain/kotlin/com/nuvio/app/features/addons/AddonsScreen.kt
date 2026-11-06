@@ -43,6 +43,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nuvio.app.core.build.AppFeaturePolicy
@@ -420,35 +421,38 @@ private fun InstalledAddonCard(
 ) {
     val manifest = addon.manifest
 
+    // Compact: icon, name, version and switch on one line; status badges and actions on the next.
     NuvioSurfaceCard {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.Top,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             AddonIconBadge(
                 imageUrl = manifest?.logoUrl,
                 icon = Icons.Rounded.Extension,
                 tint = if (manifest != null) Color(0xFF71BDE8).readableOnBackground() else MaterialTheme.colorScheme.onSurfaceVariant,
+                size = 44.dp,
             )
-            Spacer(modifier = Modifier.width(16.dp))
+            Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = addon.displayTitle,
-                    style = MaterialTheme.typography.headlineLarge,
+                    style = MaterialTheme.typography.titleLarge,
                     color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 2,
+                    maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
                 manifest?.version?.let { version ->
-                    Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = stringResource(Res.string.addons_version_format, version),
-                        style = MaterialTheme.typography.bodyLarge,
+                        style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
             }
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(8.dp))
             Switch(
                 checked = addon.enabled,
                 onCheckedChange = onEnabledChange,
@@ -461,59 +465,13 @@ private fun InstalledAddonCard(
             )
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            onMoveUpClick?.let { onMoveUp ->
-                NuvioIconActionButton(
-                    icon = Icons.Rounded.ArrowUpward,
-                    contentDescription = stringResource(Res.string.addons_move_up),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    onClick = onMoveUp,
-                )
-            }
-            onMoveDownClick?.let { onMoveDown ->
-                NuvioIconActionButton(
-                    icon = Icons.Rounded.ArrowDownward,
-                    contentDescription = stringResource(Res.string.addons_move_down),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    onClick = onMoveDown,
-                )
-            }
-            NuvioIconActionButton(
-                icon = Icons.Rounded.Refresh,
-                contentDescription = stringResource(Res.string.addons_refresh),
-                tint = MaterialTheme.colorScheme.primary,
-                onClick = onRefreshClick,
-            )
-            onConfigureClick?.let { onConfigure ->
-                NuvioIconActionButton(
-                    icon = Icons.Rounded.Settings,
-                    contentDescription = stringResource(Res.string.addons_configure),
-                    tint = MaterialTheme.colorScheme.tertiary,
-                    onClick = onConfigure,
-                )
-            }
-            NuvioIconActionButton(
-                icon = Icons.Rounded.Delete,
-                contentDescription = stringResource(Res.string.addons_delete),
-                tint = MaterialTheme.colorScheme.error,
-                onClick = onDeleteClick,
-            )
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-        HorizontalDivider(color = MaterialTheme.colorScheme.outline)
-        Spacer(modifier = Modifier.height(18.dp))
+        Spacer(modifier = Modifier.height(10.dp))
 
         FlowRow(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            itemVerticalAlignment = Alignment.CenterVertically,
         ) {
             NuvioInfoBadge(
                 text = when {
@@ -524,59 +482,75 @@ private fun InstalledAddonCard(
                 },
             )
             manifest?.let {
-                NuvioInfoBadge(text = stringResource(Res.string.addons_badge_resources, it.resources.size))
                 NuvioInfoBadge(text = stringResource(Res.string.addons_badge_catalogs, it.catalogs.size))
                 if (it.behaviorHints.configurable) {
                     NuvioInfoBadge(text = stringResource(Res.string.addons_badge_configurable))
                 }
             }
+            // Fills the rest of the line (or a line of its own) with the actions on the right.
+            Row(
+                modifier = Modifier.weight(1f),
+                horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.End),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                onMoveUpClick?.let { onMoveUp ->
+                    NuvioIconActionButton(
+                        icon = Icons.Rounded.ArrowUpward,
+                        contentDescription = stringResource(Res.string.addons_move_up),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        onClick = onMoveUp,
+                    )
+                }
+                onMoveDownClick?.let { onMoveDown ->
+                    NuvioIconActionButton(
+                        icon = Icons.Rounded.ArrowDownward,
+                        contentDescription = stringResource(Res.string.addons_move_down),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        onClick = onMoveDown,
+                    )
+                }
+                NuvioIconActionButton(
+                    icon = Icons.Rounded.Refresh,
+                    contentDescription = stringResource(Res.string.addons_refresh),
+                    tint = MaterialTheme.colorScheme.primary,
+                    onClick = onRefreshClick,
+                )
+                onConfigureClick?.let { onConfigure ->
+                    NuvioIconActionButton(
+                        icon = Icons.Rounded.Settings,
+                        contentDescription = stringResource(Res.string.addons_configure),
+                        tint = MaterialTheme.colorScheme.tertiary,
+                        onClick = onConfigure,
+                    )
+                }
+                NuvioIconActionButton(
+                    icon = Icons.Rounded.Delete,
+                    contentDescription = stringResource(Res.string.addons_delete),
+                    tint = MaterialTheme.colorScheme.error,
+                    onClick = onDeleteClick,
+                )
+            }
         }
 
         when {
-            addon.isRefreshing -> {
-                Spacer(modifier = Modifier.height(16.dp))
+            addon.isRefreshing && manifest == null -> {
+                Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = stringResource(Res.string.addons_loading_manifest_details),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-
-            addon.errorMessage != null && manifest == null -> {
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = addon.errorMessage,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.error,
-                )
-            }
-
-            manifest != null -> {
-                Spacer(modifier = Modifier.height(16.dp))
-                manifest.description.takeIf { it.isNotBlank() }?.let { description ->
-                    Text(
-                        text = description,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-
-                    Spacer(modifier = Modifier.height(14.dp))
-                }
-
-                Text(
-                    text = manifestSummary(manifest),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+            }
 
-                addon.errorMessage?.let { staleError ->
-                    Spacer(modifier = Modifier.height(14.dp))
-                    Text(
-                        text = staleError,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.error,
-                    )
-                }
+            addon.errorMessage != null -> {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = addon.errorMessage,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
         }
     }
@@ -587,11 +561,12 @@ private fun AddonIconBadge(
     imageUrl: String?,
     icon: ImageVector,
     tint: Color,
+    size: Dp = 64.dp,
 ) {
     Box(
         modifier = Modifier
-            .size(64.dp)
-            .clip(RoundedCornerShape(20.dp))
+            .size(size)
+            .clip(RoundedCornerShape(size * 0.3f))
             .background(MaterialTheme.colorScheme.surfaceVariant),
         contentAlignment = Alignment.Center,
     ) {
@@ -607,26 +582,8 @@ private fun AddonIconBadge(
                 imageVector = icon,
                 contentDescription = null,
                 tint = tint,
-                modifier = Modifier.size(34.dp),
+                modifier = Modifier.size(size * 0.53f),
             )
-        }
-    }
-}
-
-@Composable
-private fun manifestSummary(manifest: AddonManifest): String {
-    val resources = manifest.resources.joinToString(separator = ", ") { it.name }
-    val types = manifest.types.joinToString(separator = " / ") { it.replaceFirstChar(Char::uppercase) }
-    return buildString {
-        append(types)
-        append(" • ")
-        append(resources)
-        if (manifest.idPrefixes.isNotEmpty()) {
-            append(" • ")
-            append(stringResource(Res.string.addons_summary_id_rules, manifest.idPrefixes.size))
-        }
-        if (manifest.behaviorHints.p2p) {
-            append(" • P2P")
         }
     }
 }
