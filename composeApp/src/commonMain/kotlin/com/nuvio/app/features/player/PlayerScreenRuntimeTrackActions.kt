@@ -362,6 +362,25 @@ private fun PlayerScreenRuntime.tryAutoSelectPreferredSubtitleFromAvailableTrack
             playerController?.setSubtitleUri(addonMatch.url)
         }
     } else if (!preferredSubtitleSelectionApplied) {
+        val fileDefaultIndex = findFileDefaultSubtitleTrackIndex(
+            tracks = subtitleTracks,
+            selectedAudioTrack = selectedAudioTrack,
+            preferredSubtitleTargets = selectionPlan.targets,
+        )
+        if (fileDefaultIndex >= 0) {
+            // An add-on subtitle in the preferred language may still arrive: it would win.
+            if (isLoadingAddonSubtitles) return
+            preferredSubtitleSelectionApplied = true
+            if (useCustomSubtitles) {
+                playerController?.clearExternalSubtitleAndSelect(fileDefaultIndex)
+            } else {
+                playerController?.selectSubtitleTrack(fileDefaultIndex)
+            }
+            selectedSubtitleIndex = fileDefaultIndex
+            selectedAddonSubtitleId = null
+            useCustomSubtitles = false
+            return
+        }
         disableAutomaticSubtitleSelection()
         preferredSubtitleSelectionApplied = true
     }

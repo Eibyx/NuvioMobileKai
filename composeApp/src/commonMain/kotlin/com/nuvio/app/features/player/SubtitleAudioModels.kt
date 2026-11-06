@@ -24,6 +24,8 @@ data class SubtitleTrack(
     val language: String? = null,
     val isSelected: Boolean = false,
     val isForced: Boolean = false,
+    /** The file marks this track as the one to show by default (Matroska `FlagDefault`). */
+    val isDefault: Boolean = false,
 )
 
 data class AddonSubtitle(

@@ -24,7 +24,7 @@ import java.util.concurrent.atomic.AtomicLong
  */
 class LocalCloudStreamServerTest {
     private val size = 48 * 1024 * 1024
-    private val content = ByteArray(size) { (it % 251).toByte() }
+    private fun byteAt(position: Int): Byte = (position % 251).toByte()
     private lateinit var upstream: HttpServer
     private lateinit var server: LocalCloudStreamServer
     private val upstreamBytes = AtomicLong()
@@ -88,10 +88,12 @@ class LocalCloudStreamServerTest {
     }
 
     private fun writeCounted(out: java.io.OutputStream, from: Int, to: Int) {
+        val buffer = ByteArray(16 * 1024)
         var position = from
         while (position < to) {
-            val count = minOf(16 * 1024, to - position)
-            out.write(content, position, count)
+            val count = minOf(buffer.size, to - position)
+            for (i in 0 until count) buffer[i] = byteAt(position + i)
+            out.write(buffer, 0, count)
             upstreamBytes.addAndGet(count.toLong())
             position += count
         }
@@ -132,7 +134,7 @@ class LocalCloudStreamServerTest {
             assertEquals(206, response.code)
             assertEquals("bytes $middle-${middle + 65_535}/$size", response.header("Content-Range"))
             val body = response.body.bytes()
-            assertArrayEquals(content.copyOfRange(middle, middle + 65_536), body)
+            assertArrayEquals(ByteArray(65_536) { byteAt(middle + it) }, body)
         }
         assertEquals(65_536L, upstreamBytes.get())
         assertEquals(listOf<String?>("ndus=test"), seenCookies.toList())

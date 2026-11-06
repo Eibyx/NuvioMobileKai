@@ -70,6 +70,27 @@ internal fun resolveAudioTrackLanguageTarget(track: AudioTrack?): String? {
     }
 }
 
+/**
+ * The subtitle track the file itself marks as default, to show when no track or add-on subtitle
+ * is in a preferred language: what mpv does on its own (Round Sync Extra, other players), so fansub
+ * releases with untagged or other-language subtitles do not start without any. Not used when the
+ * selected audio is already in a preferred subtitle language (nothing to translate), and never a
+ * forced-only track.
+ */
+internal fun findFileDefaultSubtitleTrackIndex(
+    tracks: List<SubtitleTrack>,
+    selectedAudioTrack: AudioTrack?,
+    preferredSubtitleTargets: List<String>,
+): Int {
+    if (preferredSubtitleTargets.isEmpty()) return -1
+    if (selectedAudioTrack != null &&
+        preferredSubtitleTargets.any { target -> audioTrackMatchesLanguage(selectedAudioTrack, target) }
+    ) {
+        return -1
+    }
+    return tracks.indexOfFirst { it.isDefault && !it.isForced }
+}
+
 internal fun resolveSubtitleAutoSelectionPlan(
     selectedAudioTrack: AudioTrack?,
     preferredAudioTargets: List<String>,

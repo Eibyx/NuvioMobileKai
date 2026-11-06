@@ -2580,6 +2580,7 @@ private class NuvioLibmpvView(
                         language = track.language,
                         isSelected = track.isSelected,
                         isForced = track.isForced,
+                        isDefault = track.isDefault,
                     )
                 }
                 val tracksLog =
@@ -2868,6 +2869,7 @@ private class NuvioLibmpvView(
                         trackId = id.toString(),
                         hasForcedSelectionFlag = node.nodeBoolean("forced") ?: false,
                     ),
+                    isDefault = node.nodeBoolean("default") ?: false,
                 )
             }
     }
@@ -2879,6 +2881,7 @@ private data class LibmpvTrack(
     val language: String?,
     val isSelected: Boolean,
     val isForced: Boolean,
+    val isDefault: Boolean = false,
 )
 
 
@@ -3605,6 +3608,7 @@ private fun ExoPlayer.extractSubtitleTracks(context: Context): List<SubtitleTrac
         if (group.type != C.TRACK_TYPE_TEXT) continue
         val format = group.mediaTrackGroup.getFormat(0)
         val hasForcedSelectionFlag = (format.selectionFlags and C.SELECTION_FLAG_FORCED) != 0
+        val isDefault = (format.selectionFlags and C.SELECTION_FLAG_DEFAULT) != 0
         tracks.add(
             SubtitleTrack(
                 index = idx,
@@ -3618,6 +3622,7 @@ private fun ExoPlayer.extractSubtitleTracks(context: Context): List<SubtitleTrac
                     trackId = format.id,
                     hasForcedSelectionFlag = hasForcedSelectionFlag,
                 ),
+                isDefault = isDefault,
             )
         )
         idx++
