@@ -71,11 +71,14 @@ internal fun resolveAudioTrackLanguageTarget(track: AudioTrack?): String? {
 }
 
 /**
- * The subtitle track the file itself marks as default, to show when no track or add-on subtitle
- * is in a preferred language: what mpv does on its own (Round Sync Extra, other players), so fansub
- * releases with untagged or other-language subtitles do not start without any. Not used when the
- * selected audio is already in a preferred subtitle language (nothing to translate), and never a
- * forced-only track.
+ * A subtitle track to show when no track or add-on subtitle matches a preferred language exactly,
+ * instead of starting without subtitles. In order:
+ * 1. a track in the same base language (generic Spanish for `es-419`, Portuguese for `pt-br`);
+ * 2. the track the file marks as default (Matroska `FlagDefault`), as mpv chooses on its own;
+ * 3. the track the player already selected by itself;
+ * 4. the file's only full subtitle track.
+ * Never a forced-only track, and not used when subtitles are off or the selected audio is already
+ * in a preferred subtitle language (nothing to translate).
  */
 internal fun findFileDefaultSubtitleTrackIndex(
     tracks: List<SubtitleTrack>,
@@ -88,7 +91,21 @@ internal fun findFileDefaultSubtitleTrackIndex(
     ) {
         return -1
     }
-    return tracks.indexOfFirst { it.isDefault && !it.isForced }
+    val full = tracks.indices.filter { !tracks[it].isForced }
+    if (full.isEmpty()) return -1
+    val baseLanguages = preferredSubtitleTargets
+        .map { SubtitleLanguageMatching.normalizeLanguageCode(it).substringBefore('-') }
+        .filter { it.isNotBlank() }
+        .distinct()
+    baseLanguages.forEach { base ->
+        full.firstOrNull { index ->
+            val language = tracks[index].language ?: return@firstOrNull false
+            SubtitleLanguageMatching.normalizeLanguageCode(language).substringBefore('-') == base
+        }?.let { return it }
+    }
+    full.firstOrNull { tracks[it].isDefault }?.let { return it }
+    full.firstOrNull { tracks[it].isSelected }?.let { return it }
+    return full.singleOrNull() ?: -1
 }
 
 internal fun resolveSubtitleAutoSelectionPlan(

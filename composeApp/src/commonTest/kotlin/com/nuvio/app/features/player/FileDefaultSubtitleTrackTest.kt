@@ -17,14 +17,31 @@ class FileDefaultSubtitleTrackTest {
     }
 
     @Test
+    fun genericSpanishWhenLatinAmericanSpanishIsPreferred() {
+        // The real case: one fansub track in Spanish without a Latino tag, es-419 preferred.
+        val fansub = listOf(SubtitleTrack(index = 0, id = "1", label = "Animo-Alonso18p", language = "spa"))
+        assertEquals(0, findFileDefaultSubtitleTrackIndex(fansub, japanese, listOf("es-419")))
+    }
+
+    @Test
+    fun theTrackThePlayerSelectedOrTheOnlyOne() {
+        val untagged = listOf(
+            SubtitleTrack(index = 0, id = "1", label = "A", language = null),
+            SubtitleTrack(index = 1, id = "2", label = "B", language = null, isSelected = true),
+        )
+        assertEquals(1, findFileDefaultSubtitleTrackIndex(untagged, japanese, listOf("es-419")))
+        assertEquals(0, findFileDefaultSubtitleTrackIndex(untagged.take(1), japanese, listOf("es-419")))
+    }
+
+    @Test
     fun notWhenTheAudioIsAlreadyInThePreferredLanguage() {
         val spanish = AudioTrack(index = 0, id = "1", label = "Español", language = "spa", isSelected = true)
         assertEquals(-1, findFileDefaultSubtitleTrackIndex(tracks, spanish, listOf("es")))
     }
 
     @Test
-    fun notWhenSubtitlesAreTurnedOffOrNoTrackIsDefault() {
+    fun notWhenSubtitlesAreOffOrOnlyForcedTracksExist() {
         assertEquals(-1, findFileDefaultSubtitleTrackIndex(tracks, japanese, emptyList()))
-        assertEquals(-1, findFileDefaultSubtitleTrackIndex(tracks.map { it.copy(isDefault = false) }, japanese, listOf("es")))
+        assertEquals(-1, findFileDefaultSubtitleTrackIndex(tracks.take(1), japanese, listOf("es")))
     }
 }
