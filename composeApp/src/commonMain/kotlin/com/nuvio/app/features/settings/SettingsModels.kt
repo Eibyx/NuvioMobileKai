@@ -49,7 +49,12 @@ internal enum class SettingsCategory(
     You(Res.string.settings_group_you, Icons.Default.Person),
     Look(Res.string.settings_group_look, Icons.Default.Palette),
     Watch(Res.string.settings_group_watch, Icons.Rounded.PlayArrow),
+    /** Where streams come from: add-ons, debrid, cloud storage, media servers and plugins. */
+    Sources(Res.string.settings_group_sources, Icons.Default.Extension),
+    /** Metadata, ratings and tracking. */
     Services(Res.string.settings_group_services, Icons.Default.Link),
+    /** Live TV, Discord and the watch party. */
+    Extras(Res.string.settings_group_extras, Icons.Default.LiveTv),
     System(Res.string.settings_group_system, Icons.Rounded.Settings),
 }
 
@@ -200,37 +205,37 @@ internal enum class SettingsPage(
     ),
     ContentDiscovery(
         titleRes = Res.string.compose_settings_page_content_discovery,
-        category = SettingsCategory.Watch,
+        category = SettingsCategory.Sources,
         parentPage = Root,
     ),
     Addons(
         titleRes = Res.string.compose_settings_page_addons,
-        category = SettingsCategory.Watch,
-        parentPage = ContentDiscovery,
+        category = SettingsCategory.Sources,
+        parentPage = Root,
     ),
     Plugins(
         titleRes = Res.string.compose_settings_page_plugins,
-        category = SettingsCategory.Watch,
-        parentPage = ContentDiscovery,
+        category = SettingsCategory.Sources,
+        parentPage = Root,
     ),
     MediaServers(
         titleRes = Res.string.compose_settings_page_media_servers,
-        category = SettingsCategory.Watch,
-        parentPage = ContentDiscovery,
+        category = SettingsCategory.Sources,
+        parentPage = Root,
     ),
     MediaServer(
         titleRes = Res.string.compose_settings_page_media_server,
-        category = SettingsCategory.Watch,
+        category = SettingsCategory.Sources,
         parentPage = MediaServers,
     ),
     CloudStorage(
         titleRes = Res.string.compose_settings_page_cloud_storage,
-        category = SettingsCategory.Watch,
-        parentPage = ContentDiscovery,
+        category = SettingsCategory.Sources,
+        parentPage = Root,
     ),
     CloudStorageAccount(
         titleRes = Res.string.compose_settings_page_cloud_storage_account,
-        category = SettingsCategory.Watch,
+        category = SettingsCategory.Sources,
         parentPage = CloudStorage,
     ),
     Homescreen(
@@ -251,32 +256,32 @@ internal enum class SettingsPage(
     TmdbEnrichment(
         titleRes = Res.string.compose_settings_page_tmdb_enrichment,
         category = SettingsCategory.Services,
-        parentPage = Integrations,
+        parentPage = Root,
     ),
     MdbListRatings(
         titleRes = Res.string.compose_settings_page_mdblist_ratings,
         category = SettingsCategory.Services,
-        parentPage = Integrations,
+        parentPage = Root,
     ),
     Omdb(
         titleRes = Res.string.compose_settings_page_omdb,
         category = SettingsCategory.Services,
-        parentPage = Integrations,
+        parentPage = Root,
     ),
     Debrid(
         titleRes = Res.string.compose_settings_page_debrid,
-        category = SettingsCategory.Services,
-        parentPage = Integrations,
+        category = SettingsCategory.Sources,
+        parentPage = Root,
     ),
     LiveTv(
         titleRes = Res.string.compose_settings_page_live_tv,
-        category = SettingsCategory.Services,
-        parentPage = Integrations,
+        category = SettingsCategory.Extras,
+        parentPage = Root,
     ),
     DiscordRpc(
         titleRes = Res.string.compose_settings_page_discord_rpc,
-        category = SettingsCategory.Services,
-        parentPage = Integrations,
+        category = SettingsCategory.Extras,
+        parentPage = Root,
     ),
     TraktAuthentication(
         titleRes = Res.string.compose_settings_page_tracking,

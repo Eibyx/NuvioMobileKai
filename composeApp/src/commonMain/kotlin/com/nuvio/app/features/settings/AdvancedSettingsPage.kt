@@ -34,7 +34,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import com.nuvio.app.features.search.SearchHistoryRepository
 import nuvio.composeapp.generated.resources.Res
+import nuvio.composeapp.generated.resources.settings_content_discovery_recent_searches_description
+import nuvio.composeapp.generated.resources.settings_content_discovery_recent_searches
+import nuvio.composeapp.generated.resources.settings_advanced_section_search
 import nuvio.composeapp.generated.resources.action_cancel
 import nuvio.composeapp.generated.resources.settings_advanced_dns
 import nuvio.composeapp.generated.resources.settings_advanced_dns_doh_format
@@ -93,6 +97,26 @@ internal fun LazyListScope.advancedSettingsContent(
                     checked = rememberLastProfileEnabled,
                     isTablet = isTablet,
                     onCheckedChange = ProfileRepository::setRememberLastProfileEnabled,
+                )
+            }
+        }
+    }
+    item {
+        val recentSearchesEnabled by remember {
+            SearchHistoryRepository.ensureLoaded()
+            SearchHistoryRepository.enabled
+        }.collectAsStateWithLifecycle()
+        SettingsSection(
+            title = stringResource(Res.string.settings_advanced_section_search),
+            isTablet = isTablet,
+        ) {
+            SettingsGroup(isTablet = isTablet) {
+                SettingsSwitchRow(
+                    title = stringResource(Res.string.settings_content_discovery_recent_searches),
+                    description = stringResource(Res.string.settings_content_discovery_recent_searches_description),
+                    checked = recentSearchesEnabled,
+                    isTablet = isTablet,
+                    onCheckedChange = SearchHistoryRepository::setEnabled,
                 )
             }
         }

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_group_sources">Sources</string>
+    <string name="settings_group_extras">Extras</string>
+    <string name="settings_advanced_section_search">Search</string>
+</resources>

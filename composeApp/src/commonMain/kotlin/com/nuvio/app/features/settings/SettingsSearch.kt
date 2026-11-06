@@ -268,12 +268,12 @@ internal fun settingsSearchEntries(
         description = stringResource(Res.string.compose_settings_root_content_discovery_description),
     )
     addRow(
-        page = SettingsPage.ContentDiscovery,
+        page = SettingsPage.Advanced,
         key = "recent-searches",
         title = stringResource(Res.string.settings_content_discovery_recent_searches),
         description = stringResource(Res.string.settings_content_discovery_recent_searches_description),
-        pageLabel = contentDiscoveryPage,
-        section = stringResource(Res.string.settings_content_discovery_section_search),
+        pageLabel = advancedPage,
+        section = stringResource(Res.string.settings_advanced_section_search),
     )
     addRow(
         page = SettingsPage.Downloads,
@@ -469,8 +469,8 @@ internal fun settingsSearchEntries(
     addRow(
         page = SettingsPage.Layout,
         key = "dynamic-artwork-background",
-        title = stringResource(Res.string.settings_appearance_dynamic_artwork_background),
-        description = stringResource(Res.string.settings_appearance_dynamic_artwork_background_description),
+        title = stringResource(Res.string.settings_artwork_background),
+        description = stringResource(Res.string.settings_artwork_background_description),
         pageLabel = layoutPage,
         section = stringResource(Res.string.settings_appearance_section_home),
     )

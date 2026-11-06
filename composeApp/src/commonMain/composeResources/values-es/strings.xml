@@ -2483,9 +2483,9 @@
 <string name="settings_nav_bar_glass_lens_affect_floating_bar_description">Refracta la superficie de cristal de la barra flotante al mover la lente.</string>
     <string name="stream_info_server">Servidor</string>
     <string name="settings_group_you">Tú</string>
-    <string name="settings_group_look">Personalización</string>
-    <string name="settings_group_watch">Multimedia</string>
-    <string name="settings_group_services">Servicios</string>
+    <string name="settings_group_look">Aspecto</string>
+    <string name="settings_group_watch">Reproducción</string>
+    <string name="settings_group_services">Datos y seguimiento</string>
     <string name="settings_group_system">Sistema</string>
     <string name="compose_settings_page_layout">Diseño</string>
     <string name="compose_settings_root_layout_description">Inicio, tarjetas, detalles, fuentes y navegación</string>
