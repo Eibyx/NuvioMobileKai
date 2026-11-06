@@ -6,6 +6,7 @@ import com.nuvio.app.features.addons.httpPostJson
 import com.nuvio.app.features.anilist.AniListConfig
 import com.nuvio.app.features.details.MetaDetails
 import com.nuvio.app.features.tmdb.TmdbMetadataService
+import com.nuvio.app.features.tmdb.TmdbService
 import com.nuvio.app.features.tracking.TrackingExternalIds
 import kotlinx.atomicfu.locks.SynchronizedObject
 import kotlinx.atomicfu.locks.synchronized
@@ -36,11 +37,28 @@ internal object CloudTitleAliases {
 
     suspend fun aliases(cacheKey: String, type: String, meta: MetaDetails?, ids: TrackingExternalIds): List<CloudTitleAlias> {
         synchronized(lock) { cache[cacheKey] }?.let { return it }
+        // An IMDb id alone (from a catalogue such as Bingecat or AIOMetadata) finds no TMDB title
+        // and often no ARM entry: look the TMDB id up so both can be used.
+        val withTmdb = if (ids.tmdb == null && ids.imdb != null) {
+            val tmdb = withTimeoutOrNull(TMDB_TIMEOUT_MS) {
+                runCatching { TmdbService.ensureTmdbId(ids.imdb, type) }.getOrNull()
+            }?.toLongOrNull()
+            if (tmdb != null) ids.copy(tmdb = tmdb) else ids
+        } else {
+            ids
+        }
         val result = buildList {
             meta?.name?.takeIf { it.isNotBlank() }?.let { add(CloudTitleAlias(it)) }
-            ids.tmdb?.let { TmdbMetadataService.cachedOriginalTitle(it.toString(), type) }
+            withTmdb.tmdb?.let { TmdbMetadataService.cachedOriginalTitle(it.toString(), type) }
                 ?.takeIf { it.isNotBlank() }?.let { add(CloudTitleAlias(it)) }
-            addAll(withTimeoutOrNull(ANILIST_TIMEOUT_MS) { aniListAliases(ids) }.orEmpty())
+            val aniList = withTimeoutOrNull(ANILIST_TIMEOUT_MS) { aniListAliases(withTmdb) }.orEmpty()
+                .ifEmpty {
+                    // No mapping at all: AniList's own search, kept only when a result has this very title.
+                    meta?.name?.takeIf { it.isNotBlank() }
+                        ?.let { name -> withTimeoutOrNull(ANILIST_TIMEOUT_MS) { aniListSearchAliases(name) } }
+                        .orEmpty()
+                }
+            addAll(aniList)
         }.distinctBy { it.title.lowercase() to it.seasonHint }
         synchronized(lock) {
             cache[cacheKey] = result
@@ -58,15 +76,26 @@ internal object CloudTitleAliases {
         emptyList()
     }
 
+    /** Each known id in turn, until ARM knows one of them: an IMDb id is often missing where TMDB's is not. */
     private suspend fun armEntries(ids: TrackingExternalIds): List<Pair<Long, Int?>> {
-        val (source, id) = when {
-            ids.mal != null -> "myanimelist" to ids.mal.toString()
-            ids.kitsu != null -> "kitsu" to ids.kitsu.toString()
-            ids.anidb != null -> "anidb" to ids.anidb.toString()
-            ids.imdb != null -> "imdb" to ids.imdb
-            ids.tmdb != null -> "themoviedb" to ids.tmdb.toString()
-            else -> return emptyList()
+        val lookups = listOfNotNull(
+            ids.mal?.let { "myanimelist" to it.toString() },
+            ids.kitsu?.let { "kitsu" to it.toString() },
+            ids.anidb?.let { "anidb" to it.toString() },
+            ids.imdb?.let { "imdb" to it },
+            ids.tmdb?.let { "themoviedb" to it.toString() },
+        )
+        for ((source, id) in lookups) {
+            val entries = runCatching { armEntries(source, id) }.getOrElse { error ->
+                if (error is CancellationException) throw error
+                emptyList()
+            }
+            if (entries.isNotEmpty()) return entries
         }
+        return emptyList()
+    }
+
+    private suspend fun armEntries(source: String, id: String): List<Pair<Long, Int?>> {
         val body = httpGetText("${AniListConfig.ARM_BASE_URL}/ids?source=$source&id=$id")
         val element = Json.parseToJsonElement(body)
         val objects = when (element) {
@@ -78,6 +107,40 @@ internal object CloudTitleAliases {
             val aniList = entry.primitive("anilist")?.let { it.longOrNull ?: it.contentOrNull?.toLongOrNull() } ?: return@mapNotNull null
             aniList to entry.primitive("thetvdb-season")?.let { it.intOrNull ?: it.contentOrNull?.toIntOrNull() }
         }
+    }
+
+    /**
+     * AniList's search for [name], for titles no id maps. A result counts only when one of its own
+     * titles is [name] (as the matcher compares titles), so a different show is never taken.
+     */
+    private suspend fun aniListSearchAliases(name: String): List<CloudTitleAlias> = try {
+        val wanted = name.titleKey() ?: return emptyList()
+        val query = buildJsonObject {
+            put("query", "query(\$s:String){Page(perPage:5){media(search:\$s,type:ANIME){title{romaji english native} synonyms}}}")
+            putJsonObject("variables") { put("s", name) }
+        }
+        val media = (Json.parseToJsonElement(httpPostJson(AniListConfig.GRAPHQL_URL, query.toString())) as? JsonObject)
+            ?.obj("data")?.obj("Page")?.get("media") as? JsonArray
+        media.orEmpty().mapNotNull { it as? JsonObject }
+            .map { item -> item.titles() }
+            .firstOrNull { titles -> titles.any { title -> title.titleKey()?.matches(wanted) == true } }
+            .orEmpty()
+            .map { CloudTitleAlias(it) }
+    } catch (error: Exception) {
+        if (error is CancellationException) throw error
+        log.d { "AniList search unavailable: ${error::class.simpleName}" }
+        emptyList()
+    }
+
+    private fun JsonObject.titles(): List<String> {
+        val title = obj("title")
+        return (
+            listOfNotNull(
+                title?.primitive("romaji")?.contentOrNull,
+                title?.primitive("english")?.contentOrNull,
+                title?.primitive("native")?.contentOrNull,
+            ) + (this["synonyms"] as? JsonArray)?.mapNotNull { (it as? JsonPrimitive)?.contentOrNull }.orEmpty()
+        ).filter { it.isNotBlank() }.distinct().take(12)
     }
 
     private suspend fun aniListTitles(id: Long): List<String> {
@@ -102,4 +165,5 @@ internal object CloudTitleAliases {
     private const val CACHE_SIZE = 64
     private const val MAX_ANILIST_ENTRIES = 4
     private const val ANILIST_TIMEOUT_MS = 6_000L
+    private const val TMDB_TIMEOUT_MS = 4_000L
 }

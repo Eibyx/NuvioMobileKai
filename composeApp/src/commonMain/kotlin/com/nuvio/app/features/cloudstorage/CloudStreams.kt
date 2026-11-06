@@ -1,6 +1,7 @@
 package com.nuvio.app.features.cloudstorage
 
 import co.touchlab.kermit.Logger
+import com.nuvio.app.core.logging.InAppLogger
 import com.nuvio.app.features.details.MetaDetails
 import com.nuvio.app.features.details.MetaDetailsRepository
 import com.nuvio.app.features.servers.ServerItemRef
@@ -50,10 +51,21 @@ internal object CloudStreams {
         season: Int?,
         episode: Int?,
     ): List<StreamItem> {
-        val request = request(type, videoId, season, episode) ?: return emptyList()
+        val request = request(type, videoId, season, episode) ?: run {
+            InAppLogger.info("Cloud/Match", "${account.kind.id} no request for id=$videoId type=$type")
+            return emptyList()
+        }
         val files = CloudStorageRepository.index(account.id)?.files.orEmpty()
         val matches = CloudMatcher.match(files, request, account.manualLinks)
         log.d { "${matches.size} matches in a ${account.kind.id} account" }
+        val (titled, misses) = if (matches.isEmpty()) CloudMatcher.nearMisses(files, request) else (0 to emptyList())
+        InAppLogger.info(
+            "Cloud/Match",
+            "${account.kind.id} files=${files.size} ids=${request.contentIds.joinToString(",")} " +
+                "s=${request.season} e=${request.episode} abs=${request.absoluteEpisode} " +
+                "aliases=${request.aliases.size}[${request.aliases.take(4).joinToString("|") { it.title }}] matches=${matches.size}" +
+                if (matches.isEmpty()) " sameTitle=$titled read=${misses.joinToString(",")}" else "",
+        )
         return matches.map { match -> match.toStream(account, request) }
     }
 
@@ -70,6 +82,7 @@ internal object CloudStreams {
             val metaImdb = meta?.imdbId?.takeIf { it.startsWith("tt") }
             if (parsed.imdb == null && metaImdb != null) parsed.copy(imdb = metaImdb) else parsed
         }
+        val trackerEntry = isSeries && position.size == 1 && season == null
         val (requestSeason, requestEpisode) = when {
             !isSeries -> null to null
             position.size >= 2 -> (season ?: position[0]) to (episode ?: position[1])
@@ -84,6 +97,8 @@ internal object CloudStreams {
             .groupingBy { it.season!! }
             .eachCount()
         val video = meta?.videos.orEmpty().firstOrNull { it.season == requestSeason && it.episode == requestEpisode }
+        // A tracker entry's "season 1" is the entry itself; its files carry the show's season.
+        val matchSeason = if (trackerEntry) trackerEntrySeason(aliases) ?: requestSeason else requestSeason
         return CloudMatchRequest(
             displayTitle = meta?.name?.takeIf { it.isNotBlank() },
             episodeTitle = video?.title?.takeIf { it.isNotBlank() && !GENERIC_EPISODE_TITLE.matches(it.trim()) },
@@ -92,10 +107,10 @@ internal object CloudStreams {
             contentIds = (listOf(parentId) + ids.catalogIds()).toSet(),
             aliases = aliases,
             year = meta?.releaseInfo?.let { YEAR.find(it)?.value?.toIntOrNull() },
-            season = requestSeason,
+            season = matchSeason,
             episode = requestEpisode,
-            absoluteEpisode = if (requestSeason != null && requestEpisode != null) {
-                absoluteEpisodeNumber(perSeason, requestSeason, requestEpisode)
+            absoluteEpisode = if (matchSeason != null && requestEpisode != null) {
+                absoluteEpisodeNumber(perSeason, matchSeason, requestEpisode)
             } else {
                 null
             },

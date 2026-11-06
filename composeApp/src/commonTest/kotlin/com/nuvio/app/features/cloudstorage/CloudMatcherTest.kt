@@ -111,4 +111,50 @@ class CloudMatcherTest {
         assertEquals(3, absoluteEpisodeNumber(mapOf(), 1, 3))
         assertEquals(null, absoluteEpisodeNumber(mapOf(2 to 12), 3, 1))
     }
+
+    @Test
+    fun aTrackerEntryForTheSecondSeasonFindsFilesNamedAsThatSeason() {
+        // Opened from mal:/kitsu: (AIOMetadata): episode 5 of the entry that ARM maps to TVDB season 2.
+        val aliases = listOf(CloudTitleAlias("Clevatess"), CloudTitleAlias("Clevatess II", seasonHint = 2))
+        assertEquals(2, trackerEntrySeason(aliases))
+        val request = series(trackerEntrySeason(aliases)!!, 5, null, *aliases.toTypedArray())
+        val files = listOf(
+            file("/TeraBox/Clevatess/Season 2/Clevatess S02E05 1080p.mkv"),
+            file("/TeraBox/Clevatess/Season 1/Clevatess S01E05 1080p.mkv"),
+            file("/Drive/[Fansub] Clevatess II - 05.mkv"),
+        )
+        assertEquals(
+            setOf("/TeraBox/Clevatess/Season 2/Clevatess S02E05 1080p.mkv", "/Drive/[Fansub] Clevatess II - 05.mkv"),
+            CloudMatcher.match(files, request).map { it.file.id }.toSet(),
+        )
+    }
+
+    @Test
+    fun noOrMixedSeasonHintsLeaveTheSeasonAlone() {
+        assertEquals(null, trackerEntrySeason(listOf(CloudTitleAlias("Clevatess"))))
+        assertEquals(null, trackerEntrySeason(listOf(CloudTitleAlias("A", seasonHint = 1), CloudTitleAlias("B", seasonHint = 2))))
+        assertEquals(null, trackerEntrySeason(listOf(CloudTitleAlias("Specials", seasonHint = 0))))
+    }
+
+    @Test
+    fun nearMissesSayWhatTheNumbersWere() {
+        val request = series(1, 7, 7, CloudTitleAlias("Kotoura-san"))
+        val (titled, misses) = CloudMatcher.nearMisses(listOf(kotoura), request)
+        assertEquals(1, titled)
+        assertEquals(listOf("E1"), misses)
+    }
+
+    @Test
+    fun theFileNameWinsOverAFolderThatCarriesTheShowsName() {
+        // Hellsing Ultimate S1E2 must not take The Dawn's episode 2 from a "Hellsing - The Dawn" folder.
+        val aliases = arrayOf(
+            CloudTitleAlias("Hellsing Ultimate"),
+            CloudTitleAlias("Hellsing"),
+            CloudTitleAlias("Hellsing: The Dawn", seasonHint = 0),
+            CloudTitleAlias("The Dawn", seasonHint = 0),
+        )
+        val ultimate = file("/ANIME/[RedLineSP] Hellsing Ultimate [BD 1080p]/[RedLineSP] Hellsing Ultimate [BD 1080p] - 02.mkv")
+        val dawn = file("/ANIME/[RedLineSP] Hellsing - The Dawn [BD 1080p]/[RedLineSP] The Dawn [BD 1080p] - 02.mkv")
+        assertEquals(listOf(ultimate.id), CloudMatcher.match(listOf(ultimate, dawn), series(1, 2, 2, *aliases)).map { it.file.id })
+    }
 }

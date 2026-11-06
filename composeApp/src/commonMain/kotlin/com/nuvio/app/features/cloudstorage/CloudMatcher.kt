@@ -68,14 +68,18 @@ internal object CloudMatcher {
         file: CloudFile,
         aliasKeys: List<Pair<TitleKey, CloudTitleAlias>>,
     ): List<CloudTitleAlias> {
-        val candidates = buildList {
-            release.title.titleKey()?.let(::add)
-            // A file named only `01.mkv` inside `Kotoura-san/`: the folders carry the title.
-            file.folderNames().asReversed().take(3).forEach { folder ->
-                CloudReleaseParser.parse(folder).title.titleKey()?.let(::add)
-            }
+        // The file's own title is the stronger evidence: `The Dawn - 02.mkv` inside a
+        // `Hellsing - The Dawn` folder is The Dawn, even though "Hellsing" alone is a title too.
+        val own = release.title.titleKey()
+        if (own != null) {
+            val byName = aliasKeys.filter { (aliasKey, _) -> own.matches(aliasKey) }.map { it.second }
+            if (byName.isNotEmpty()) return byName
         }
-        return aliasKeys.filter { (aliasKey, _) -> candidates.any { it.matches(aliasKey) } }.map { it.second }
+        // A file named only `01.mkv` inside `Kotoura-san/`: the folders carry the title.
+        val folders = file.folderNames().asReversed().take(3).mapNotNull { folder ->
+            CloudReleaseParser.parse(folder).title.titleKey()
+        }
+        return aliasKeys.filter { (aliasKey, _) -> folders.any { it.matches(aliasKey) } }.map { it.second }
     }
 
     private fun episodeMatches(
@@ -100,9 +104,46 @@ internal object CloudMatcher {
         return absolute != episode && covers(absolute)
     }
 
+    /**
+     * For the log: files whose title matched but whose numbers did not, as the parser read them
+     * ("S2E5", "E13"), so a mismatch can be told apart from a title that was not recognised.
+     */
+    fun nearMisses(
+        files: List<CloudFile>,
+        request: CloudMatchRequest,
+        limit: Int = 3,
+        parse: (CloudFile) -> ParsedRelease = { file -> CloudReleaseParser.parse(file.name, file.folderNames()) },
+    ): Pair<Int, List<String>> {
+        val aliasKeys = request.aliases.mapNotNull { alias -> alias.title.titleKey()?.let { it to alias } }
+        if (aliasKeys.isEmpty()) return 0 to emptyList()
+        var titled = 0
+        val misses = mutableListOf<String>()
+        files.forEach { file ->
+            val release = parse(file)
+            if (matchingAliases(release, file, aliasKeys).isEmpty()) return@forEach
+            titled++
+            if (misses.size < limit) {
+                misses += buildString {
+                    release.season?.let { append("S").append(it) }
+                    release.episode?.let { append("E").append(it) }
+                    release.lastEpisode?.takeIf { it != release.episode }?.let { append("-").append(it) }
+                    if (isEmpty()) append("no-number")
+                }
+            }
+        }
+        return titled to misses
+    }
+
     private fun yearMatches(fileYear: Int?, requestYear: Int?): Boolean =
         fileYear == null || requestYear == null || kotlin.math.abs(fileYear - requestYear) <= 1
 }
+
+/**
+ * A tracker id (`kitsu:13:5`, `mal:…`) numbers episodes within one AniList entry. When that entry
+ * is a single TVDB season (the ARM mapping's season), files name it as that season ("S02E05").
+ */
+internal fun trackerEntrySeason(aliases: List<CloudTitleAlias>): Int? =
+    aliases.mapNotNull { it.seasonHint }.filter { it > 0 }.distinct().singleOrNull()
 
 internal fun CloudFile.folderNames(): List<String> =
     parentPath.split('/').filter { it.isNotBlank() }
