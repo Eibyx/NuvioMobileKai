@@ -6,6 +6,10 @@ import com.nuvio.app.features.profiles.ProfileRepository
 import kotlinx.atomicfu.locks.SynchronizedObject
 import kotlinx.atomicfu.locks.synchronized
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -34,6 +38,8 @@ internal object CloudStorageRepository {
     val uiState: StateFlow<CloudStorageUiState> = _uiState.asStateFlow()
 
     private var loadedProfileId: Int? = null
+    private val backgroundScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private const val STALE_AFTER_MS = 6 * 60 * 60 * 1000L
     private val indexes = mutableMapOf<String, CloudIndexSnapshot>()
     private val providers = mutableMapOf<String, CloudProvider>()
 
@@ -89,13 +95,39 @@ internal object CloudStorageRepository {
         return save(CloudProviderKind.GOOGLE_DRIVE, name.ifBlank { label ?: CloudProviderKind.GOOGLE_DRIVE.displayName }, credentials)
     }
 
+    /**
+     * Stores a verified account with all of its folders selected (the whole drive, from its root)
+     * and starts indexing it right away; the user can narrow the folders later.
+     */
     @OptIn(ExperimentalUuidApi::class)
     private fun save(kind: CloudProviderKind, name: String, credentials: CloudCredentials): CloudAccount {
         ensureLoaded()
-        val account = CloudAccount(id = Uuid.random().toString(), kind = kind, name = name.trim().take(60))
+        val root = when (kind) {
+            CloudProviderKind.GOOGLE_DRIVE -> CloudFolderRef(id = "root", path = "/")
+            CloudProviderKind.TERABOX -> CloudFolderRef(id = "/", path = "/")
+        }
+        val account = CloudAccount(id = Uuid.random().toString(), kind = kind, name = name.trim().take(60), folders = listOf(root))
         writeCredentials(account.id, credentials)
         mutate { it + account }
+        syncInBackground(account.id)
         return account
+    }
+
+    /** Re-indexes an account whose index is older than [STALE_AFTER_MS], without waiting for it. */
+    fun refreshIfStale(account: CloudAccount) {
+        val last = account.lastSyncEpochMs ?: 0L
+        if (account.folders.isEmpty() || nowMs() - last < STALE_AFTER_MS) return
+        syncInBackground(account.id)
+    }
+
+    fun syncInBackground(id: String) {
+        if (id in _uiState.value.syncing) return
+        backgroundScope.launch {
+            runCatching { sync(id) }.onFailure { error ->
+                if (error is CancellationException) throw error
+                log.w { "Background sync failed: ${(error as? CloudStorageException)?.failure ?: error::class.simpleName}" }
+            }
+        }
     }
 
     fun update(id: String, change: (CloudAccount) -> CloudAccount) {
@@ -142,7 +174,12 @@ internal object CloudStorageRepository {
     suspend fun sync(id: String): CloudIndexSnapshot {
         val account = account(id) ?: throw CloudStorageException(CloudFailure.NOT_FOUND)
         val provider = provider(id) ?: throw CloudStorageException(CloudFailure.NOT_FOUND)
-        _uiState.update { it.copy(syncing = it.syncing + id) }
+        var started = false
+        _uiState.update { state ->
+            started = id !in state.syncing
+            if (started) state.copy(syncing = state.syncing + id) else state
+        }
+        if (!started) return index(id) ?: CloudIndexSnapshot()
         try {
             val snapshot = provider.index(account.folders, index(id))
             storeIndex(id, snapshot)
@@ -153,7 +190,7 @@ internal object CloudStorageRepository {
             update(id) { it.copy(lastError = error.failure.name) }
             throw error
         } finally {
-            _uiState.update { it.copy(syncing = it.syncing - id) }
+            if (started) _uiState.update { it.copy(syncing = it.syncing - id) }
         }
     }
 

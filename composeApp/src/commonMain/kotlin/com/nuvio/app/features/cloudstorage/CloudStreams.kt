@@ -9,6 +9,9 @@ import com.nuvio.app.features.servers.ServerStreamSource
 import com.nuvio.app.features.servers.catalogIds
 import com.nuvio.app.features.streams.StreamBehaviorHints
 import com.nuvio.app.features.streams.StreamItem
+import com.nuvio.app.features.streams.StreamSubtitle
+import kotlinx.atomicfu.locks.SynchronizedObject
+import kotlinx.atomicfu.locks.synchronized
 import com.nuvio.app.features.tracking.TrackingExternalIds
 import com.nuvio.app.features.tracking.parseTrackingExternalIds
 import kotlinx.coroutines.withTimeoutOrNull
@@ -30,6 +33,7 @@ internal object CloudStreams {
         val accounts = runCatching { CloudStorageRepository.enabledAccounts() }.getOrDefault(emptyList())
             .filter { account -> account.manualLinks.isNotEmpty() || CloudStorageRepository.index(account.id)?.files?.isNotEmpty() == true }
         if (accounts.isEmpty()) return emptyList()
+        accounts.forEach(CloudStorageRepository::refreshIfStale)
         return accounts.map { account ->
             ServerStreamSource(
                 addonId = groupId(account.id),
@@ -94,23 +98,44 @@ internal object CloudStreams {
         )
     }
 
+    /**
+     * Laid out like the debrid add-on results: a headline of tags and one line per fact. The
+     * provider is not repeated: the source chip above the list already names it.
+     */
     private fun CloudMatch.toStream(account: CloudAccount): StreamItem {
         val release = release
-        val episodeLabel = release.episode?.let { number ->
-            listOfNotNull(release.season?.let { "S${it.twoDigits()}" }, "EP${number.twoDigits()}").joinToString("")
-        }
-        val quality = release.resolution ?: file.height?.let { "${it}p" }
+        val quality = (release.resolution ?: file.height?.let { "${it}p" })?.uppercase()
         val format = (release.container ?: file.name.substringAfterLast('.', "")).uppercase().takeIf { it.isNotBlank() }
-        val details = listOfNotNull(release.title.takeIf { it.isNotBlank() }, episodeLabel, quality, release.videoCodec, format)
+        val sidecars = CloudStorageRepository.index(account.id)?.subtitles?.let { CloudSidecarSubtitles.find(file, it) }.orEmpty()
+        val headline = listOfNotNull(
+            quality?.let { "🎞️ $it" },
+            release.source?.let { "💎 ${sourceLabel(it)}" },
+            format?.let { "📼 $it" },
+            if (manual) "📌 MANUAL" else null,
+        ).joinToString(" • ")
+        val episodeLine = release.episode?.let { number ->
+            release.season?.let { "📺 EPISODE: S${it.twoDigits()} • E${number.twoDigits()}" } ?: "📺 EPISODE: ${number.twoDigits()}"
+        }
+        val lines = listOfNotNull(
+            release.title.takeIf { it.isNotBlank() }?.let { "🎬 TITLE: $it" + (release.year?.let { year -> " ($year)" } ?: "") },
+            episodeLine,
+            release.videoCodec?.let { "🎞️ CODEC: ${codecLabel(it)}" },
+            release.audio?.let { "🔊 AUDIO: $it" },
+            sidecars.takeIf { it.isNotEmpty() }?.let { list ->
+                "💬 SUBTITLES: " + list.joinToString(" • ") { it.label.ifBlank { it.language.uppercase() } }
+            },
+            listOfNotNull(
+                file.sizeBytes.takeIf { it > 0 }?.let { "📦 SIZE: ${formatBytes(it)}" },
+                file.durationMs?.let { "RUNTIME: ${runtime(it)}" },
+            ).joinToString(" • ").takeIf { it.isNotBlank() },
+            release.group?.let { "🏷️ GROUP: $it" },
+            "📁 ${file.parentPath.substringAfterLast('/').ifBlank { "/" }}",
+            "📄 ${file.name}",
+            if (manual) "🔗 LINKED MANUALLY" else "🔗 TITLE MATCHED",
+        )
         return StreamItem(
-            name = listOfNotNull(account.kind.displayName, quality).joinToString(" · "),
-            title = details.joinToString(" | "),
-            description = listOfNotNull(
-                details.joinToString(" | "),
-                listOfNotNull(file.sizeBytes.takeIf { it > 0 }?.let(::formatBytes), release.audio, release.group).joinToString(" · ").takeIf { it.isNotBlank() },
-                file.name,
-                if (manual) "✓" else null,
-            ).joinToString("\n"),
+            name = headline.ifBlank { file.name },
+            description = lines.joinToString("\n"),
             sourceName = account.sourceLabel(),
             addonName = account.sourceLabel(),
             addonId = groupId(account.id),
@@ -121,6 +146,24 @@ internal object CloudStreams {
             ),
             serverTarget = ServerPlaybackTarget(ServerItemRef("$CONNECTION_PREFIX${account.id}", file.id), mediaSourceId = null),
         )
+    }
+
+    private fun sourceLabel(source: String): String = when (source) {
+        "BD" -> "BLU-RAY"
+        "Remux" -> "REMUX"
+        else -> source.uppercase()
+    }
+
+    private fun codecLabel(codec: String): String = when (codec) {
+        "HEVC" -> "H.265 HEVC"
+        "H.264" -> "H.264 AVC"
+        else -> codec
+    }
+
+    private fun runtime(durationMs: Long): String {
+        val minutes = durationMs / 60_000
+        val seconds = (durationMs / 1_000) % 60
+        return if (minutes >= 60) "${minutes / 60}h:${(minutes % 60).toInt().twoDigits()}m" else "${minutes}m:${seconds.toInt().twoDigits()}s"
     }
 
     private fun CloudAccount.sourceLabel(): String =
@@ -152,21 +195,47 @@ internal object CloudPlayback {
         val accountId = target.item.connectionId.removePrefix(CloudStreams.CONNECTION_PREFIX)
         val provider = CloudStorageRepository.provider(accountId) ?: throw CloudStorageException(CloudFailure.NOT_FOUND)
         val file = CloudStorageRepository.file(accountId, target.item.itemId) ?: throw CloudStorageException(CloudFailure.NOT_FOUND)
+        val sidecars = CloudStorageRepository.index(accountId)?.subtitles?.let { CloudSidecarSubtitles.find(file, it) }.orEmpty()
         if (CloudPlaybackGateway.servesLocally) {
             val url = CloudPlaybackGateway.open(file.name, file.sizeBytes.takeIf { it > 0 }, file.mimeType ?: cloudMimeTypeFor(file.name)) { refresh ->
                 provider.resolve(file, refresh)
             }
-            log.i { "Serving a cloud file locally" }
-            return stream.copy(url = url, behaviorHints = stream.behaviorHints.copy(proxyHeaders = null))
+            val subtitles = sidecars.map { sidecar ->
+                val subtitleUrl = CloudPlaybackGateway.open(
+                    sidecar.file.name,
+                    sidecar.file.sizeBytes.takeIf { it > 0 },
+                    cloudSubtitleMimeTypeFor(sidecar.file.name),
+                ) { refresh -> provider.resolve(sidecar.file, refresh) }
+                StreamSubtitle(url = subtitleUrl, language = sidecar.language, name = sidecar.label)
+            }
+            if (subtitles.isNotEmpty()) synchronized(lock) { sidecarUrls[url] = subtitles.map { it.url } }
+            log.i { "Serving a cloud file locally with ${subtitles.size} subtitle files" }
+            return stream.copy(
+                url = url,
+                externalSubtitles = subtitles + stream.externalSubtitles,
+                behaviorHints = stream.behaviorHints.copy(proxyHeaders = null),
+            )
         }
         val source = provider.resolve(file, forceRefresh = false)
+        val subtitles = sidecars.mapNotNull { sidecar ->
+            runCatching { provider.resolve(sidecar.file, forceRefresh = false) }.getOrNull()?.let {
+                StreamSubtitle(url = it.url, language = sidecar.language, name = sidecar.label, headers = it.headers)
+            }
+        }
         return stream.copy(
             url = source.url,
+            externalSubtitles = subtitles + stream.externalSubtitles,
             behaviorHints = stream.behaviorHints.copy(
                 proxyHeaders = com.nuvio.app.features.streams.StreamProxyHeaders(request = source.headers),
             ),
         )
     }
 
-    fun stop(url: String?) = CloudPlaybackGateway.close(url)
+    fun stop(url: String?) {
+        CloudPlaybackGateway.close(url)
+        synchronized(lock) { url?.let(sidecarUrls::remove) }?.forEach(CloudPlaybackGateway::close)
+    }
+
+    private val lock = SynchronizedObject()
+    private val sidecarUrls = mutableMapOf<String, List<String>>()
 }

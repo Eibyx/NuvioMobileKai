@@ -69,4 +69,6 @@
     <string name="cloud_storage_error_network">No se pudo contactar con el proveedor.</string>
     <string name="cloud_storage_error_unsupported">No compatible aquí.</string>
     <string name="cloud_storage_error_failed">Algo ha fallado.</string>
+    <string name="cloud_storage_all_folders">Todas las carpetas</string>
+    <string name="cloud_storage_all_folders_note">Al conectar se indexan todas tus carpetas y la indexación empieza enseguida. Quítala y añade solo las carpetas que quieras para acotarla.</string>
 </resources>

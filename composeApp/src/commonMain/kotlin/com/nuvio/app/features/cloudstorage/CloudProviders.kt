@@ -7,6 +7,8 @@ import kotlin.time.Clock
 @Serializable
 internal data class CloudIndexSnapshot(
     val files: List<CloudFile> = emptyList(),
+    /** Subtitle files in the same folders, attached to the videos they belong to. */
+    val subtitles: List<CloudFile> = emptyList(),
     val folderIds: List<String> = emptyList(),
     /** Drive: the changes page token to continue from. */
     val cursor: String? = null,
@@ -32,8 +34,9 @@ internal interface CloudProvider {
     suspend fun disconnect() = Unit
 }
 
-internal const val CLOUD_INDEX_MAX_FILES = 20_000
-private const val MAX_FOLDERS = 3_000
+internal const val CLOUD_INDEX_MAX_FILES = 30_000
+private const val MAX_FOLDERS = 5_000
+private const val MAX_SUBTITLE_BYTES = 20L * 1024 * 1024
 private const val MAX_DEPTH = 12
 
 internal class TeraBoxCloudProvider(
@@ -56,6 +59,7 @@ internal class TeraBoxCloudProvider(
     /** TeraBox has no change feed, so every sync walks the selected folders again. */
     override suspend fun index(folders: List<CloudFolderRef>, previous: CloudIndexSnapshot?): CloudIndexSnapshot {
         val files = mutableListOf<CloudFile>()
+        val subtitles = mutableListOf<CloudFile>()
         val queue = ArrayDeque(folders.map { teraBoxPath(it.path) to 0 })
         val seen = mutableSetOf<String>()
         while (queue.isNotEmpty() && files.size < CLOUD_INDEX_MAX_FILES && seen.size < MAX_FOLDERS) {
@@ -64,20 +68,24 @@ internal class TeraBoxCloudProvider(
             api.list(path).forEach { item ->
                 when {
                     item.isDir -> if (depth < MAX_DEPTH) queue.addLast(item.path to depth + 1)
-                    item.category == 1 || item.name.isCloudVideoName() -> files += CloudFile(
-                        id = item.fsId.toString(),
-                        path = item.path,
-                        name = item.name,
-                        sizeBytes = item.sizeBytes,
-                        modifiedEpochSec = item.modifiedEpochSec,
-                        parentPath = item.path.substringBeforeLast('/', ""),
-                        mimeType = cloudMimeTypeFor(item.name),
-                    )
+                    item.category == 1 || item.name.isCloudVideoName() -> files += item.toCloudFile(cloudMimeTypeFor(item.name))
+                    item.name.isCloudSubtitleName() && item.sizeBytes < MAX_SUBTITLE_BYTES ->
+                        subtitles += item.toCloudFile(cloudSubtitleMimeTypeFor(item.name))
                 }
             }
         }
-        return CloudIndexSnapshot(files = files, folderIds = folders.map { it.id }, builtAtEpochMs = nowMs())
+        return CloudIndexSnapshot(files = files, subtitles = subtitles, folderIds = folders.map { it.id }, builtAtEpochMs = nowMs())
     }
+
+    private fun TeraBoxItem.toCloudFile(mime: String) = CloudFile(
+        id = fsId.toString(),
+        path = path,
+        name = name,
+        sizeBytes = sizeBytes,
+        modifiedEpochSec = modifiedEpochSec,
+        parentPath = path.substringBeforeLast('/', ""),
+        mimeType = mime,
+    )
 
     /**
      * A download link, as rclone-extra's `Object.Open` gets it, sent with the same headers.
@@ -122,6 +130,7 @@ internal class GoogleDriveCloudProvider(
         // Take the change token first, so nothing that changes during the walk is missed later.
         val cursor = runCatching { api.startPageToken() }.getOrNull()
         val files = mutableListOf<CloudFile>()
+        val subtitles = mutableListOf<CloudFile>()
         val folderPaths = mutableMapOf<String, String>()
         val queue = ArrayDeque(folders.map { Triple(it.id, it.path.trimEnd('/'), 0) })
         while (queue.isNotEmpty() && files.size < CLOUD_INDEX_MAX_FILES && folderPaths.size < MAX_FOLDERS) {
@@ -131,11 +140,13 @@ internal class GoogleDriveCloudProvider(
                 when {
                     item.isFolder -> if (depth < MAX_DEPTH) queue.addLast(Triple(item.id, "$path/${item.name}", depth + 1))
                     item.isVideo() -> files += item.toCloudFile(path)
+                    item.isSubtitle() -> subtitles += item.toCloudFile(path)
                 }
             }
         }
         return CloudIndexSnapshot(
             files = files,
+            subtitles = subtitles,
             folderIds = folders.map { it.id },
             cursor = cursor,
             folderPaths = folderPaths,
@@ -153,11 +164,13 @@ internal class GoogleDriveCloudProvider(
             return null
         }
         val files = previous.files.associateBy { it.id }.toMutableMap()
+        val subtitles = previous.subtitles.associateBy { it.id }.toMutableMap()
         for (change in result.changes) {
             val item = change.file
             if (change.removed || item == null) {
                 if (change.fileId in previous.folderPaths) return null
                 files.remove(change.fileId)
+                subtitles.remove(change.fileId)
                 continue
             }
             if (item.isFolder) {
@@ -167,13 +180,21 @@ internal class GoogleDriveCloudProvider(
                 continue
             }
             val parentPath = item.parents.firstNotNullOfOrNull { previous.folderPaths[it] }
-            if (parentPath != null && item.isVideo()) {
-                files[item.id] = item.toCloudFile(parentPath)
-            } else {
-                files.remove(item.id)
+            when {
+                parentPath != null && item.isVideo() -> files[item.id] = item.toCloudFile(parentPath)
+                parentPath != null && item.isSubtitle() -> subtitles[item.id] = item.toCloudFile(parentPath)
+                else -> {
+                    files.remove(item.id)
+                    subtitles.remove(item.id)
+                }
             }
         }
-        return previous.copy(files = files.values.toList(), cursor = result.newStartPageToken, builtAtEpochMs = nowMs())
+        return previous.copy(
+            files = files.values.toList(),
+            subtitles = subtitles.values.toList(),
+            cursor = result.newStartPageToken,
+            builtAtEpochMs = nowMs(),
+        )
     }
 
     override suspend fun resolve(file: CloudFile, forceRefresh: Boolean): CloudPlaybackSource =
@@ -187,6 +208,8 @@ internal class GoogleDriveCloudProvider(
 
     private fun DriveItem.isVideo(): Boolean = mimeType.startsWith("video/") || name.isCloudVideoName()
 
+    private fun DriveItem.isSubtitle(): Boolean = name.isCloudSubtitleName() && sizeBytes < MAX_SUBTITLE_BYTES
+
     private fun DriveItem.toCloudFile(parentPath: String) = CloudFile(
         id = id,
         path = "$parentPath/$name",
@@ -197,6 +220,10 @@ internal class GoogleDriveCloudProvider(
         width = width,
         height = height,
         durationMs = durationMs,
-        mimeType = mimeType.takeIf { it.startsWith("video/") } ?: cloudMimeTypeFor(name),
+        mimeType = when {
+            name.isCloudSubtitleName() -> cloudSubtitleMimeTypeFor(name)
+            mimeType.startsWith("video/") -> mimeType
+            else -> cloudMimeTypeFor(name)
+        },
     )
 }

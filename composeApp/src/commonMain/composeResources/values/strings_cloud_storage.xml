@@ -69,4 +69,6 @@
     <string name="cloud_storage_error_network">Could not reach the provider.</string>
     <string name="cloud_storage_error_unsupported">Not supported here.</string>
     <string name="cloud_storage_error_failed">Something went wrong.</string>
+    <string name="cloud_storage_all_folders">All folders</string>
+    <string name="cloud_storage_all_folders_note">When you connect, every folder is indexed and indexing starts right away. Remove it and add only the folders you want to narrow it down.</string>
 </resources>

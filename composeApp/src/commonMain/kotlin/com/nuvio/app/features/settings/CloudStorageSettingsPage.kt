@@ -37,7 +37,9 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import nuvio.composeapp.generated.resources.*
+import androidx.compose.ui.graphics.painter.Painter
 import org.jetbrains.compose.resources.getString
+import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import kotlin.time.Instant
 
@@ -77,6 +79,7 @@ internal fun LazyListScope.cloudStorageSettingsContent(
                         title = account.name,
                         description = account.summary(),
                         icon = Icons.Rounded.Cloud,
+                        iconPainter = account.kind.logo(),
                         isTablet = isTablet,
                         onClick = { open(account) },
                     )
@@ -91,6 +94,7 @@ internal fun LazyListScope.cloudStorageSettingsContent(
                     title = CloudProviderKind.GOOGLE_DRIVE.displayName,
                     description = stringResource(Res.string.cloud_storage_add_drive_description),
                     icon = Icons.Rounded.Add,
+                    iconPainter = CloudProviderKind.GOOGLE_DRIVE.logo(),
                     isTablet = isTablet,
                     onClick = { sheet = CloudConnectSheet.Drive() },
                 )
@@ -99,6 +103,7 @@ internal fun LazyListScope.cloudStorageSettingsContent(
                     title = CloudProviderKind.TERABOX.displayName,
                     description = stringResource(Res.string.cloud_storage_add_terabox_description),
                     icon = Icons.Rounded.Add,
+                    iconPainter = CloudProviderKind.TERABOX.logo(),
                     isTablet = isTablet,
                     onClick = { sheet = CloudConnectSheet.TeraBox() },
                 )
@@ -200,9 +205,14 @@ internal fun LazyListScope.cloudStorageAccountSettingsContent(
                     )
                 }
                 account.folders.forEach { folder ->
+                    val everything = folder.path.isBlank() || folder.path == "/"
                     SettingsNavigationRow(
-                        title = folder.path.ifBlank { "/" },
-                        description = stringResource(Res.string.cloud_storage_remove_folder),
+                        title = if (everything) stringResource(Res.string.cloud_storage_all_folders) else folder.path,
+                        description = if (everything) {
+                            stringResource(Res.string.cloud_storage_all_folders_note)
+                        } else {
+                            stringResource(Res.string.cloud_storage_remove_folder)
+                        },
                         icon = Icons.Rounded.Folder,
                         isTablet = isTablet,
                         onClick = { CloudStorageRepository.setFolders(account.id, account.folders - folder) },
@@ -265,6 +275,14 @@ internal fun LazyListScope.cloudStorageAccountSettingsContent(
         }
     }
 }
+
+@Composable
+private fun CloudProviderKind.logo(): Painter = painterResource(
+    when (this) {
+        CloudProviderKind.GOOGLE_DRIVE -> Res.drawable.cloud_google_drive_logo
+        CloudProviderKind.TERABOX -> Res.drawable.cloud_terabox_logo
+    },
+)
 
 @Composable
 private fun CloudAccount.summary(): String =

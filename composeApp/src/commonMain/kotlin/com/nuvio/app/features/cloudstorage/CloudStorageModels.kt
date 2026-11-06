@@ -120,6 +120,18 @@ internal val CLOUD_VIDEO_EXTENSIONS = setOf(
 internal fun String.isCloudVideoName(): Boolean =
     substringAfterLast('.', "").lowercase() in CLOUD_VIDEO_EXTENSIONS
 
+/** Subtitle files fansub releases ship next to the video (`Show - 02.ass`, `Show - 02.spa.srt`). */
+internal val CLOUD_SUBTITLE_EXTENSIONS = setOf("ass", "ssa", "srt", "vtt")
+
+internal fun String.isCloudSubtitleName(): Boolean =
+    substringAfterLast('.', "").lowercase() in CLOUD_SUBTITLE_EXTENSIONS
+
+internal fun cloudSubtitleMimeTypeFor(name: String): String = when (name.substringAfterLast('.', "").lowercase()) {
+    "ass", "ssa" -> "text/x-ssa"
+    "vtt" -> "text/vtt"
+    else -> "application/x-subrip"
+}
+
 internal fun cloudMimeTypeFor(name: String): String = when (name.substringAfterLast('.', "").lowercase()) {
     "mp4", "m4v" -> "video/mp4"
     "mkv" -> "video/x-matroska"
