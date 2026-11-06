@@ -756,9 +756,13 @@ private fun EpisodeNavigatorStickyBar(
     ) {
         // Once the bar reaches the floating header its backing also fills the space behind the header,
         // so the season title and the cards passing there do not show through next to the back button.
+        // Only while pinned: in its own place the bar sits on the page like the rest of the section,
+        // and the backing would read as a plain strip across it.
+        val backingFadePx = with(density) { 12.dp.toPx() }
         Box(
             modifier = Modifier
                 .matchParentSize()
+                .graphicsLayer { alpha = (pinOffset() / backingFadePx).coerceIn(0f, 1f) }
                 .layout { measurable, constraints ->
                     val behindHeader = if (pinOffset() > 0f) floatingHeaderPx.roundToInt() else 0
                     val placeable = measurable.measure(

@@ -178,8 +178,12 @@ internal object CloudStreams {
         return if (minutes >= 60) "${minutes / 60}h:${(minutes % 60).toInt().twoDigits()}m" else "${minutes}m:${seconds.toInt().twoDigits()}s"
     }
 
+    /**
+     * The name the user gave the account ("Gdrive"). An unnamed account is named after its e-mail
+     * address when it connects; that is too long for a chip, so it shows the service's name.
+     */
     private fun CloudAccount.sourceLabel(): String =
-        if (name.equals(kind.displayName, ignoreCase = true)) kind.displayName else "${kind.displayName} · $name"
+        name.trim().takeIf { it.isNotEmpty() && '@' !in it } ?: kind.displayName
 
     private fun groupId(accountId: String) = "server:cloud:$accountId"
 
