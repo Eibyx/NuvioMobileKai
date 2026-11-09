@@ -4,6 +4,7 @@ import coil3.intercept.Interceptor
 import coil3.request.ErrorResult
 import coil3.request.ImageResult
 import coil3.size.Dimension
+import coil3.size.Precision
 import com.nuvio.app.features.settings.ThemeSettingsRepository
 import kotlin.math.max
 import kotlin.math.roundToInt
@@ -21,12 +22,26 @@ class ArtworkQualityInterceptor(
 
     override suspend fun intercept(chain: Interceptor.Chain): ImageResult {
         val url = chain.request.data as? String ?: return chain.proceed()
-        if (!enabled()) return chain.proceed()
         val width = (chain.size.width as? Dimension.Pixels)?.px ?: return chain.proceed()
         val height = (chain.size.height as? Dimension.Pixels)?.px ?: 0
-        val upgraded = upgradeArtworkUrl(url, width, height) ?: return chain.proceed()
+        val upgraded = if (enabled()) upgradeArtworkUrl(url, width, height) else null
+        if (upgraded == null) {
+            // Any artwork drawn at a known size is decoded at that size. Fanart.tv and many
+            // add-ons link only the full file (1920 to 3840 px wide); decoded "at least" the
+            // drawn size it stays 8 to 33 MB in memory, and a few of those push the heroes out of
+            // the memory cache, so they vanish and load again when scrolled back into view.
+            if (chain.request.precision == Precision.EXACT) return chain.proceed()
+            return chain.withRequest(chain.request.newBuilder().precision(Precision.EXACT).build()).proceed()
+        }
 
-        val result = chain.withRequest(chain.request.newBuilder().data(upgraded).build()).proceed()
+        // Decoded at the size it is drawn, not "at least" that size: an original TMDB backdrop
+        // (3840 × 2160) would otherwise stay whole in memory, about 33 MB, and a few of them push
+        // each other and the rest out of the memory cache, so heroes reload from disk on the way back.
+        val upgradedRequest = chain.request.newBuilder()
+            .data(upgraded)
+            .precision(Precision.EXACT)
+            .build()
+        val result = chain.withRequest(upgradedRequest).proceed()
         return if (result is ErrorResult) chain.proceed() else result
     }
 }
