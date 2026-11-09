@@ -202,6 +202,9 @@ object LiveTvRepository {
 
     fun removePlaylist(playlistId: String) {
         ensureLoaded()
+        _uiState.value.playlists.firstOrNull { it.id == playlistId }
+            ?.source?.localPlaylistFilePath()
+            ?.let(LiveTvLocalPlaylistFiles::delete)
         val playlists = _uiState.value.playlists.filterNot { it.id == playlistId }
         persistPlaylists(playlists)
         _uiState.value = _uiState.value.copy(
@@ -336,12 +339,21 @@ object LiveTvRepository {
             val playlistResults = enabledPlaylists.map { playlist ->
                 async {
                     runCatching {
-                        val payload = when (playlist.type) {
-                            LiveTvPlaylistType.Url -> httpGetText(playlist.source)
-                            LiveTvPlaylistType.LocalFile -> playlist.source
-                        }
-                        withContext(Dispatchers.Default) {
-                            parseM3uEpgUrls(payload) to parseM3uPlaylist(payload, playlist)
+                        val localPath = playlist.source.localPlaylistFilePath()
+                            ?.takeIf { playlist.type == LiveTvPlaylistType.LocalFile }
+                        if (localPath != null) {
+                            // A local copy is read line by line: it can be far larger than a string fits.
+                            withContext(Dispatchers.Default) {
+                                LiveTvLocalPlaylistFiles.useLines(localPath) { lines -> parseM3uLines(lines, playlist) }
+                            }
+                        } else {
+                            val payload = when (playlist.type) {
+                                LiveTvPlaylistType.Url -> httpGetText(playlist.source)
+                                LiveTvPlaylistType.LocalFile -> playlist.source
+                            }
+                            withContext(Dispatchers.Default) {
+                                parseM3uEpgUrls(payload) to parseM3uPlaylist(payload, playlist)
+                            }
                         }
                     }
                 }
@@ -692,11 +704,29 @@ internal fun parseM3uEpgUrls(payload: String): List<String> {
 internal fun parseM3uPlaylist(
     payload: String,
     playlist: LiveTvPlaylist? = null,
+): List<LiveTvChannel> = parseM3uChannels(payload.lineSequence(), playlist)
+
+/** The guide links of the header and the channels, in one pass over [lines]. */
+internal fun parseM3uLines(
+    lines: Sequence<String>,
+    playlist: LiveTvPlaylist? = null,
+): Pair<List<String>, List<LiveTvChannel>> {
+    var header: String? = null
+    val channels = parseM3uChannels(
+        lines.onEach { line -> if (header == null && line.isNotBlank()) header = line },
+        playlist,
+    )
+    return parseM3uEpgUrls(header.orEmpty()) to channels
+}
+
+private fun parseM3uChannels(
+    lines: Sequence<String>,
+    playlist: LiveTvPlaylist?,
 ): List<LiveTvChannel> {
     val channels = mutableListOf<LiveTvChannel>()
     var pendingInfo: M3uInfo? = null
 
-    payload.lineSequence()
+    lines
         .map(String::trim)
         .filter(String::isNotBlank)
         .forEach { line ->
