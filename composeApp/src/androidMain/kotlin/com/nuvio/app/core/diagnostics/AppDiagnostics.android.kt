@@ -27,7 +27,6 @@ import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.locks.ReentrantLock
-import kotlin.system.exitProcess
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -177,8 +176,10 @@ actual object AppDiagnostics {
             if (previous != null) {
                 previous.uncaughtException(thread, throwable)
             } else {
-                Process.killProcess(Process.myPid())
-                exitProcess(10)
+                // Android always installs its own handler (which ends the app), so this branch only
+                // runs on a plain JVM, the host tests: there the error is reported, as the JVM would,
+                // instead of killing the whole test run when some background thread fails.
+                thread.threadGroup?.uncaughtException(thread, throwable) ?: throwable.printStackTrace()
             }
         }
     }
