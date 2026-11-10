@@ -12,6 +12,7 @@ Una sola fusión en `kai`, sin rebase: **luqman** (`enhanced`) ya había fusiona
 | Logo del título en el reproductor, fondos de cristal de los controles y botones de saltar opcionales | luqman | En Reproducción → Interfaz. |
 | AutoSync sin idioma preferido, subtítulos forzados y AutoSync activados por defecto | Oficial | Textos en español de luqman. |
 | Transición suave de la cabecera de la ficha (fondo de color dominante) | luqman | Dentro de la condición de Kai: con el fondo cinemático no hay banda. |
+| nuvio-libass en ExoPlayer: modos de renderizado (superposición, efecto de vídeo), resolución, reconstrucción del reproductor al elegir un ASS y AutoSync de subtítulos ASS | luqman | Añadido después de la fusión. Activado por defecto, en Reproducción → Subtítulos → Renderizado de subtítulos. Se combina con Anime4K de ExoPlayer. |
 | Encuadre horizontal inteligente del destacado, iOS (memoria, PiP), TV en directo, búsqueda, traducciones | Oficial / luqman | Sin cambios de Kai. |
 
 ## Qué se quedó de Kai
@@ -19,7 +20,7 @@ Una sola fusión en `kai`, sin rebase: **luqman** (`enhanced`) ya había fusiona
 | Kai | Notas |
 |---|---|
 | Detección de anime de Auto (géneros en varios idiomas, japonés, AniList) | El oficial la sacó a `isAnimeContent`; ahora usa las reglas de Kai. |
-| Un solo renderizador de ASS en ExoPlayer (libass de libmpv) | Como en las sincronizaciones anteriores. |
+| libass de libmpv para ASS en ExoPlayer | Se queda como interruptor aparte y experimental (desactivado por defecto). Si está activado, manda sobre nuvio-libass, como en luqman. |
 | mpvlib de mpvRx, Shaders, búfer de mpv, registros de mpv | El reproductor mpv sigue siendo el de Kai. |
 | Botones de la ficha y fondo de Streams del tema claro, velo cinemático de Kai, versión 3.2.x | En oscuro, los botones usan el color translúcido del oficial sobre el fondo. |
 
@@ -27,7 +28,6 @@ Una sola fusión en `kai`, sin rebase: **luqman** (`enhanced`) ya había fusiona
 
 | Descartado | Por qué |
 |---|---|
-| nuvio-libass en ExoPlayer (modos de renderizado, escala, reconstrucción al elegir un ASS) y su AutoSync de ASS | Kai usa un solo renderizador de ASS. |
 | Anime4K de luqman en mpv (`glsl-shaders` propios) | Chocaría con los Shaders de Kai, que ya ponen Anime4K en mpv. |
 | Velo cinemático del oficial (0.48) | Kai mantiene el suyo por legibilidad. |
 
