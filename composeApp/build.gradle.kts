@@ -488,6 +488,8 @@ kotlin {
                 implementation("androidx.recyclerview:recyclerview:1.4.0")
                 implementation("com.squareup.okhttp3:okhttp:4.12.0")
                 implementation("com.google.code.gson:gson:2.11.0")
+                // libass - atlas-based subtitle rendering (from NuvioMedia/nuvio-libass), as luqman ships it
+                implementation(files("libs/nuvio-libass-release.aar"))
                 implementation(libs.ktor.client.okhttp)
                 implementation(libs.sentry.android)
                 implementation(libs.play.services.cast.framework)
