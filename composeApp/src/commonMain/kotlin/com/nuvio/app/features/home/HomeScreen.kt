@@ -998,6 +998,7 @@ fun HomeScreen(
                 watchedItems = watchedUiState.items,
                 progressEntries = watchProgressUiState.entries,
                 todayIsoDate = inputs.third,
+                scopeKey = "$activeProfileId:$effectiveWatchProgressSource",
             )
         ) {
             resolvedBadgeInputs.value = inputs

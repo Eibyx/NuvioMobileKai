@@ -1,6 +1,7 @@
 package com.nuvio.app.features.watched
 
 import co.touchlab.kermit.Logger
+import com.nuvio.app.core.logging.InAppLogger
 import com.nuvio.app.features.details.MetaDetails
 import com.nuvio.app.features.details.MetaDetailsRepository
 import com.nuvio.app.features.simkl.SimklSyncRepository
@@ -26,11 +27,77 @@ private const val AMBIGUOUS_MARKER = "__ambiguous__"
 
 private val log = Logger.withTag("WatchedBadgeBulk")
 
+/**
+ * What each series' badge was last resolved from, so a pass only fetches the series whose
+ * own watched episodes, completed progress or date changed. Without it every watched-state
+ * change (a tracker sync, coming back to the app, this pass publishing its own result)
+ * fetched the meta of every watched series again from the addons.
+ */
+internal object WatchedBadgeResolutionMemory {
+    private const val FAILED_RETRY_MS = 10 * 60 * 1000L
+
+    private var scopeKey: String? = null
+    private val resolved = mutableMapOf<String, ResolvedBadge>()
+    private val failedUntil = mutableMapOf<String, Long>()
+
+    data class ResolvedBadge(val fingerprint: Int, val metaId: String)
+
+    fun enterScope(key: String) {
+        if (scopeKey == key) return
+        scopeKey = key
+        resolved.clear()
+        failedUntil.clear()
+    }
+
+    fun resolved(contentId: String): ResolvedBadge? = resolved[contentId]
+
+    fun isBackingOff(contentId: String, nowMs: Long): Boolean = (failedUntil[contentId] ?: 0L) > nowMs
+
+    fun recordResolved(contentId: String, badge: ResolvedBadge) {
+        resolved[contentId] = badge
+        failedUntil.remove(contentId)
+    }
+
+    fun recordFailed(contentId: String, nowMs: Long) {
+        failedUntil[contentId] = nowMs + FAILED_RETRY_MS
+    }
+
+    fun clear() {
+        scopeKey = null
+        resolved.clear()
+        failedUntil.clear()
+    }
+}
+
+/** The inputs a series' badge depends on: its watched episodes, completed progress and the date. */
+internal fun watchedBadgeFingerprint(
+    ids: Set<String>,
+    watchedItems: List<WatchedItem>,
+    progressEntries: List<WatchProgressEntry>,
+    todayIsoDate: String,
+): Int {
+    val watched = watchedItems
+        .filter { it.id in ids }
+        .map { "${it.id}:${it.season}:${it.episode}" }
+        .sorted()
+    val completed = progressEntries
+        .filter { it.parentMetaId in ids && it.isEffectivelyCompleted }
+        .map { it.videoId }
+        .sorted()
+    return listOf(watched, completed, todayIsoDate).hashCode()
+}
+
 suspend fun resolveWatchedBadgesBulk(
     watchedItems: List<WatchedItem>,
     progressEntries: List<WatchProgressEntry>,
     todayIsoDate: String = CurrentDateProvider.todayIsoDate(),
+    scopeKey: String = "",
+    nowMs: () -> Long = { WatchedClock.nowEpochMs() },
+    fetchMeta: suspend (String) -> MetaDetails? = { contentId ->
+        MetaDetailsRepository.fetch(type = "series", id = contentId, cacheResult = false)
+    },
 ): Boolean = withContext(Dispatchers.Default) {
+    WatchedBadgeResolutionMemory.enterScope(scopeKey)
     val touchedSeriesIds = buildSet {
         watchedItems.forEach { item ->
             if (item.type.isSeriesLikeWatchedType() && item.season != null && item.episode != null) {
@@ -50,60 +117,95 @@ suspend fun resolveWatchedBadgesBulk(
     // provider alternate IDs (e.g. Simkl anime alternate MAL/Kitsu keys).
     val watchedKeys = WatchedRepository.uiState.value.watchedKeys
 
-    log.i { "Bulk badge resolution starting: ${touchedSeriesIds.size} series candidates" }
-
-    val semaphore = Semaphore(BADGE_RESOLUTION_CONCURRENCY)
-    val resolvedIds = mutableSetOf<String>()
-    val resolvedStates = linkedMapOf<String, Boolean>()
-
-    for (contentId in touchedSeriesIds) {
-        semaphore.withPermit {
-            val meta = try {
-                MetaDetailsRepository.fetch(type = "series", id = contentId, cacheResult = false)
-            } catch (e: CancellationException) {
-                throw e
-            } catch (_: Throwable) {
-                null
-            }
-            if (meta != null) {
-                val isFullyWatched = WatchedRepository.calculateFullyWatchedSeriesState(
-                    meta = meta,
-                    todayIsoDate = todayIsoDate,
-                    isEpisodeWatched = { episode ->
-                        val keys = watchedItemKeys(meta.type, meta.id, episode.season, episode.episode)
-                        if (keys.any(watchedKeys::contains)) {
-                            true
-                        } else {
-                            val episodeNumber = episode.episode
-                            if (episodeNumber != null) {
-                                com.nuvio.app.features.simkl.SimklAnimeWatchedFallback.isWatched(episode.id, episodeNumber)
-                            } else {
-                                false
-                            }
-                        }
-                    },
-                    isEpisodeCompleted = { episode ->
-                        val playbackId = meta.episodePlaybackId(episode)
-                        progressEntries.any { entry ->
-                            entry.videoId == playbackId && entry.isEffectivelyCompleted
-                        }
-                    },
-                )
-                resolvedStates[watchedItemKey(meta.type, meta.id)] = isFullyWatched
-                if (meta.type.isSeriesLikeWatchedType() && meta.videos.isNotEmpty()) {
-                    resolvedIds.add(contentId)
-                }
-            }
-        }
-        yield()
+    val pendingIds = touchedSeriesIds.filter { contentId ->
+        val previous = WatchedBadgeResolutionMemory.resolved(contentId)
+        val unchanged = previous != null && previous.fingerprint == watchedBadgeFingerprint(
+            ids = setOf(contentId, previous.metaId),
+            watchedItems = watchedItems,
+            progressEntries = progressEntries,
+            todayIsoDate = todayIsoDate,
+        )
+        !unchanged && !WatchedBadgeResolutionMemory.isBackingOff(contentId, nowMs())
+    }
+    if (pendingIds.isEmpty()) {
+        expandFullyWatchedWithSiblings()
+        return@withContext true
     }
 
-    WatchedRepository.updateFullyWatchedSeriesStates(resolvedStates)
-    log.i { "Bulk badge resolution complete: resolved ${resolvedIds.size}/${touchedSeriesIds.size}" }
+    log.i { "Bulk badge resolution starting: ${pendingIds.size}/${touchedSeriesIds.size} series changed" }
+
+    val semaphore = Semaphore(BADGE_RESOLUTION_CONCURRENCY)
+    val resolvedStates = linkedMapOf<String, Boolean>()
+    val resolvedBadges = linkedMapOf<String, WatchedBadgeResolutionMemory.ResolvedBadge>()
+    var failures = 0
+
+    try {
+        for (contentId in pendingIds) {
+            semaphore.withPermit {
+                val meta = try {
+                    fetchMeta(contentId)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (_: Throwable) {
+                    null
+                }
+                if (meta == null) {
+                    failures++
+                    WatchedBadgeResolutionMemory.recordFailed(contentId, nowMs())
+                } else {
+                    val isFullyWatched = WatchedRepository.calculateFullyWatchedSeriesState(
+                        meta = meta,
+                        todayIsoDate = todayIsoDate,
+                        isEpisodeWatched = { episode ->
+                            val keys = watchedItemKeys(meta.type, meta.id, episode.season, episode.episode)
+                            if (keys.any(watchedKeys::contains)) {
+                                true
+                            } else {
+                                val episodeNumber = episode.episode
+                                if (episodeNumber != null) {
+                                    com.nuvio.app.features.simkl.SimklAnimeWatchedFallback.isWatched(episode.id, episodeNumber)
+                                } else {
+                                    false
+                                }
+                            }
+                        },
+                        isEpisodeCompleted = { episode ->
+                            val playbackId = meta.episodePlaybackId(episode)
+                            progressEntries.any { entry ->
+                                entry.videoId == playbackId && entry.isEffectivelyCompleted
+                            }
+                        },
+                    )
+                    resolvedStates[watchedItemKey(meta.type, meta.id)] = isFullyWatched
+                    resolvedBadges[contentId] = WatchedBadgeResolutionMemory.ResolvedBadge(
+                        fingerprint = watchedBadgeFingerprint(
+                            ids = setOf(contentId, meta.id),
+                            watchedItems = watchedItems,
+                            progressEntries = progressEntries,
+                            todayIsoDate = todayIsoDate,
+                        ),
+                        metaId = meta.id,
+                    )
+                }
+            }
+            yield()
+        }
+    } finally {
+        // Keep what was resolved even when the pass is cancelled (a new watched state
+        // restarts it), so the next pass does not fetch those series again.
+        WatchedRepository.updateFullyWatchedSeriesStates(resolvedStates)
+        resolvedBadges.forEach { (contentId, badge) -> WatchedBadgeResolutionMemory.recordResolved(contentId, badge) }
+    }
+    log.i { "Bulk badge resolution complete: resolved ${resolvedBadges.size}/${pendingIds.size}, failed $failures" }
+    InAppLogger.debug(
+        "Watched/Badges",
+        "checked ${pendingIds.size}/${touchedSeriesIds.size} changed series, resolved ${resolvedBadges.size}, failed $failures",
+    )
 
     // Sibling expansion
     expandFullyWatchedWithSiblings()
-    resolvedIds.size == touchedSeriesIds.size
+    // Failed series are retried after a pause, not on every watched-state change.
+    true
 }
 
 fun expandFullyWatchedWithSiblings() {
