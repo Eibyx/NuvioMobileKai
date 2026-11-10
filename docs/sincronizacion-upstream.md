@@ -1,3 +1,36 @@
+# Sincronización con el oficial y con luqman (10-nov-2026)
+
+Una sola fusión en `kai`, sin rebase: **luqman** (`enhanced`) ya había fusionado el **oficial** (`cmp-rewrite`) hasta su 0.6.11-beta, así que con luqman entra todo: unos 129 commits (de luqman, del oficial y de sus colaboradores). Hubo 15 archivos en conflicto.
+
+## Qué entró
+
+| Cambio | De | Notas |
+|---|---|---|
+| Anime4K en ExoPlayer: escalado 2x y afinado de líneas (#337) | luqman | En Reproducción → Vídeo, sección Mejora de anime. Solo con ExoPlayer; con mpv siguen los Shaders de Kai. |
+| Velocidad de descarga en la pantalla de carga | luqman | ExoPlayer cuenta los bytes de la red; mpv lee `cache-speed`. |
+| Detalle de los errores de mpv en la pantalla de error | Oficial | Las tres últimas líneas de error de mpv, sin URLs, junto al error del archivo. |
+| Logo del título en el reproductor, fondos de cristal de los controles y botones de saltar opcionales | luqman | En Reproducción → Interfaz. |
+| AutoSync sin idioma preferido, subtítulos forzados y AutoSync activados por defecto | Oficial | Textos en español de luqman. |
+| Transición suave de la cabecera de la ficha (fondo de color dominante) | luqman | Dentro de la condición de Kai: con el fondo cinemático no hay banda. |
+| Encuadre horizontal inteligente del destacado, iOS (memoria, PiP), TV en directo, búsqueda, traducciones | Oficial / luqman | Sin cambios de Kai. |
+
+## Qué se quedó de Kai
+
+| Kai | Notas |
+|---|---|
+| Detección de anime de Auto (géneros en varios idiomas, japonés, AniList) | El oficial la sacó a `isAnimeContent`; ahora usa las reglas de Kai. |
+| Un solo renderizador de ASS en ExoPlayer (libass de libmpv) | Como en las sincronizaciones anteriores. |
+| mpvlib de mpvRx, Shaders, búfer de mpv, registros de mpv | El reproductor mpv sigue siendo el de Kai. |
+| Botones de la ficha y fondo de Streams del tema claro, velo cinemático de Kai, versión 3.2.x | En oscuro, los botones usan el color translúcido del oficial sobre el fondo. |
+
+## Qué se descartó y por qué
+
+| Descartado | Por qué |
+|---|---|
+| nuvio-libass en ExoPlayer (modos de renderizado, escala, reconstrucción al elegir un ASS) y su AutoSync de ASS | Kai usa un solo renderizador de ASS. |
+| Anime4K de luqman en mpv (`glsl-shaders` propios) | Chocaría con los Shaders de Kai, que ya ponen Anime4K en mpv. |
+| Velo cinemático del oficial (0.48) | Kai mantiene el suyo por legibilidad. |
+
 # Sincronización con el oficial y con luqman (5-nov-2026)
 
 Una sola fusión en la rama `kai`, sin rebase: **luqman** (`luqmanfadlli/NuvioMobile-Enhanced`, rama `enhanced`) ya había fusionado el **oficial** (`NuvioMedia/NuvioMobile`, rama `cmp-rewrite`) hasta su 0.6.8-beta, así que con luqman entra todo: unos 42 commits propios de luqman y los 20 del oficial. Hubo 25 archivos en conflicto.

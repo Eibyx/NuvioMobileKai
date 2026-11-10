@@ -685,6 +685,21 @@ internal fun settingsSearchEntries(
                 stringResource(Res.string.settings_playback_legacy_layout_description),
             ),
             PlaybackSearchRow(
+                "player-title-logo",
+                stringResource(Res.string.settings_playback_show_title_logo),
+                stringResource(Res.string.settings_playback_show_title_logo_description),
+            ),
+            PlaybackSearchRow(
+                "player-control-glass",
+                stringResource(Res.string.settings_playback_control_glass),
+                stringResource(Res.string.settings_playback_control_glass_description),
+            ),
+            PlaybackSearchRow(
+                "player-skip-buttons",
+                stringResource(Res.string.settings_playback_show_skip_buttons),
+                stringResource(Res.string.settings_playback_show_skip_buttons_description),
+            ),
+            PlaybackSearchRow(
                 "loading-overlay",
                 stringResource(Res.string.settings_playback_show_loading_overlay),
                 stringResource(Res.string.settings_playback_show_loading_overlay_description),
@@ -794,6 +809,8 @@ internal fun settingsSearchEntries(
                 PlaybackSearchRow("dv7-hevc", stringResource(Res.string.settings_playback_map_dv7_to_hevc), stringResource(Res.string.settings_playback_map_dv7_to_hevc_description)),
                 PlaybackSearchRow("tunneled-playback", stringResource(Res.string.settings_playback_tunneled_playback), stringResource(Res.string.settings_playback_tunneled_playback_description)),
                 PlaybackSearchRow("audio-passthrough", stringResource(Res.string.settings_playback_audio_passthrough), stringResource(Res.string.settings_playback_audio_passthrough_description)),
+                PlaybackSearchRow("anime-upscale", stringResource(Res.string.settings_playback_anime_upscale), stringResource(Res.string.settings_playback_anime_upscale_description), sectionOverride = stringResource(Res.string.settings_playback_section_anime_enhancement)),
+                PlaybackSearchRow("anime-line-sharpen", stringResource(Res.string.settings_playback_anime_line_sharpen), stringResource(Res.string.settings_playback_anime_line_sharpen_description), sectionOverride = stringResource(Res.string.settings_playback_section_anime_enhancement)),
                 PlaybackSearchRow("exo-native-memory", stringResource(Res.string.settings_playback_exo_native_memory), stringResource(Res.string.settings_playback_exo_native_memory_description), page = SettingsPage.PlaybackBuffer),
                 PlaybackSearchRow("custom-buffers", stringResource(Res.string.settings_playback_custom_buffers), stringResource(Res.string.settings_playback_custom_buffers_description), page = SettingsPage.PlaybackBuffer),
                 PlaybackSearchRow("vod-cache", stringResource(Res.string.settings_playback_vod_disk_cache), stringResource(Res.string.settings_playback_vod_disk_cache_description), page = SettingsPage.PlaybackBuffer),
@@ -1174,7 +1191,7 @@ private fun addPlaybackRows(
             row.title,
             row.description,
             pageLabel,
-            section,
+            row.sectionOverride ?: section,
             "",
         )
     }

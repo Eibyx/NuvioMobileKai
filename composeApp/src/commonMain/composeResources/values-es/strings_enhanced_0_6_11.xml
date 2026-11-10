@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_playback_section_anime_enhancement">MEJORA DE ANIME</string>
+    <string name="settings_playback_anime_upscale">Escalado 2x de anime</string>
+    <string name="settings_playback_anime_upscale_description">Escala el anime con Anime4K en ExoPlayer a 1440p como mínimo, o a la resolución de la pantalla si es mayor. Solo para anime, y no se usa con la reproducción por túnel. Con mpv, usa los Shaders.</string>
+    <string name="settings_playback_anime_line_sharpen">Afinado de líneas de anime</string>
+    <string name="settings_playback_anime_line_sharpen_description">Recupera y afina los trazos del anime con Anime4K en ExoPlayer. Solo para anime, y no se usa con la reproducción por túnel. Con mpv, usa los Shaders.</string>
+    <string name="auth_notice_signed_out">Se ha cerrado tu sesión de Nuvio. Vuelve a iniciar sesión.</string>
+    <string name="player_anime4k_title">Anime4K</string>
+    <string name="player_anime4k_badge_upscale">%1$dp → %2$dp</string>
+    <string name="player_anime4k_badge_sharpen">Afinado</string>
+    <string name="player_anime4k_status_active">Activo: %1$s</string>
+    <string name="player_anime4k_status_inactive">Activado, pero no en uso con este vídeo</string>
+    <string name="player_anime4k_status_off">Desactivado</string>
+    <string name="settings_playback_show_title_logo">Mostrar el logo del título</string>
+    <string name="settings_playback_show_title_logo_description">Usa el logo del título en los controles del reproductor cuando lo hay. Si no, se muestra el nombre.</string>
+    <string name="settings_playback_control_glass">Fondos de cristal en los controles</string>
+    <string name="settings_playback_control_glass_description">Muestra los fondos translúcidos, redondos y de píldora, detrás de los botones, los tiempos y la barra inferior del reproductor. Desactívalo para ver solo iconos y texto.</string>
+    <string name="settings_playback_show_skip_buttons">Mostrar botones de saltar</string>
+    <string name="settings_playback_show_skip_buttons_description">Muestra los botones de retroceder y avanzar junto a reproducir/pausa. El doble toque para saltar funciona igual.</string>
+</resources>

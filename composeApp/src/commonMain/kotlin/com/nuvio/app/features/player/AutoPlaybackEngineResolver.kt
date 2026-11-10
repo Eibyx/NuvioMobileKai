@@ -49,23 +49,39 @@ internal fun autoPlaybackEngineChoice(
         return AutoPlaybackEngineChoice(AndroidPlaybackEngine.ExoPlayer, "hdr")
     }
 
-    val hasAnimeId = videoId?.startsWith("kitsu:") == true ||
-        videoId?.startsWith("mal:") == true ||
-        videoId?.startsWith("anilist:") == true
-    if (hasAnimeId) return AutoPlaybackEngineChoice(AndroidPlaybackEngine.Libmpv, "anime-id")
-
-    // On the user's AniList: anime, whatever language the catalog writes its genres in.
-    if (hasAniListLink) return AutoPlaybackEngineChoice(AndroidPlaybackEngine.Libmpv, "anilist")
-
-    if (genres.any(::isAnimeGenre)) {
-        return AutoPlaybackEngineChoice(AndroidPlaybackEngine.Libmpv, "anime-genre")
-    }
-
-    val isJapaneseAnimation = genres.any(::isAnimationGenre) && (isJapan(country) || isJapanese(language))
-    if (isJapaneseAnimation) return AutoPlaybackEngineChoice(AndroidPlaybackEngine.Libmpv, "japanese-animation")
+    val animeReason = animeReason(videoId, genres, country, language, hasAniListLink)
+    if (animeReason != null) return AutoPlaybackEngineChoice(AndroidPlaybackEngine.Libmpv, animeReason)
 
     return AutoPlaybackEngineChoice(AndroidPlaybackEngine.ExoPlayer, "default")
 }
+
+/** Whether a title is anime, with the same rules Auto uses to send it to mpv. */
+internal fun isAnimeContent(
+    videoId: String?,
+    genres: List<String>,
+    country: String?,
+    language: String? = null,
+    hasAniListLink: Boolean = false,
+): Boolean = animeReason(videoId, genres, country, language, hasAniListLink) != null
+
+private fun animeReason(
+    videoId: String?,
+    genres: List<String>,
+    country: String?,
+    language: String?,
+    hasAniListLink: Boolean,
+): String? {
+    val hasAnimeId = videoId?.startsWith("kitsu:") == true ||
+        videoId?.startsWith("mal:") == true ||
+        videoId?.startsWith("anilist:") == true
+    if (hasAnimeId) return "anime-id"
+    // On the user's AniList: anime, whatever language the catalog writes its genres in.
+    if (hasAniListLink) return "anilist"
+    if (genres.any(::isAnimeGenre)) return "anime-genre"
+    val isJapaneseAnimation = genres.any(::isAnimationGenre) && (isJapan(country) || isJapanese(language))
+    return if (isJapaneseAnimation) "japanese-animation" else null
+}
+
 
 /** "Anime" as catalogs write it, in any language. */
 internal fun isAnimeGenre(genre: String): Boolean = genre.normalizedToken() in ANIME_GENRES

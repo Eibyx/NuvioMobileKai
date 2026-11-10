@@ -91,6 +91,9 @@ import com.nuvio.app.core.ui.fadeOutTowardsBottom
 import com.nuvio.app.core.ui.LocalArtworkGlassBackgroundActive
 import com.nuvio.app.core.ui.rememberDynamicArtworkBackgroundEnabled
 import com.nuvio.app.core.ui.PrefetchArtworkDominantColors
+import com.nuvio.app.core.ui.focusedAlignment
+import com.nuvio.app.core.ui.rememberBackdropFocusState
+import com.nuvio.app.core.ui.revealAlpha
 import com.nuvio.app.core.ui.heroStretchHeight
 import com.nuvio.app.core.ui.LocalVerticalBarPadding
 import com.nuvio.app.core.ui.ScreenActivityEffect
@@ -464,6 +467,7 @@ internal fun HomeHeroSection(
                             val artworkUrl = heroArtworkUrl(item, effectiveArtworkSource)
                             val isCurrentLayer = layer.page == currentPage
                             key(effectiveArtworkSource, item.type, item.id, artworkUrl) {
+                                val backdropFocus = rememberBackdropFocusState(artworkUrl)
                                 AsyncImage(
                                     model = artworkUrl,
                                     contentDescription = item.name,
@@ -472,7 +476,7 @@ internal fun HomeHeroSection(
                                         .graphicsLayer {
                                             val offset = heroPageOffset(pagerState, layer.page)
                                             val visibility = (1f - abs(offset)).coerceIn(0f, 1f)
-                                            alpha = when {
+                                            alpha = backdropFocus.revealAlpha * when {
                                                 isCurrentLayer -> visibility
                                                 visibility > 0f -> 1f
                                                 else -> 0f
@@ -484,8 +488,12 @@ internal fun HomeHeroSection(
                                             scaleY = artworkBaseScale *
                                                 if (isCardStyle) 1f else heroBackgroundScrollScale(scrollOffsetPx)
                                         },
-                                    alignment = if (layout.isTablet) Alignment.TopCenter else Alignment.Center,
+                                    alignment = backdropFocus.focusedAlignment(
+                                        if (layout.isTablet) Alignment.TopCenter else Alignment.Center,
+                                    ),
                                     contentScale = ContentScale.Crop,
+                                    onSuccess = { state -> backdropFocus.onImageLoaded(state.result.image) },
+                                    onError = { backdropFocus.onImageFailed() },
                                 )
                             }
                         }

@@ -16,6 +16,7 @@ interface PlayerEngineController {
     fun setVideoZoom(scale: Float) {}
     fun showCastDialog() {}
     fun setPlaybackSpeed(speed: Float)
+    fun networkSpeedBytesPerSecond(): Long? = null
     fun currentPlayerVolume(): PlayerAudioLevel = PlayerAudioLevel(
         fraction = 1f,
         isMuted = false,
@@ -119,6 +120,7 @@ expect fun PlatformPlayerSurface(
     initialPositionRequestKey: String? = null,
     resizeMode: PlayerResizeMode = PlayerResizeMode.Fit,
     playbackEngine: AndroidPlaybackEngine? = null,
+    animeContent: Boolean = false,
     useNativeController: Boolean = false,
     onInitialPositionHandled: (key: String, handled: Boolean) -> Unit = { _, _ -> },
     onControllerReady: (PlayerEngineController) -> Unit,

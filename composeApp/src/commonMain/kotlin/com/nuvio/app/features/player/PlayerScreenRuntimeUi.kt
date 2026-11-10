@@ -20,6 +20,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import kotlinx.coroutines.delay
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -272,6 +274,7 @@ internal fun PlayerScreenRuntime.RenderPlayerRuntimeUi(
                 layoutSize = layoutSize,
                 playbackGesturesEnabled = playbackGesturesEnabled,
                 sideGestureSystemEdgeExclusionPx = sideGestureSystemEdgeExclusionPx,
+                horizontalSeekSystemEdgeExclusionPx = horizontalSeekSystemEdgeExclusionPx,
                 playerControlsLockedState = gestureCallbacks.playerControlsLocked,
                 touchGesturesEnabledState = gestureCallbacks.touchGesturesEnabled,
                 swipeToSeekEnabledState = gestureCallbacks.swipeToSeekEnabled,
@@ -331,6 +334,8 @@ internal fun PlayerScreenRuntime.RenderPlayerRuntimeUi(
                 DisposableEffect(Unit) {
                     onDispose { active.value = false }
                 }
+                val animeContentState = remember { mutableStateOf(false) }
+                if (isAnimePlayback && !animeContentState.value) animeContentState.value = true
                 PlatformPlayerSurface(
                     sourceUrl = playerSurfaceSourceUrl,
                     sourceAudioUrl = activeSourceAudioUrl,
@@ -344,6 +349,7 @@ internal fun PlayerScreenRuntime.RenderPlayerRuntimeUi(
                     initialPositionRequestKey = initialPositionRequestKey,
                     resizeMode = if (partyPanelInset > 0.dp) PlayerResizeMode.Fit else resizeMode,
                     playbackEngine = playbackEngineOverride ?: resolvedAutoEngine,
+                    animeContent = animeContentState.value,
                     onInitialPositionHandled = { key, handled ->
                         if (active.value && playbackKey == activePlaybackKey && key == currentInitialPositionRequestKey()) {
                             initialSeekApplied = handled
@@ -550,6 +556,9 @@ private fun PlayerScreenRuntime.RenderPlayerControls(
     // While comparing the chain is empty on purpose: the button must stay to be released.
     val shadersRunning = shaderInputs.comparing ||
         (shaderPlan?.active == true && shaderState.mpvActive && shaderState.appliedChain.isNotEmpty())
+    // Live TV channel artwork is not a title logo; retain the program title text instead.
+    val playerTitleLogo = if (isLiveTvPlayback) null else logo
+    val showPlayerTitleLogo = playerSettingsUiState.showPlayerTitleLogo && !isLiveTvPlayback
     LaunchedEffect(folded) {
         if (folded) {
             controlsVisible = true
@@ -573,6 +582,8 @@ private fun PlayerScreenRuntime.RenderPlayerControls(
             playerController?.isPictureInPictureSupported() == true
         PlayerControlsShell(
             title = title,
+            titleLogo = playerTitleLogo,
+            showTitleLogo = showPlayerTitleLogo,
             streamTitle = activeStreamTitle,
             providerName = liveTvNowProgramTitle?.let { programTitle -> "$activeProviderName · $programTitle" } ?: activeProviderName,
             seasonNumber = activeSeasonNumber,
@@ -614,6 +625,7 @@ private fun PlayerScreenRuntime.RenderPlayerControls(
             onSeekForward = { seekBy(skipStepMs(PlayerSeekDirection.Forward)) },
             skipBackwardSeconds = playerSettingsUiState.skipBackwardSeconds,
             skipForwardSeconds = playerSettingsUiState.skipForwardSeconds,
+            showSkipButtons = playerSettingsUiState.showSkipButtons,
             onResizeModeClick = { cycleResizeMode() },
             onSpeedClick = if (!isLiveTvPlayback) {
                 {
@@ -696,7 +708,7 @@ private fun PlayerScreenRuntime.RenderPlayerControls(
                 { showUserRatingSheet = true }
             } else null,
             userRating = userRating,
-            onVideoSettingsClick = if (isIos) {
+            onVideoSettingsClick = if (isIos || isAnimePlayback) {
                 {
                     showVideoSettingsModal = true
                     controlsVisible = true
@@ -848,6 +860,21 @@ private fun BoxScope.RenderPlaybackOverlays(
         val snapshotIsLoading by remember(runtime) { derivedStateOf { playbackSnapshot.isLoading } }
         val snapshotDurationMs by remember(runtime) { derivedStateOf { playbackSnapshot.durationMs } }
         val displayedPositionMs = scrubbingPositionMs ?: overlaySnapshot.positionMs
+        val openingOverlayVisible = playerSettingsUiState.showLoadingOverlay && !initialLoadCompleted && errorMessage == null
+        val showNetworkSpeed = openingOverlayVisible &&
+            playerSettingsUiState.showPlayerLoadingStatus &&
+            p2pInitialLoadingMessage == null
+        val networkSpeedText by produceState<String?>(null, playerController, showNetworkSpeed) {
+            value = null
+            if (!showNetworkSpeed) return@produceState
+            var seenTraffic = false
+            while (true) {
+                val bytesPerSecond = playerController?.networkSpeedBytesPerSecond()
+                if (bytesPerSecond != null && bytesPerSecond > 0L) seenTraffic = true
+                value = if (bytesPerSecond != null && seenTraffic) formatNetworkSpeed(bytesPerSecond) else null
+                delay(1_000L)
+            }
+        }
         PlayerPlaybackOverlays(
             playerControlsLocked = playerControlsLocked,
             useLegacyLayout = playerSettingsUiState.useLegacyPlayerLayout,
@@ -858,7 +885,7 @@ private fun BoxScope.RenderPlaybackOverlays(
         metrics = metrics,
         horizontalSafePadding = horizontalSafePadding,
         onUnlock = { unlockPlayerControls() },
-        showOpeningOverlay = playerSettingsUiState.showLoadingOverlay && !initialLoadCompleted && errorMessage == null,
+        showOpeningOverlay = openingOverlayVisible,
         backdropArtwork = if (isLiveTvPlayback) activeLogo?.takeIf(String::isNotBlank) ?: background ?: poster else background ?: poster,
         logo = if (isLiveTvPlayback) activeLogo else logo,
         title = if (isLiveTvPlayback) activeStreamTitle else title,
@@ -873,6 +900,7 @@ private fun BoxScope.RenderPlaybackOverlays(
                 buffering = snapshotIsLoading,
             )
         } else null,
+        openingNetworkSpeed = networkSpeedText,
         p2pInitialLoadingProgress = p2pInitialLoadingProgress,
         showP2pRebufferStats = showP2pRebufferStats,
         p2pRebufferMessage = p2pRebufferMessage,
@@ -1109,6 +1137,7 @@ private fun PlayerScreenRuntime.RenderPlayerModals() {
             playerController?.configureIosVideoOutput(PlayerSettingsRepository.uiState.value)
         },
         onVideoSettingsModalDismissed = { showVideoSettingsModal = false },
+        animeEnhancementStatus = playbackSnapshot.animeEnhancement,
         showSourcesPanel = showSourcesPanel,
         sourceStreamsState = sourceStreamsState,
         contentTitle = title,

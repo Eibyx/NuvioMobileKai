@@ -10,8 +10,8 @@ import com.nuvio.app.features.player.skip.segmentCategory
  * the segment label itself (with an optional number suffix) are matched, to avoid
  * false positives on scene-named chapters like "The Opening" or "Alternate Ending".
  *
- * Matched types: OP/Opening, ED/Ending/Credits, Recap/Previously, Intro. Post-/mid-credits
- * scenes are recognised and left out.
+ * Matched types: OP/Opening, ED/Ending/Credits, Recap/Previously, Intro, and post-/mid-credits
+ * scenes as targets that are never skipped.
  * "Intro" is promoted to opening only when no dedicated OP/Opening chapter exists.
  */
 internal object ChapterSkipIntervals {
@@ -60,16 +60,18 @@ internal object ChapterSkipIntervals {
         }
 
         return resolved.mapNotNull { c ->
-            // A post- or mid-credits scene is something to watch, never a segment: it is only
-            // recognised so "Credits" around it does not swallow it.
-            if (c.type == ChapterType.POST_CREDITS) return@mapNotNull null
+            // A post- or mid-credits scene is kept as a "post-credits" target: skipping the
+            // credits stops at it, and it is never skipped itself (see InternalSkipAction).
             val skipType = c.type?.skipIntervalType ?: return@mapNotNull null
             val startSec = c.chapter.startMs / 1000.0
             val endSec = c.endMs / 1000.0
             val duration = endSec - startSec
             if (duration < MIN_DURATION_SEC) return@mapNotNull null
-            // Endings may be a film's long credits; openings and recaps stay short.
-            if (c.type != ChapterType.ENDING && duration > MAX_DURATION_SEC) return@mapNotNull null
+            // Endings may be a film's long credits, and a scene runs as long as it runs;
+            // openings and recaps stay short.
+            if (c.type != ChapterType.ENDING && c.type != ChapterType.POST_CREDITS && duration > MAX_DURATION_SEC) {
+                return@mapNotNull null
+            }
             SkipInterval(
                 startTime = startSec,
                 endTime = endSec,

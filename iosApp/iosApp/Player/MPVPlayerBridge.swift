@@ -1,4 +1,5 @@
 import Foundation
+import os
 import UIKit
 import AVFoundation
 import Metal
@@ -11,12 +12,16 @@ import ComposeApp
 final class MPVPlayerBridgeImpl: NSObject, NuvioPlayerBridge {
 
     private var playerVC: MPVPlayerViewController?
+    private var hostVC: PlayerHostViewController?
     private var experimentalSinglePrimaryPictureInPictureEnabled = false
     private var keyboardShortcutsEnabled = true
     private var keyboardShortcutHandler: ((String) -> Void)?
 
     func createPlayerViewController() -> UIViewController {
-        return ensurePlayerViewController()
+        if let hostVC { return hostVC }
+        let host = PlayerHostViewController(player: ensurePlayerViewController())
+        hostVC = host
+        return host
     }
 
     private func ensurePlayerViewController() -> MPVPlayerViewController {
@@ -199,6 +204,9 @@ final class MPVPlayerBridgeImpl: NSObject, NuvioPlayerBridge {
     func selectAudioTrack(trackId: Int32) { playerVC?.selectAudio(Int(trackId)) }
     func selectSubtitleTrack(trackId: Int32) { playerVC?.selectSubtitle(Int(trackId)) }
     func setSubtitleUrl(url: String) { playerVC?.addSubtitleUrl(url) }
+    func replaceExternalSubtitle(replacedUrl: String, path: String) {
+        playerVC?.replaceExternalSubtitle(replacedUrl, path: path)
+    }
     func clearExternalSubtitle() { playerVC?.removeExternalSubtitles() }
     func clearExternalSubtitleAndSelect(trackId: Int32) { playerVC?.removeExternalSubtitlesAndSelect(Int(trackId)) }
     func setSubtitleDelayMs(delayMs: Int32) { playerVC?.setSubtitleDelayMs(Int(delayMs)) }
@@ -238,6 +246,7 @@ final class MPVPlayerBridgeImpl: NSObject, NuvioPlayerBridge {
     func getIsEnded() -> Bool { return playerVC?.isPlayerEnded ?? false }
     func getDurationMs() -> Int64 { return playerVC?.durationMs ?? 0 }
     func getPositionMs() -> Int64 { return playerVC?.positionMs ?? 0 }
+    func networkSpeedBytesPerSecond() -> Int64 { return playerVC?.networkSpeedBytesPerSecond ?? -1 }
     func getBufferedMs() -> Int64 { return playerVC?.bufferedMs ?? 0 }
     func getPlaybackSpeed() -> Float { playerVC?.currentSpeed ?? 1.0 }
     func getVideoWidth() -> Int32 { Int32(playerVC?.currentVideoWidth ?? 0) }
@@ -249,6 +258,8 @@ final class MPVPlayerBridgeImpl: NSObject, NuvioPlayerBridge {
     func destroy() {
         playerVC?.systemControlHandler = nil
         playerVC?.destroyPlayer()
+        hostVC?.detachPlayer()
+        hostVC = nil
         playerVC = nil
     }
 
@@ -481,6 +492,7 @@ final class MPVPlayerViewController: UIViewController {
     var isPlayerEnded: Bool = false
     var durationMs: Int64 = 0
     var positionMs: Int64 = 0
+    var networkSpeedBytesPerSecond: Int64 = -1
     var bufferedMs: Int64 = 0
     var currentSpeed: Float = 1.0
     var currentErrorMessage: String {
@@ -521,6 +533,31 @@ final class MPVPlayerViewController: UIViewController {
 
     // MARK: - Lifecycle
 
+    private final class WeakPlayer {
+        weak var value: MPVPlayerViewController?
+        init(_ value: MPVPlayerViewController) { self.value = value }
+    }
+
+    private static var livePlayers: [WeakPlayer] = []
+
+    private func retireOtherPlayers() {
+        guard !isEmbeddedPreviewMode else { return }
+        let others = Self.livePlayers.compactMap(\.value).filter { other in
+            other !== self &&
+                !other.isEmbeddedPreviewMode &&
+                !other.isPlayerDestroyed &&
+                !PlayerPictureInPictureParking.shared.isParked(player: other)
+        }
+        Self.livePlayers.removeAll { $0.value == nil }
+        Self.livePlayers.append(WeakPlayer(self))
+        for other in others {
+            other.destroyPlayer()
+        }
+        if PlayerPictureInPictureParking.shared.hasParkedPlayer {
+            PlayerPictureInPictureParking.shared.closeParked()
+        }
+    }
+
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .black
@@ -556,6 +593,7 @@ final class MPVPlayerViewController: UIViewController {
         view.layer.addSublayer(metalLayer)
         layoutPlayerSurfaces()
 
+        retireOtherPlayers()
         setupMpv()
         if let settings = lastVideoOutputSettings {
             configureVideoOutput(
@@ -622,6 +660,10 @@ final class MPVPlayerViewController: UIViewController {
         if parent == nil {
             publishImmersiveSystemUIVisibility(isVisible: false)
         }
+    }
+
+    func hostDidLeaveParent() {
+        publishImmersiveSystemUIVisibility(isVisible: false)
     }
 
     override func viewSafeAreaInsetsDidChange() {
@@ -754,6 +796,7 @@ final class MPVPlayerViewController: UIViewController {
         // iOS can invalidate the VideoToolbox session (e.g. Notification Center during PiP).
         // FFmpeg recreates it at the next frames; keep hardware decoding meanwhile.
         setSetupOption("hwdec-software-fallback", "300")
+        setSetupOption("hwdec-extra-frames", Self.isMemoryConstrained ? "1" : "3")
         setSetupOption("ao", Self.defaultAudioOutput)
         setSetupOption("audio-exclusive", "yes")
         setSetupOption("audio-channels", "auto")
@@ -775,8 +818,13 @@ final class MPVPlayerViewController: UIViewController {
         setSetupOption("target-colorspace-hint", "yes")
         setSetupOption("tone-mapping", "auto")
         setSetupOption("hdr-compute-peak", "yes")
-        setSetupOption("demuxer-max-bytes", "\(Self.demuxerMaxBytes)")
-        setSetupOption("demuxer-max-back-bytes", "\(Self.demuxerMaxBackBytes)")
+        setSetupOption("demuxer-max-bytes", "\(Self.isMemoryConstrained ? Self.constrainedDemuxerMaxBytes : Self.demuxerMaxBytes)")
+        setSetupOption("demuxer-max-back-bytes", "\(Self.isMemoryConstrained ? Self.constrainedDemuxerMaxBackBytes : Self.demuxerMaxBackBytes)")
+        if Self.isMemoryConstrained {
+            setSetupOption("linear-downscaling", "no")
+            setSetupOption("correct-downscaling", "no")
+            setSetupOption("dscale", "bilinear")
+        }
         setSetupOption("demuxer-lavf-o", "protocol_whitelist=[file,crypto,data,http,https,tcp,tls]")
 
         checkError(mpv_initialize(mpv))
@@ -800,6 +848,14 @@ final class MPVPlayerViewController: UIViewController {
     private static let demuxerMaxBytes = 64 * 1024 * 1024
 
     private static let demuxerMaxBackBytes = 32 * 1024 * 1024
+
+    private static let constrainedDemuxerMaxBytes = 32 * 1024 * 1024
+
+    private static let constrainedDemuxerMaxBackBytes = 8 * 1024 * 1024
+
+    private static var isMemoryConstrained: Bool {
+        os_proc_available_memory() < 2 * 1024 * 1024 * 1024
+    }
 
     private func setSetupOption(_ name: String, _ value: String) {
         guard let ctx = mpv else { return }
@@ -1395,6 +1451,7 @@ final class MPVPlayerViewController: UIViewController {
         pendingLoadRetryWorkItem?.cancel()
         pendingLoadRetryWorkItem = nil
         pendingLoadRequest = nil
+        detachMetalLayerBeforeTeardown()
 
         mpvQueue.async { [weak self, eventQueue, metalLayer] in
             eventQueue.sync {}
@@ -1405,6 +1462,18 @@ final class MPVPlayerViewController: UIViewController {
                 DispatchQueue.main.async(execute: completion)
             }
         }
+    }
+
+    private func detachMetalLayerBeforeTeardown() {
+        let detach = { [metalLayer] in
+            guard metalLayer.superlayer != nil else { return }
+            CATransaction.begin()
+            CATransaction.setDisableActions(true)
+            metalLayer.removeFromSuperlayer()
+            CATransaction.commit()
+        }
+        guard Thread.isMainThread else { return }
+        detach()
     }
 
     private func reapplyRememberedSettings() {
@@ -1673,6 +1742,45 @@ final class MPVPlayerViewController: UIViewController {
         }
     }
 
+    /// Loads the local file at `path` in place of the external track loaded from `replacedUrl`,
+    /// under that track's title and language, then drops the replaced track and earlier AutoSync
+    /// copies (files named `autosync_*` next to `path`).
+    func replaceExternalSubtitle(_ replacedUrl: String, path: String) {
+        guard mpv != nil, isFileLoaded else {
+            pendingSubtitleUrl = path
+            return
+        }
+        var title: String?
+        var language: String?
+        let count = getInt("track-list/count")
+        for i in stride(from: count - 1, through: 0, by: -1) {
+            guard (getString("track-list/\(i)/type") ?? "") == "sub",
+                  getFlag("track-list/\(i)/external"),
+                  getString("track-list/\(i)/external-filename") == replacedUrl else { continue }
+            title = getString("track-list/\(i)/title") ?? (replacedUrl as NSString).lastPathComponent
+            language = getString("track-list/\(i)/lang")
+            break
+        }
+        var args: [String?] = [path, "cached"]
+        if let title {
+            args.append(title)
+            if let language { args.append(language) }
+        }
+        command("sub-add", args: args, checkForErrors: false)
+
+        let earlierCopyPrefix = (path as NSString).deletingLastPathComponent + "/autosync_"
+        let updatedCount = getInt("track-list/count")
+        for i in stride(from: updatedCount - 1, through: 0, by: -1) {
+            guard (getString("track-list/\(i)/type") ?? "") == "sub",
+                  getFlag("track-list/\(i)/external"),
+                  let filename = getString("track-list/\(i)/external-filename"),
+                  filename != path,
+                  filename == replacedUrl || filename.hasPrefix(earlierCopyPrefix) else { continue }
+            let id = getInt("track-list/\(i)/id")
+            command("sub-remove", args: ["\(id)"], checkForErrors: false)
+        }
+    }
+
     private func addSubtitle(_ subtitle: PluginSubtitle, mode: String) {
         guard mpv != nil else { return }
         let subtitleHeaders = sanitizeRequestHeaders(subtitle.headers ?? [:])
@@ -1810,6 +1918,8 @@ final class MPVPlayerViewController: UIViewController {
     }
 
     func destroyPlayer() {
+        guard !isPlayerDestroyed else { return }
+        Self.livePlayers.removeAll { $0.value == nil || $0.value === self }
         pictureInPictureController?.invalidate()
         pictureInPictureController = nil
         NotificationCenter.default.removeObserver(self)
@@ -2030,6 +2140,7 @@ final class MPVPlayerViewController: UIViewController {
         let positionMs: Int64
         let bufferedMs: Int64
         let speed: Float
+        let networkSpeedBytesPerSecond: Int64
     }
 
     func refreshPlaybackState() {
@@ -2072,6 +2183,7 @@ final class MPVPlayerViewController: UIViewController {
         let idle = getFlag("core-idle")
         let seeking = getFlag("seeking")
         let bufferingCache = getFlag("paused-for-cache")
+        let cacheSpeed = getCacheSpeedBytesPerSecond()
 
         return PlaybackStateSnapshot(
             isLoading: (idle && !paused && !eofReached) || seeking || bufferingCache,
@@ -2080,7 +2192,8 @@ final class MPVPlayerViewController: UIViewController {
             durationMs: Int64(duration * 1000),
             positionMs: Int64(max(position, 0) * 1000),
             bufferedMs: Int64(max(position + cached, 0) * 1000),
-            speed: Float(speed > 0 ? speed : 1.0)
+            speed: Float(speed > 0 ? speed : 1.0),
+            networkSpeedBytesPerSecond: cacheSpeed
         )
     }
 
@@ -2102,6 +2215,7 @@ final class MPVPlayerViewController: UIViewController {
         positionMs = snapshot.positionMs
         bufferedMs = snapshot.bufferedMs
         currentSpeed = snapshot.speed
+        networkSpeedBytesPerSecond = snapshot.networkSpeedBytesPerSecond
 
         positionSampleLock.lock()
         positionSampleMs = snapshot.positionMs
@@ -2651,6 +2765,13 @@ final class MPVPlayerViewController: UIViewController {
         setIntProperty(name, Int64(max(-100, min(100, value))))
     }
 
+    private func getCacheSpeedBytesPerSecond() -> Int64 {
+        guard let ctx = mpv else { return -1 }
+        var data = Int64()
+        let status = mpv_get_property(ctx, "cache-speed", MPV_FORMAT_INT64, &data)
+        return status >= 0 && data >= 0 ? data : -1
+    }
+
     private func getInt(_ name: String) -> Int {
         guard let ctx = mpv else { return 0 }
         var data = Int64()
@@ -2808,11 +2929,74 @@ final class MPVPlayerViewController: UIViewController {
     }
 }
 
+// MARK: - Host (what Compose holds)
+
+final class PlayerHostViewController: UIViewController {
+    private var player: MPVPlayerViewController?
+
+    init(player: MPVPlayerViewController) {
+        self.player = player
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        view.backgroundColor = .black
+        guard let player else { return }
+        addChild(player)
+        player.view.autoresizingMask = []
+        player.view.frame = view.bounds
+        view.addSubview(player.view)
+        player.didMove(toParent: self)
+    }
+
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        guard let playerView = player?.viewIfLoaded, playerView.superview === view else { return }
+        if playerView.frame != view.bounds {
+            playerView.frame = view.bounds
+        }
+    }
+
+    func detachPlayer() {
+        guard let player else { return }
+        player.willMove(toParent: nil)
+        player.view.removeFromSuperview()
+        player.removeFromParent()
+        self.player = nil
+        setNeedsStatusBarAppearanceUpdate()
+        setNeedsUpdateOfHomeIndicatorAutoHidden()
+        setNeedsUpdateOfScreenEdgesDeferringSystemGestures()
+    }
+
+    override func didMove(toParent parent: UIViewController?) {
+        super.didMove(toParent: parent)
+        if parent == nil { player?.hostDidLeaveParent() }
+    }
+
+    override var childForStatusBarHidden: UIViewController? { player }
+    override var childForStatusBarStyle: UIViewController? { player }
+    override var childForHomeIndicatorAutoHidden: UIViewController? { player }
+    override var childForScreenEdgesDeferringSystemGestures: UIViewController? { player }
+}
+
 // MARK: - Bridge Creator (implements Kotlin protocol)
 
 final class MPVPlayerBridgeCreator: NSObject, NuvioPlayerBridgeCreator {
     func createBridge() -> any NuvioPlayerBridge {
         return MPVPlayerBridgeImpl()
+    }
+
+    func closeParkedPictureInPicture() {
+        DispatchQueue.main.async {
+            guard PlayerPictureInPictureParking.shared.hasParkedPlayer else { return }
+            PlayerPictureInPictureParking.shared.closeParked()
+        }
     }
 }
 

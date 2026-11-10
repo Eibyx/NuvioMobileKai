@@ -18,6 +18,7 @@ import android.os.Handler
 import android.os.SystemClock
 import android.view.View
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.Composable
@@ -42,6 +43,7 @@ import org.jetbrains.compose.resources.getString
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.media3.common.C
+import androidx.media3.common.Effect
 import androidx.media3.common.Format
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
@@ -91,6 +93,8 @@ import com.nuvio.app.features.autosync.LIBMPV_AUTOSYNC_FILE_PREFIX
 import com.nuvio.app.features.autosync.rememberAutoSyncCoordinator
 import com.nuvio.app.features.player.aiostreams.AiostreamsAss
 import com.nuvio.app.features.player.aiostreams.AiostreamsAssEngine
+import com.nuvio.app.features.player.anime.AnimeShaderStatusTracker
+import com.nuvio.app.features.player.anime.AnimeShaders
 import com.nuvio.app.features.player.swdecoder.SoftwareVideoRenderer
 import com.nuvio.app.features.autosync.rememberLibmpvAutoSyncCoordinator
 import com.nuvio.app.R
@@ -157,6 +161,7 @@ actual fun PlatformPlayerSurface(
     initialPositionRequestKey: String?,
     resizeMode: PlayerResizeMode,
     playbackEngine: AndroidPlaybackEngine?,
+    animeContent: Boolean,
     useNativeController: Boolean,
     onInitialPositionHandled: (key: String, handled: Boolean) -> Unit,
     onControllerReady: (PlayerEngineController) -> Unit,
@@ -231,6 +236,7 @@ actual fun PlatformPlayerSurface(
             initialPositionRequestKey = initialPositionRequestKey,
             resizeMode = resizeMode,
             useNativeController = useNativeController,
+            animeContent = animeContent,
             onInitialPositionHandled = onInitialPositionHandled,
             onControllerReady = surfaceOnControllerReady,
             onSnapshot = surfaceOnSnapshot,
@@ -253,6 +259,9 @@ actual fun PlatformPlayerSurface(
                 videoOutput = playerSettings.androidLibmpvVideoOutput,
                 hardwareDecodingEnabled = playerSettings.androidLibmpvHardwareDecodingEnabled,
                 yuv420pEnabled = playerSettings.androidLibmpvYuv420pEnabled,
+                animeUpscaleEnabled = animeContent && playerSettings.androidAnimeUpscaleEnabled,
+                animeLineSharpenEnabled = animeContent && playerSettings.androidAnimeLineSharpenEnabled,
+                animeContent = animeContent,
                 preferredSubtitleLanguage = playerSettings.preferredSubtitleLanguage,
                 onControllerReady = surfaceOnControllerReady,
                 onSnapshot = surfaceOnSnapshot,
@@ -302,6 +311,7 @@ private fun ExoPlayerSurface(
     initialPositionRequestKey: String?,
     resizeMode: PlayerResizeMode,
     useNativeController: Boolean,
+    animeContent: Boolean,
     onInitialPositionHandled: (key: String, handled: Boolean) -> Unit,
     onControllerReady: (PlayerEngineController) -> Unit,
     onSnapshot: (PlayerPlaybackSnapshot) -> Unit,
@@ -311,6 +321,7 @@ private fun ExoPlayerSurface(
     val lifecycleOwner = LocalLifecycleOwner.current
     val latestOnSnapshot = rememberUpdatedState(onSnapshot)
     val latestOnError = rememberUpdatedState(onError)
+    val latestAnimeContent = rememberUpdatedState(animeContent)
     val latestOnInitialPositionHandled = rememberUpdatedState(onInitialPositionHandled)
     val latestPlayWhenReady = rememberUpdatedState(playWhenReady)
     val coroutineScope = rememberCoroutineScope()
@@ -344,6 +355,13 @@ private fun ExoPlayerSurface(
         useYoutubeChunkedPlayback,
         initialPositionRequestKey.orEmpty(),
     )
+    var animeRebuildGeneration by remember(playerSourceKey) { mutableStateOf(0) }
+    var animeEnhancementStatus by remember(playerSourceKey) { mutableStateOf<AnimeEnhancementStatus?>(null) }
+    val animeStatusTracker = remember(playerSourceKey) {
+        val mainHandler = Handler(android.os.Looper.getMainLooper())
+        AnimeShaderStatusTracker { status -> mainHandler.post { animeEnhancementStatus = status } }
+    }
+    val exoVideoEffects = remember(playerSourceKey) { ExoVideoEffectsHolder() }
     val playbackDiagnostics = remember(playerSourceKey) { PlaybackDiagnostics() }
     var subtitleDelayMs by remember(playerSourceKey) { mutableStateOf(0) }
     var selectedExternalSubtitleMimeType by remember(playerSourceKey) { mutableStateOf<String?>(null) }
@@ -425,6 +443,8 @@ private fun ExoPlayerSurface(
             }
             .let { factory -> aiostreamsAss?.extractors(factory) ?: factory }
     }
+    val networkBytesRead = remember(playerSourceKey) { AtomicLong(0L) }
+    val networkSpeedSampler = remember(playerSourceKey) { ByteRateSampler() }
     val dataSourceFactory = remember(
         context,
         sourceUrl,
@@ -453,7 +473,7 @@ private fun ExoPlayerSurface(
                     }
                     .toSet()
             },
-        )
+        ).countingNetworkBytes(networkBytesRead)
         // Addon subtitles (marked by markedSubtitleUri) load without the stream's headers.
         SubtitleRoutingDataSourceFactory(
             media = media,
@@ -499,6 +519,7 @@ private fun ExoPlayerSurface(
         useYoutubeChunkedPlayback,
         effectiveDecoderPriority,
         initialPositionRequestKey,
+        animeRebuildGeneration,
     ) {
         aiostreamsAss?.reset(
             PlatformPlaybackDataSourceFactory.create(
@@ -563,12 +584,12 @@ private fun ExoPlayerSurface(
             val captioningManager = context.getSystemService(Context.CAPTIONING_SERVICE)
                 as? android.view.accessibility.CaptioningManager
             if (captioningManager != null) {
-                if (!captioningManager.isEnabled) {
+                if (!runCatching { captioningManager.isEnabled }.getOrDefault(false)) {
                     parameters = parameters.setIgnoredTextSelectionFlags(
                         parameters.build().ignoredTextSelectionFlags or C.SELECTION_FLAG_DEFAULT
                     )
                 }
-                captioningManager.locale?.let { locale ->
+                runCatching { captioningManager.locale }.getOrNull()?.let { locale ->
                     parameters = parameters.setPreferredTextLanguage(locale.isO3Language)
                 }
             }
@@ -584,15 +605,34 @@ private fun ExoPlayerSurface(
 
         val loadControl = playerSettings.buildPlaybackLoadControl(localFileSource = isLocalFileSource)
 
+        val liveAnimeSettings = PlayerSettingsRepository.uiState.value
+        val animeUpscaleEnabled = latestAnimeContent.value && liveAnimeSettings.androidAnimeUpscaleEnabled
+        val animeLineSharpenEnabled = latestAnimeContent.value && liveAnimeSettings.androidAnimeLineSharpenEnabled
+        val animeVideoEffects = if (playerSettings.tunnelingEnabled) {
+            emptyList()
+        } else {
+            AnimeShaders.exoVideoEffects(
+                context = context,
+                upscaleEnabled = animeUpscaleEnabled,
+                lineSharpenEnabled = animeLineSharpenEnabled,
+                statusTracker = animeStatusTracker,
+            )
+        }
+
         InAppLogger.info(
             "ExoPlayer/Android",
             "Initializing ExoPlayer decoderPriority=${effectiveDecoderPriority.decoderPriorityName()} " +
                 "decoderFallback=true tunneling=${playerSettings.tunnelingEnabled} libass=$useLibmpvAss " +
-                "mapDV7ToHevc=${playerSettings.mapDV7ToHevc}",
+                "mapDV7ToHevc=${playerSettings.mapDV7ToHevc} " +
+                "animeUpscale=$animeUpscaleEnabled " +
+                "animeLineSharpen=$animeLineSharpenEnabled " +
+                "animeEffects=${animeVideoEffects.isNotEmpty()}",
         )
 
+        // Audio focus is handled by PlayerAudioFocus, so a denied request (e.g. during a call)
+        // doesn't stop playback.
         val playerBuilder = ExoPlayer.Builder(context)
-            .setAudioAttributes(playbackAudioAttributes, true)
+            .setAudioAttributes(playbackAudioAttributes, false)
             .setTrackSelector(trackSelector)
             .setLoadControl(loadControl)
 
@@ -601,10 +641,22 @@ private fun ExoPlayerSurface(
             extractorsFactory,
         )
         aiostreamsAss?.let { mediaSourceFactory.setSubtitleParserFactory(it.scripts()) }
+
         val player = playerBuilder
             .setRenderersFactory(renderersFactory)
             .setMediaSourceFactory(AudioDelayMediaSourceFactory(mediaSourceFactory, audioDelayUs::get))
             .build()
+            .also { builtPlayer ->
+                if (animeVideoEffects.isNotEmpty()) {
+                    builtPlayer.setVideoEffects(animeVideoEffects)
+                }
+                exoVideoEffects.update(
+                    pipelineConfigured = animeVideoEffects.isNotEmpty(),
+                    animeBuilt = animeVideoEffects.isNotEmpty(),
+                    upscaleEnabled = animeUpscaleEnabled,
+                    lineSharpenEnabled = animeLineSharpenEnabled,
+                )
+            }
 
         player.applySubtitleTrackPreferences(
             preferredLanguage = playerSettings.preferredSubtitleLanguage,
@@ -641,7 +693,7 @@ private fun ExoPlayerSurface(
             initializedAudioDecoderName,
             playerChapters,
             exoMediaInfoCache,
-        )
+        ).copy(animeEnhancement = animeEnhancementStatus)
         latestOnSnapshot.value(snapshot)
         nowPlayingController.syncPlayback(snapshot)
     }
@@ -678,6 +730,19 @@ private fun ExoPlayerSurface(
 
     DisposableEffect(nowPlayingController) {
         onDispose { nowPlayingController.release() }
+    }
+
+    val audioFocus = remember(context, exoPlayer) {
+        PlayerAudioFocus(
+            context = context,
+            playWhenReady = { exoPlayer.playWhenReady },
+            pause = exoPlayer::pause,
+            resume = exoPlayer::play,
+        )
+    }
+
+    DisposableEffect(audioFocus) {
+        onDispose { audioFocus.abandon() }
     }
 
     LaunchedEffect(exoPlayer, resolvedMediaItem, initialPositionRequestKey, playbackResumeGeneration) {
@@ -754,6 +819,42 @@ private fun ExoPlayerSurface(
         val selection = exoPlayer.captureSelectedTrack(C.TRACK_TYPE_AUDIO) ?: return
         pendingAudioTrackSelection.add(selection)
         Log.d(TAG, "$reason: preserving audio track index=${selection.index} id=${selection.id}")
+    }
+
+    LaunchedEffect(exoPlayer, animeEnhancementStatus) {
+        dispatchExoPlayerSnapshot()
+    }
+
+    val liveSettings by rememberAnimeToggles()
+    LaunchedEffect(
+        exoPlayer,
+        animeContent,
+        liveSettings.androidAnimeUpscaleEnabled,
+        liveSettings.androidAnimeLineSharpenEnabled,
+    ) {
+        val upscale = animeContent && liveSettings.androidAnimeUpscaleEnabled
+        val sharpen = animeContent && liveSettings.androidAnimeLineSharpenEnabled
+        if (playerSettings.tunnelingEnabled) return@LaunchedEffect
+        if (exoVideoEffects.matches(upscale, sharpen)) return@LaunchedEffect
+        if (!exoVideoEffects.pipelineConfigured && !upscale && !sharpen) {
+            exoVideoEffects.update(
+                pipelineConfigured = false,
+                animeBuilt = false,
+                upscaleEnabled = false,
+                lineSharpenEnabled = false,
+            )
+            return@LaunchedEffect
+        }
+        delay(ANIME_EFFECTS_REBUILD_DEBOUNCE_MS)
+        InAppLogger.info("ExoPlayer/Android", "anime effects changed, rebuilding player upscale=$upscale lineSharpen=$sharpen")
+        preserveAudioSelectionForReload("animeEffectsRebuild")
+        val selectedSubtitle = exoPlayer.currentTracks.selectedTextTrackOrdinal()
+        if (selectedSubtitle >= 0) {
+            pendingSubtitleTrackIndex.clear()
+            pendingSubtitleTrackIndex.add(selectedSubtitle)
+        }
+        fallbackStartPositionMs = exoPlayer.currentPosition.coerceAtLeast(0L)
+        animeRebuildGeneration += 1
     }
 
     DisposableEffect(exoPlayer) {
@@ -891,6 +992,10 @@ private fun ExoPlayerSurface(
                 }
                 syncPlayerViewKeepScreenOn()
                 dispatchExoPlayerSnapshot()
+            }
+
+            override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
+                if (playWhenReady) audioFocus.request()
             }
 
             override fun onIsPlayingChanged(isPlaying: Boolean) {
@@ -1116,6 +1221,9 @@ private fun ExoPlayerSurface(
                 override val playbackEngine = AndroidPlaybackEngine.ExoPlayer
 
                 private var lastAppliedVolume: Float? = null
+
+                override fun networkSpeedBytesPerSecond(): Long? =
+                    networkSpeedSampler.sample(networkBytesRead.get(), SystemClock.elapsedRealtime())
 
                 private val audioTrackCache = AudioTrackCache()
                 override fun play() {
@@ -1537,6 +1645,9 @@ private fun LibmpvPlayerSurface(
     videoOutput: AndroidLibmpvVideoOutput,
     hardwareDecodingEnabled: Boolean,
     yuv420pEnabled: Boolean,
+    animeUpscaleEnabled: Boolean,
+    animeLineSharpenEnabled: Boolean,
+    animeContent: Boolean,
     preferredSubtitleLanguage: String?,
     onControllerReady: (PlayerEngineController) -> Unit,
     onSnapshot: (PlayerPlaybackSnapshot) -> Unit,
@@ -1579,8 +1690,14 @@ private fun LibmpvPlayerSurface(
         onDispose { nowPlayingController?.release() }
     }
 
+    val mpvPaused = remember { AtomicBoolean(true) }
     val audioFocus = remember(context) {
-        PlayerAudioFocus(context) { playerViewRef?.setPaused(true) }
+        PlayerAudioFocus(
+            context = context,
+            playWhenReady = { !mpvPaused.get() },
+            pause = { playerViewRef?.setPaused(true) },
+            resume = { playerViewRef?.setPaused(false) },
+        )
     }
 
     DisposableEffect(audioFocus) {
@@ -1622,6 +1739,8 @@ private fun LibmpvPlayerSurface(
                 }
             }
         }
+        // The last few mpv errors, shown on the error screen with the file error (no URLs).
+        val recentErrorLogs = ArrayDeque<String>()
         val observer = object : MPVLib.EventObserver {
             override fun eventProperty(property: String) {
                 if (property == "sub-text" || property == "sid") view.updateStyledSubtitle()
@@ -1640,8 +1759,9 @@ private fun LibmpvPlayerSurface(
                             "elapsedMs=${diagnosticElapsedSince(playbackDiagnostics.prepareStartedAtMs)}",
                     )
                 }
-                if (property == "pause" && !value) {
-                    coroutineScope.launch(Dispatchers.Main.immediate) { audioFocus.request() }
+                if (property == "pause") {
+                    mpvPaused.set(value)
+                    if (!value) coroutineScope.launch(Dispatchers.Main.immediate) { audioFocus.request() }
                 }
                 if (property == "paused-for-cache" && value) view.logCacheState("stalled")
                 if (property == "eof-reached" || property == "pause" || property == "paused-for-cache" || property == "seeking") {
@@ -1674,6 +1794,7 @@ private fun LibmpvPlayerSurface(
             override fun event(eventId: Int, data: MPVNode) {
                 when (eventId) {
                     MPVLib.MpvEvent.MPV_EVENT_START_FILE -> {
+                        synchronized(recentErrorLogs) { recentErrorLogs.clear() }
                         Log.i(
                             PLAYER_DIAGNOSTIC_TAG,
                             "mpv_event=START_FILE attempt=${playbackDiagnostics.attempt} " +
@@ -1732,8 +1853,12 @@ private fun LibmpvPlayerSurface(
                                     "mpv_error attempt=${playbackDiagnostics.attempt} " +
                                         "fileError=${diagnosticPlayerMessage(fileError)}",
                                 )
+                                val details = synchronized(recentErrorLogs) { recentErrorLogs.toList() } +
+                                    listOfNotNull(fileError?.trim()?.takeIf { it.isNotEmpty() })
                                 latestOnError.value(
-                                    getString(Res.string.player_unable_to_play_stream),
+                                    details.distinct().joinToString("\n").ifEmpty {
+                                        getString(Res.string.player_unable_to_play_stream)
+                                    },
                                 )
                             }
                         }
@@ -1752,6 +1877,13 @@ private fun LibmpvPlayerSurface(
                         "message=${diagnosticPlayerMessage(text)}",
                 )
                 view.onMpvLog(prefix, level, text)
+                val line = text.trim()
+                if (level <= MPV_LOG_LEVEL_ERROR && line.isNotEmpty() && "://" !in line) {
+                    synchronized(recentErrorLogs) {
+                        recentErrorLogs.addLast("[$prefix] ${line.take(160)}")
+                        while (recentErrorLogs.size > 3) recentErrorLogs.removeFirst()
+                    }
+                }
                 // msg-level is all=warn, so these are mpv's warnings and errors; keep them for diagnostics.
                 InAppLogger.logMpv(
                     platform = "Android",
@@ -2223,6 +2355,9 @@ private class NuvioLibmpvView(
         }
     }
 
+    @Volatile
+    private var cacheSpeedBytesPerSecond: Long? = null
+
     private var cachedChapters: List<PlayerChapter> = emptyList()
     private var cachedChaptersKey: String? = null
 
@@ -2233,6 +2368,9 @@ private class NuvioLibmpvView(
         val ended = mpv.getPropertyBoolean("eof-reached") ?: false
         val seeking = mpv.getPropertyBoolean("seeking") ?: false
         val cacheBufferingState = mpv.getPropertyInt("cache-buffering-state")
+        cacheSpeedBytesPerSecond = mpv.getPropertyInt("cache-speed")
+            ?.takeIf { it >= 0 }
+            ?.toLong()
         val durationMs = mpv.getPropertyDouble("duration").toMillis()
         val positionMs = mpv.getPropertyDouble("time-pos").toMillis()
         val cachePositionMs = mpv.getPropertyDouble("demuxer-cache-time").toMillis()
@@ -2474,6 +2612,8 @@ private class NuvioLibmpvView(
         object : PlayerEngineController {
             override val playbackEngine = AndroidPlaybackEngine.Libmpv
 
+            override fun networkSpeedBytesPerSecond(): Long? = cacheSpeedBytesPerSecond
+
             private var lastAppliedVolume: Float? = null
             private var lastLoggedAudioTracks: String? = null
             private var lastLoggedSubtitleTracks: String? = null
@@ -2687,15 +2827,19 @@ private class NuvioLibmpvView(
                     mpv.setPropertyString("sub-ass-override", "no")
                     mpv.setPropertyString("sub-color", style.textColor.toMpvColor())
                     mpv.setPropertyString("sub-back-color", style.backgroundColor.toMpvColor())
-                    mpv.setPropertyString("sub-outline-color", style.outlineColor.toMpvColor())
-                    mpv.setPropertyString("sub-border-color", style.outlineColor.toMpvColor())
+                    val nativeOutlineColor = style.outlineColor.copy(
+                        alpha = style.outlineColor.alpha * style.textColor.alpha *
+                            subtitleOutlineBlurOpacity(style.mpvNativeOutlineBlurLevel),
+                    )
+                    mpv.setPropertyString("sub-outline-color", nativeOutlineColor.toMpvColor())
+                    mpv.setPropertyString("sub-border-color", nativeOutlineColor.toMpvColor())
                     mpv.setPropertyString("sub-border-style", style.toMpvSubtitleBorderStyle())
                     mpv.setPropertyString("sub-bold", if (style.bold) "yes" else "no")
                     mpv.setPropertyInt("sub-font-size", style.toMpvSubtitleFontSize())
                     mpv.setPropertyInt("sub-outline-size", style.toMpvSubtitleOutlineSize())
                     mpv.setPropertyInt("sub-border-size", style.toMpvSubtitleOutlineSize())
-                    // Use mpv/libass's native Gaussian border blur, matching Umbra's sub-blur path.
-                    mpv.setPropertyString("sub-blur", style.mpvNativeOutlineBlurLevel.toString())
+                    // Boost low blur levels so they soften the border instead of only thickening it.
+                    mpv.setPropertyString("sub-blur", style.mpvNativeOutlineBlurAmount.toString())
                     mpv.setPropertyInt("sub-pos", (100 - style.bottomOffset / 10).coerceIn(0, 100))
                     mpv.setPropertyBoolean("sub-filter-sdh", style.stripSdh)
                     mpv.setPropertyBoolean("sub-filter-sdh-harder", style.stripSdh)
@@ -3109,6 +3253,69 @@ private class ExoMediaInfoCache {
         json = built
         return built
     }
+}
+
+private data class AnimeToggles(
+    val androidAnimeUpscaleEnabled: Boolean,
+    val androidAnimeLineSharpenEnabled: Boolean,
+)
+
+private fun PlayerSettingsUiState.animeToggles() = AnimeToggles(
+    androidAnimeUpscaleEnabled = androidAnimeUpscaleEnabled,
+    androidAnimeLineSharpenEnabled = androidAnimeLineSharpenEnabled,
+)
+
+@Composable
+private fun rememberAnimeToggles(): androidx.compose.runtime.State<AnimeToggles> {
+    val toggles = remember {
+        PlayerSettingsRepository.uiState
+            .map { it.animeToggles() }
+            .distinctUntilChanged()
+    }
+    return toggles.collectAsState(initial = PlayerSettingsRepository.uiState.value.animeToggles())
+}
+
+private const val ANIME_EFFECTS_REBUILD_DEBOUNCE_MS = 700L
+
+private class ExoVideoEffectsHolder {
+    @Volatile
+    var pipelineConfigured = false
+        private set
+    @Volatile
+    var animeBuilt = false
+        private set
+    @Volatile
+    private var upscaleEnabled = false
+    @Volatile
+    private var lineSharpenEnabled = false
+
+    fun update(
+        pipelineConfigured: Boolean,
+        animeBuilt: Boolean,
+        upscaleEnabled: Boolean,
+        lineSharpenEnabled: Boolean,
+    ) {
+        this.pipelineConfigured = pipelineConfigured
+        this.animeBuilt = animeBuilt
+        this.upscaleEnabled = upscaleEnabled
+        this.lineSharpenEnabled = lineSharpenEnabled
+    }
+
+    fun matches(upscaleEnabled: Boolean, lineSharpenEnabled: Boolean): Boolean =
+        this.upscaleEnabled == upscaleEnabled && this.lineSharpenEnabled == lineSharpenEnabled
+}
+
+private fun androidx.media3.common.Tracks.selectedTextTrackOrdinal(): Int {
+    var ordinal = 0
+    var selected = -1
+    for (group in groups) {
+        if (group.type != C.TRACK_TYPE_TEXT) continue
+        for (i in 0 until group.length) {
+            if (group.isTrackSelected(i)) selected = ordinal
+            ordinal++
+        }
+    }
+    return selected
 }
 
 private fun ExoPlayer.snapshot(
@@ -4216,6 +4423,8 @@ private fun isLoopbackPlaybackSource(value: String): Boolean = runCatching {
         else -> false
     }
 }.getOrDefault(false)
+
+private const val MPV_LOG_LEVEL_ERROR = 20
 
 private fun diagnosticPlayerMessage(value: String?): String =
     value?.let { redactLocalStreamTokens(it) }?.replace('\n', ' ')?.replace('\r', ' ')?.take(160) ?: "none"

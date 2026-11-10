@@ -283,7 +283,9 @@ fun NuvioTheme(
             if (palette.animatedGradient) AccentGradientMotion.Run()
             StatusBarIcons(appDark = dark)
             PlatformWindowAppearance(mode = appearance, dark = dark, background = colorScheme.background)
-            SkeletonAnimationProvider(content = content)
+            SharedCardStylesProvider {
+                SkeletonAnimationProvider(content = content)
+            }
         }
     }
 }

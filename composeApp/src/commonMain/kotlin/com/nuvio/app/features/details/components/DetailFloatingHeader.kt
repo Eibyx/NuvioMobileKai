@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Icon
@@ -31,6 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
@@ -40,6 +42,9 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
 import com.nuvio.app.core.ui.ArtworkLogoImage
+import coil3.compose.AsyncImage
+import androidx.compose.ui.graphics.Brush
+import com.nuvio.app.core.ui.ArtworkBackdrop
 import com.nuvio.app.core.ui.NuvioBackButton
 import com.nuvio.app.core.ui.platformPhysicalTopInset
 import com.nuvio.app.features.details.MetaDetails
@@ -67,6 +72,7 @@ fun DetailFloatingHeader(
     isSaved: Boolean,
     progress: Float,
     backgroundColor: Color? = null,
+    background: (@Composable () -> Unit)? = null,
     onBack: () -> Unit,
     onToggleSaved: () -> Unit,
     modifier: Modifier = Modifier,
@@ -105,17 +111,26 @@ fun DetailFloatingHeader(
             modifier = Modifier
                 .fillMaxWidth()
                 .clipToBounds()
-                .liquidGlassSurface(
-                    backdrop = glassBackdrop,
-                    shape = RectangleShape,
-                    // Light: a denser tint, since dark text behind a pale glass shows through more;
-                    // translucent even without glass, like the floating navigation bar.
-                    tint = surfaceColor.copy(alpha = surfaceColor.alpha * if (MaterialTheme.isDarkAppearance) 0.7f else 0.86f),
-                    fallback = if (MaterialTheme.isDarkAppearance) surfaceColor else surfaceColor.copy(alpha = surfaceColor.alpha * 0.92f),
-                    blurRadius = 24.dp,
-                    withHighlight = false,
+                .then(
+                    if (background == null) {
+                        Modifier.liquidGlassSurface(
+                            backdrop = glassBackdrop,
+                            shape = RectangleShape,
+                            // Light: a denser tint, since dark text behind a pale glass shows through more;
+                            // translucent even without glass, like the floating navigation bar.
+                            tint = surfaceColor.copy(alpha = surfaceColor.alpha * if (MaterialTheme.isDarkAppearance) 0.7f else 0.86f),
+                            fallback = if (MaterialTheme.isDarkAppearance) surfaceColor else surfaceColor.copy(alpha = surfaceColor.alpha * 0.92f),
+                            blurRadius = 24.dp,
+                            withHighlight = false,
+                        )
+                    } else {
+                        Modifier
+                    },
                 ),
         ) {
+            if (background != null) {
+                Box(modifier = Modifier.matchParentSize()) { background() }
+            }
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -184,6 +199,23 @@ fun DetailFloatingHeader(
                 )
             }
         }
+    }
+}
+
+@Composable
+internal fun CinematicHeaderBackdrop(
+    image: ImageBitmap?,
+    screenHeight: Dp,
+    alignment: Alignment = Alignment.Center,
+    scrim: Brush? = null,
+) {
+    val modifier = Modifier
+        .wrapContentHeight(align = Alignment.Top, unbounded = true)
+        .height(screenHeight)
+    if (scrim != null) {
+        ArtworkBackdrop(image = image, alignment = alignment, scrim = scrim, modifier = modifier)
+    } else {
+        ArtworkBackdrop(image = image, alignment = alignment, modifier = modifier)
     }
 }
 

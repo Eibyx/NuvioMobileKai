@@ -20,6 +20,7 @@ actual object PlayerSettingsStorage {
     private const val pendingExternalPlaybackKey = "pending_external_playback"
     private const val playbackBrightnessKey = "playback_brightness"
     private const val useLegacyPlayerLayoutKey = "use_legacy_player_layout"
+    private const val showPlayerTitleLogoKey = "show_player_title_logo"
     private const val showLoadingOverlayKey = "show_loading_overlay"
     private const val showPlayerLoadingStatusKey = "show_player_loading_status"
     private const val pauseOverlayEnabledKey = "pause_overlay_enabled"
@@ -35,6 +36,8 @@ actual object PlayerSettingsStorage {
     private const val skipForwardSecondsKey = "skip_forward_seconds"
     private const val touchGesturesEnabledKey = "touch_gestures_enabled"
     private const val swipeToSeekEnabledKey = "swipe_to_seek_enabled"
+    private const val playerControlGlassEnabledKey = "player_glass_effect_enabled"
+    private const val showSkipButtonsKey = "player_show_skip_buttons"
     private const val seekPreviewEnabledKey = "seek_preview_enabled"
     private const val movieRecommendationsEnabledKey = "movie_recommendations_enabled"
     private const val autoShowSubtitlesOnRewindEnabledKey = "auto_show_subtitles_on_rewind_enabled"
@@ -55,6 +58,8 @@ actual object PlayerSettingsStorage {
     private const val androidLibmpvHardwareDecodingEnabledKey = "android_libmpv_hardware_decoding_enabled"
     private const val androidLibmpvVideoOutputKey = "android_libmpv_video_output"
     private const val androidLibmpvYuv420pEnabledKey = "android_libmpv_yuv420p_enabled"
+    private const val androidAnimeUpscaleEnabledKey = "android_anime_upscale_enabled"
+    private const val androidAnimeLineSharpenEnabledKey = "android_anime_line_sharpen_enabled"
     private const val androidPlaybackEngineKey = "android_playback_engine"
     private const val rememberAudioDelayPerDeviceKey = "remember_audio_delay_per_device"
     private const val persistAudioAmplificationKey = "persist_audio_amplification"
@@ -134,6 +139,7 @@ actual object PlayerSettingsStorage {
     private const val useLibassKey = "use_libass"
     private const val useLibmpvAssKey = "use_libmpv_ass"
     private val syncKeys = listOf(
+        showPlayerTitleLogoKey,
         showLoadingOverlayKey,
         showPlayerLoadingStatusKey,
         pauseOverlayEnabledKey,
@@ -308,6 +314,16 @@ actual object PlayerSettingsStorage {
         NSUserDefaults.standardUserDefaults.setBool(enabled, forKey = ProfileScopedKey.of(useLegacyPlayerLayoutKey))
     }
 
+    actual fun loadShowPlayerTitleLogo(): Boolean? {
+        val defaults = NSUserDefaults.standardUserDefaults
+        val key = ProfileScopedKey.of(showPlayerTitleLogoKey)
+        return if (defaults.objectForKey(key) != null) defaults.boolForKey(key) else null
+    }
+
+    actual fun saveShowPlayerTitleLogo(enabled: Boolean) {
+        NSUserDefaults.standardUserDefaults.setBool(enabled, forKey = ProfileScopedKey.of(showPlayerTitleLogoKey))
+    }
+
     actual fun loadShowParentalGuide(): Boolean? {
         val defaults = NSUserDefaults.standardUserDefaults
         val key = ProfileScopedKey.of(showParentalGuideKey)
@@ -403,6 +419,18 @@ actual object PlayerSettingsStorage {
 
     actual fun saveSwipeToSeekEnabled(enabled: Boolean) {
         saveBoolean(swipeToSeekEnabledKey, enabled)
+    }
+
+    actual fun loadPlayerControlGlassEnabled(): Boolean? = loadBoolean(playerControlGlassEnabledKey)
+
+    actual fun savePlayerControlGlassEnabled(enabled: Boolean) {
+        saveBoolean(playerControlGlassEnabledKey, enabled)
+    }
+
+    actual fun loadShowSkipButtons(): Boolean? = loadBoolean(showSkipButtonsKey)
+
+    actual fun saveShowSkipButtons(enabled: Boolean) {
+        saveBoolean(showSkipButtonsKey, enabled)
     }
 
     actual fun loadSeekPreviewEnabled(): Boolean? = loadBoolean(seekPreviewEnabledKey)
@@ -720,6 +748,26 @@ actual object PlayerSettingsStorage {
         }
     }
 
+    actual fun loadAndroidAnimeUpscaleEnabled(): Boolean? {
+        val defaults = NSUserDefaults.standardUserDefaults
+        val key = ProfileScopedKey.of(androidAnimeUpscaleEnabledKey)
+        return if (defaults.objectForKey(key) != null) {
+            defaults.boolForKey(key)
+        } else {
+            null
+        }
+    }
+
+    actual fun loadAndroidAnimeLineSharpenEnabled(): Boolean? {
+        val defaults = NSUserDefaults.standardUserDefaults
+        val key = ProfileScopedKey.of(androidAnimeLineSharpenEnabledKey)
+        return if (defaults.objectForKey(key) != null) {
+            defaults.boolForKey(key)
+        } else {
+            null
+        }
+    }
+
     actual fun loadAndroidExoChaptersEnabled(): Boolean? {
         val defaults = NSUserDefaults.standardUserDefaults
         val key = ProfileScopedKey.of(androidExoChaptersEnabledKey)
@@ -732,6 +780,14 @@ actual object PlayerSettingsStorage {
 
     actual fun saveAndroidLibmpvYuv420pEnabled(enabled: Boolean) {
         NSUserDefaults.standardUserDefaults.setBool(enabled, forKey = ProfileScopedKey.of(androidLibmpvYuv420pEnabledKey))
+    }
+
+    actual fun saveAndroidAnimeUpscaleEnabled(enabled: Boolean) {
+        NSUserDefaults.standardUserDefaults.setBool(enabled, forKey = ProfileScopedKey.of(androidAnimeUpscaleEnabledKey))
+    }
+
+    actual fun saveAndroidAnimeLineSharpenEnabled(enabled: Boolean) {
+        NSUserDefaults.standardUserDefaults.setBool(enabled, forKey = ProfileScopedKey.of(androidAnimeLineSharpenEnabledKey))
     }
 
     actual fun saveAndroidExoChaptersEnabled(enabled: Boolean) {
@@ -1365,6 +1421,7 @@ actual object PlayerSettingsStorage {
     }
 
     actual fun exportToSyncPayload(): JsonObject = buildJsonObject {
+        loadShowPlayerTitleLogo()?.let { put(showPlayerTitleLogoKey, encodeSyncBoolean(it)) }
         loadShowLoadingOverlay()?.let { put(showLoadingOverlayKey, encodeSyncBoolean(it)) }
         loadShowPlayerLoadingStatus()?.let { put(showPlayerLoadingStatusKey, encodeSyncBoolean(it)) }
         loadPauseOverlayEnabled()?.let { put(pauseOverlayEnabledKey, encodeSyncBoolean(it)) }
@@ -1464,6 +1521,7 @@ actual object PlayerSettingsStorage {
             NSUserDefaults.standardUserDefaults.removeObjectForKey(ProfileScopedKey.of(key))
         }
 
+        payload.decodeSyncBoolean(showPlayerTitleLogoKey)?.let(::saveShowPlayerTitleLogo)
         payload.decodeSyncBoolean(showLoadingOverlayKey)?.let(::saveShowLoadingOverlay)
         payload.decodeSyncBoolean(showPlayerLoadingStatusKey)?.let(::saveShowPlayerLoadingStatus)
         payload.decodeSyncBoolean(pauseOverlayEnabledKey)?.let(::savePauseOverlayEnabled)

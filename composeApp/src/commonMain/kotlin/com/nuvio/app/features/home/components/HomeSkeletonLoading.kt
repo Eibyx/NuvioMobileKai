@@ -3,9 +3,7 @@ package com.nuvio.app.features.home.components
 import com.nuvio.app.core.ui.isDarkAppearance
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import com.nuvio.app.features.home.HomeHeroStyle
@@ -40,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import com.nuvio.app.core.ui.landscapePosterHeightForWidth
 import com.nuvio.app.core.ui.landscapePosterWidth
 import com.nuvio.app.core.ui.rememberPosterCardStyleUiState
+import com.nuvio.app.core.ui.rememberScreenActiveInfiniteFloat
 
 @Composable
 private fun rememberHomeSkeletonBrush(): Brush {
@@ -48,8 +47,7 @@ private fun rememberHomeSkeletonBrush(): Brush {
         MaterialTheme.colorScheme.surface.copy(alpha = 0.5f),
         MaterialTheme.colorScheme.surface,
     )
-    val transition = rememberInfiniteTransition()
-    val translateAnim by transition.animateFloat(
+    val translateAnim by rememberScreenActiveInfiniteFloat(
         initialValue = 0f,
         targetValue = 1000f,
         animationSpec = infiniteRepeatable(

@@ -145,16 +145,15 @@ private fun TabletDetailBackdropContent(
         if (cinematic) {
             ArtworkBackdrop(
                 image = backdropImage,
-                alignment = BiasAlignment(0f, BackdropVerticalBias),
+                alignment = TabletArtworkBackdropAlignment,
             )
         }
         BackdropArtwork(
             meta = meta,
             gradientColor = backgroundColor,
+            cinematic = cinematic,
             modifier = if (cinematic) {
-                Modifier
-                    .graphicsLayer { alpha = 1f - scrollProgress() }
-                    .featherArtwork()
+                Modifier.graphicsLayer { alpha = 1f - scrollProgress() }
             } else {
                 Modifier
             },
@@ -184,6 +183,7 @@ private fun TabletDetailBackdropContent(
 private fun BackdropArtwork(
     meta: MetaDetails,
     gradientColor: Color,
+    cinematic: Boolean = false,
     modifier: Modifier = Modifier,
     heroTrailerSourceUrl: String? = null,
     heroTrailerSourceAudioUrl: String? = null,
@@ -213,7 +213,15 @@ private fun BackdropArtwork(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(gradientColor),
+            .then(
+                if (cinematic) {
+                    Modifier.featherArtwork {
+                        cinematicStartFade(size.width, gradientIntensity, isRtl)
+                    }
+                } else {
+                    Modifier.background(gradientColor)
+                },
+            ),
     ) {
         val imageUrl = meta.background ?: meta.poster
         if (imageUrl != null) {
@@ -258,7 +266,7 @@ private fun BackdropArtwork(
             )
         }
 
-        Box(
+        if (!cinematic) Box(
             modifier = Modifier
                 .fillMaxSize()
                 .drawWithCache {
@@ -290,6 +298,23 @@ private fun BackdropArtwork(
                 },
         )
     }
+}
+
+private fun cinematicStartFade(width: Float, intensity: Float, isRtl: Boolean): Brush {
+    val opacity = NuvioTokens.Opacity
+    fun visible(overlay: Float) = Color.Black.copy(alpha = 1f - overlay * intensity)
+    return Brush.horizontalGradient(
+        colorStops = arrayOf(
+            0.00f to Color.Transparent,
+            0.12f to visible(0.98f),
+            0.34f to visible(opacity.overlayHeavy),
+            0.62f to visible(opacity.overlayLight),
+            0.86f to visible(opacity.subtle),
+            1.00f to Color.Black,
+        ),
+        startX = if (isRtl) width else 0f,
+        endX = if (isRtl) 0f else width,
+    )
 }
 
 @Composable
@@ -539,3 +564,5 @@ private fun TabletHeroMetaRow(meta: MetaDetails, showImdbRating: Boolean) {
 private val TabletHeroHeight = 660.dp
 private val TabletHeroTopInset = 96.dp
 private const val BackdropVerticalBias = -0.6f
+
+internal val TabletArtworkBackdropAlignment: Alignment = BiasAlignment(0f, BackdropVerticalBias)
