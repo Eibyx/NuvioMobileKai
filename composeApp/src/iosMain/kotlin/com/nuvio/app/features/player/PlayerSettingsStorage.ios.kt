@@ -1251,6 +1251,14 @@ actual object PlayerSettingsStorage {
 
     actual fun saveLibassRenderType(renderType: String) {}
 
+    actual fun loadLibassRenderScale(): String? = null
+
+    actual fun saveLibassRenderScale(scale: String) {}
+
+    actual fun loadLibassRenderMode(): String? = null
+
+    actual fun saveLibassRenderMode(mode: String) {}
+
     actual fun loadUseLibmpvAss(): Boolean? = null
 
     actual fun saveUseLibmpvAss(enabled: Boolean) {}

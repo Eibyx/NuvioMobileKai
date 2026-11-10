@@ -242,8 +242,9 @@ class SettingsPagesTest {
     }
 
     @Test
-    fun assSubtitlesHaveOneSwitchAndNoRenderModes() {
+    fun assSubtitlesShowLibassModesAndTheLibmpvSwitch() {
         PlayerSettingsRepository.setUseLibass(true)
+        PlayerSettingsRepository.setUseLibmpvAss(false)
         compose.setContent {
             NuvioTheme {
                 LazyColumn(Modifier.fillMaxSize()) {
@@ -251,11 +252,18 @@ class SettingsPagesTest {
                 }
             }
         }
-        // Kai renders ASS with libmpv's libass alone: one switch, no render mode or scale.
+        // nuvio-libass draws ASS in ExoPlayer, with its render mode and resolution.
+        compose.onNodeWithText("ASS Render Mode").performScrollTo().assertExists()
+        compose.onNodeWithText("Subtitle Render Resolution").performScrollTo().assertExists()
+        // libmpv's libass stays as a separate switch and wins when it is on.
+        compose.onNodeWithText("Use libmpv's libass for ASS/SSA subtitles").performScrollTo().performClick()
+        assertEquals(true, PlayerSettingsRepository.uiState.value.useLibmpvAss)
+        assertEquals(true, PlayerSettingsRepository.uiState.value.useLibass)
+        compose.runOnIdle {
+            PlayerSettingsRepository.setUseLibmpvAss(false)
+            PlayerSettingsRepository.setUseLibass(false)
+        }
         compose.onNodeWithText("ASS Render Mode").assertDoesNotExist()
-        compose.onNodeWithText("Libass Render Mode").assertDoesNotExist()
-        compose.onNodeWithText("Subtitle Render Resolution").assertDoesNotExist()
-        compose.runOnIdle { PlayerSettingsRepository.setUseLibass(false) }
         assertEquals(false, PlayerSettingsRepository.uiState.value.useLibass)
     }
 

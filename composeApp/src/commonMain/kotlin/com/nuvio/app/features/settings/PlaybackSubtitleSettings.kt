@@ -1,5 +1,6 @@
 package com.nuvio.app.features.settings
 
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -37,6 +38,8 @@ internal fun PlaybackSubtitleSettings(
     isTablet: Boolean,
     settings: PlayerSettingsUiState,
 ) {
+    var showLibassRenderScaleDialog by remember { mutableStateOf(false) }
+    var showLibassRenderModeDialog by remember { mutableStateOf(false) }
     var showPreferredSubtitleDialog by remember { mutableStateOf(false) }
     var showSecondarySubtitleDialog by remember { mutableStateOf(false) }
     Column(verticalArrangement = Arrangement.spacedBy(if (isTablet) 18.dp else 12.dp)) {
@@ -152,6 +155,40 @@ internal fun PlaybackSubtitleSettings(
                         isTablet = isTablet,
                         onCheckedChange = PlayerSettingsRepository::setUseLibass,
                     )
+                    if (settings.useLibass) {
+                        SettingsGroupDivider(isTablet = isTablet)
+                        SettingsNavigationRow(
+                            title = stringResource(Res.string.settings_playback_render_mode),
+                            description = if (settings.tunnelingEnabled) {
+                                stringResource(Res.string.settings_playback_render_mode_tunneled)
+                            } else {
+                                when (settings.libassRenderMode) {
+                                    "OVERLAY" -> stringResource(Res.string.settings_playback_render_mode_overlay)
+                                    else -> stringResource(Res.string.settings_playback_render_mode_video_effect)
+                                }
+                            },
+                            enabled = subtitleRenderingEnabled && !settings.tunnelingEnabled,
+                            isTablet = isTablet,
+                            onClick = { showLibassRenderModeDialog = true },
+                        )
+                        SettingsGroupDivider(isTablet = isTablet)
+                        SettingsNavigationRow(
+                            title = stringResource(Res.string.settings_playback_render_scale),
+                            description = libassRenderScaleLabel(settings.libassRenderScale),
+                            enabled = subtitleRenderingEnabled,
+                            isTablet = isTablet,
+                            onClick = { showLibassRenderScaleDialog = true },
+                        )
+                    }
+                    SettingsGroupDivider(isTablet = isTablet)
+                    SettingsSwitchRow(
+                        title = stringResource(Res.string.settings_playback_enable_libmpv_ass),
+                        description = stringResource(Res.string.settings_playback_enable_libmpv_ass_description),
+                        checked = settings.useLibmpvAss,
+                        enabled = subtitleRenderingEnabled,
+                        isTablet = isTablet,
+                        onCheckedChange = PlayerSettingsRepository::setUseLibmpvAss,
+                    )
                 }
             }
         }
@@ -194,6 +231,28 @@ internal fun PlaybackSubtitleSettings(
                 showSecondarySubtitleDialog = false
             },
             onDismiss = { showSecondarySubtitleDialog = false },
+        )
+    }
+
+    if (showLibassRenderScaleDialog) {
+        LibassRenderScaleDialog(
+            selectedScale = settings.libassRenderScale,
+            onScaleSelected = { scale ->
+                PlayerSettingsRepository.setLibassRenderScale(scale)
+                showLibassRenderScaleDialog = false
+            },
+            onDismiss = { showLibassRenderScaleDialog = false },
+        )
+    }
+
+    if (showLibassRenderModeDialog) {
+        LibassRenderModeDialog(
+            selectedMode = settings.libassRenderMode,
+            onModeSelected = { mode ->
+                PlayerSettingsRepository.setLibassRenderMode(mode)
+                showLibassRenderModeDialog = false
+            },
+            onDismiss = { showLibassRenderModeDialog = false },
         )
     }
 }
@@ -244,6 +303,102 @@ internal fun SubtitleColorDialog(
                             ),
                         ) {}
                     },
+                )
+            }
+        }
+
+        DialogButtons {
+            DialogButton(
+                text = stringResource(Res.string.action_done),
+                onClick = onDismiss,
+            )
+        }
+    }
+}
+
+private fun libassRenderScaleLabel(scale: String): String = when (scale) {
+    "FULL" -> "1:1"
+    "THREE_QUARTER" -> "\u00BE"
+    "HALF" -> "\u00BD"
+    "THIRD" -> "\u2153"
+    "QUARTER" -> "\u00BC"
+    else -> scale
+}
+
+@Composable
+@OptIn(ExperimentalMaterial3Api::class)
+private fun LibassRenderScaleDialog(
+    selectedScale: String,
+    onScaleSelected: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val options = listOf(
+        "FULL" to "1:1",
+        "THREE_QUARTER" to "\u00BE",
+        "HALF" to "\u00BD",
+        "THIRD" to "\u2153",
+        "QUARTER" to "\u00BC",
+    )
+
+    DialogSurface(
+        onDismissRequest = onDismiss,
+        title = stringResource(Res.string.settings_playback_render_scale),
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            options.forEach { (value, label) ->
+                val isSelected = value == selectedScale
+                DialogOption(
+                    text = label,
+                    selected = isSelected,
+                    onClick = { onScaleSelected(value) },
+                )
+            }
+        }
+
+        DialogButtons {
+            DialogButton(
+                text = stringResource(Res.string.action_done),
+                onClick = onDismiss,
+            )
+        }
+    }
+}
+
+@Composable
+@OptIn(ExperimentalMaterial3Api::class)
+private fun LibassRenderModeDialog(
+    selectedMode: String,
+    onModeSelected: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val options = listOf(
+        "OVERLAY" to Pair(
+            Res.string.settings_playback_render_mode_overlay,
+            Res.string.settings_playback_render_mode_overlay_description,
+        ),
+        "VIDEO_EFFECT" to Pair(
+            Res.string.settings_playback_render_mode_video_effect,
+            Res.string.settings_playback_render_mode_video_effect_description,
+        ),
+    )
+
+    DialogSurface(
+        onDismissRequest = onDismiss,
+        title = stringResource(Res.string.settings_playback_render_mode),
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            options.forEach { (value, res) ->
+                DialogOption(
+                    text = stringResource(res.first),
+                    description = stringResource(res.second),
+                    selected = value == selectedMode,
+                    onClick = { onModeSelected(value) },
                 )
             }
         }

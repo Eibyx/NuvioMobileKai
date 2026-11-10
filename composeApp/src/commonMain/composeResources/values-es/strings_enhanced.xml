@@ -190,7 +190,7 @@
     <string name="details_action_start_from_beginning">Empezar desde el principio</string>
     <string name="community_contributor_contributions">%1$d contribuciones</string>
     <string name="settings_playback_enable_libmpv_ass">Usar el libass de libmpv para subtítulos ASS/SSA</string>
-    <string name="settings_playback_enable_libmpv_ass_description">Experimental: dibuja los ASS/SSA con el libass incluido en libmpv sobre una capa sincronizada con los fotogramas, en lugar del renderizado ASS de ExoPlayer</string>
+    <string name="settings_playback_enable_libmpv_ass_description">Experimental: dibuja los ASS/SSA con el libass que trae libmpv, en una capa sincronizada con los fotogramas, en lugar de nuvio-libass. Si está activado, tiene prioridad.</string>
     <string name="settings_playback_seek_preview">Miniaturas en la barra de progreso</string>
     <string name="settings_playback_seek_preview_description">Muestra un fotograma de vista previa sobre la barra de progreso mientras la arrastras. Los fotogramas solo se obtienen de la fuente mientras la arrastras.</string>
     <string name="settings_playback_swipe_to_seek">Deslizar para avanzar</string>

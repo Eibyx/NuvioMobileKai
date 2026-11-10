@@ -129,7 +129,12 @@ data class PlayerSettingsUiState(
     val miniPlayerEnabled: Boolean = true,
     val privateViewingEnabled: Boolean = false,
     /** ASS/SSA subtitles in ExoPlayer through libmpv's libass, the only ASS renderer there. */
+    /** nuvio-libass draws ASS/SSA in ExoPlayer (on by default). */
     val useLibass: Boolean = true,
+    /** libmpv's libass draws ASS/SSA in ExoPlayer instead; it wins over [useLibass]. */
+    val useLibmpvAss: Boolean = false,
+    val libassRenderScale: String = "FULL",
+    val libassRenderMode: String = "OVERLAY",
     val iosVideoOutputPreset: IosVideoOutputPreset = IosVideoOutputPreset.NativeEdr,
     val iosToneMappingMode: IosToneMappingMode = IosToneMappingMode.Auto,
     val iosTargetPrimaries: IosTargetPrimaries = IosTargetPrimaries.Auto,
@@ -246,6 +251,9 @@ object PlayerSettingsRepository {
     private var miniPlayerEnabled = true
     private var privateViewingEnabled = false
     private var useLibass = true
+    private var useLibmpvAss = false
+    private var libassRenderScale = "FULL"
+    private var libassRenderMode = "OVERLAY"
     private var iosVideoOutputPreset = IosVideoOutputPreset.NativeEdr
     private var iosToneMappingMode = IosToneMappingMode.Auto
     private var iosTargetPrimaries = IosTargetPrimaries.Auto
@@ -367,6 +375,9 @@ object PlayerSettingsRepository {
         miniPlayerEnabled = true
         privateViewingEnabled = false
         useLibass = true
+        useLibmpvAss = false
+        libassRenderScale = "FULL"
+        libassRenderMode = "OVERLAY"
         iosVideoOutputPreset = IosVideoOutputPreset.NativeEdr
         iosToneMappingMode = IosToneMappingMode.Auto
         iosTargetPrimaries = IosTargetPrimaries.Auto
@@ -548,7 +559,11 @@ object PlayerSettingsRepository {
         miniPlayerEnabled = PlayerSettingsStorage.loadMiniPlayerEnabled() ?: true
         privateViewingEnabled = PlayerSettingsStorage.loadPrivateViewingEnabled() ?: false
         // One switch now: Kai's "libass from libmpv" switch, when it was on, carries over.
-        useLibass = PlayerSettingsStorage.loadUseLibmpvAss() == true || (PlayerSettingsStorage.loadUseLibass() ?: true)
+        // Kai's one switch (libmpv's libass) now turns on nuvio-libass, as luqman ships it.
+        useLibass = PlayerSettingsStorage.loadUseLibass() ?: true
+        useLibmpvAss = PlayerSettingsStorage.loadUseLibmpvAss() ?: false
+        libassRenderScale = PlayerSettingsStorage.loadLibassRenderScale() ?: "FULL"
+        libassRenderMode = PlayerSettingsStorage.loadLibassRenderMode() ?: "OVERLAY"
         iosVideoOutputPreset = PlayerSettingsStorage.loadIosVideoOutputPreset()
             ?.let { runCatching { IosVideoOutputPreset.valueOf(it) }.getOrNull() }
             ?: IosVideoOutputPreset.NativeEdr
@@ -1379,8 +1394,30 @@ object PlayerSettingsRepository {
         useLibass = enabled
         publish()
         PlayerSettingsStorage.saveUseLibass(enabled)
-        // The old second switch must not turn it back on at the next start.
-        PlayerSettingsStorage.saveUseLibmpvAss(false)
+    }
+
+    fun setUseLibmpvAss(enabled: Boolean) {
+        ensureLoaded()
+        if (useLibmpvAss == enabled) return
+        useLibmpvAss = enabled
+        publish()
+        PlayerSettingsStorage.saveUseLibmpvAss(enabled)
+    }
+
+    fun setLibassRenderScale(scale: String) {
+        ensureLoaded()
+        if (libassRenderScale == scale) return
+        libassRenderScale = scale
+        publish()
+        PlayerSettingsStorage.saveLibassRenderScale(scale)
+    }
+
+    fun setLibassRenderMode(mode: String) {
+        ensureLoaded()
+        if (libassRenderMode == mode) return
+        libassRenderMode = mode
+        publish()
+        PlayerSettingsStorage.saveLibassRenderMode(mode)
     }
 
     fun setIosVideoOutputPreset(preset: IosVideoOutputPreset) {
@@ -1644,6 +1681,9 @@ object PlayerSettingsRepository {
             miniPlayerEnabled = miniPlayerEnabled,
             privateViewingEnabled = privateViewingEnabled,
             useLibass = useLibass,
+            useLibmpvAss = useLibmpvAss,
+            libassRenderScale = libassRenderScale,
+            libassRenderMode = libassRenderMode,
             iosVideoOutputPreset = iosVideoOutputPreset,
             iosToneMappingMode = iosToneMappingMode,
             iosTargetPrimaries = iosTargetPrimaries,

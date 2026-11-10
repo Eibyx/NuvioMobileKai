@@ -110,6 +110,8 @@ actual object PlayerSettingsStorage {
     private const val iosToneMappingModeKey = "ios_tone_mapping_mode"
     private const val iosVideoOutputPresetKey = "ios_video_output_preset"
     private const val libassRenderTypeKey = "libass_render_type"
+    private const val libassRenderModeKey = "libass_render_mode"
+    private const val libassRenderScaleKey = "libass_render_scale"
     private const val mapDV7ToHevcKey = "map_dv7_to_hevc"
     private const val miniPlayerEnabledKey = "mini_player_enabled"
     private const val nextEpisodeThresholdMinutesBeforeEndKey = "next_episode_threshold_minutes_before_end_v2"
@@ -224,6 +226,8 @@ actual object PlayerSettingsStorage {
         miniPlayerEnabledKey,
         useLibassKey,
         libassRenderTypeKey,
+        libassRenderModeKey,
+        libassRenderScaleKey,
         useLibmpvAssKey,
         iosVideoOutputPresetKey,
         iosToneMappingModeKey,
@@ -1820,6 +1824,26 @@ actual object PlayerSettingsStorage {
         preferences
             ?.edit()
             ?.putBoolean(ProfileScopedKey.of(privateViewingEnabledKey), enabled)
+            ?.apply()
+    }
+
+    actual fun loadLibassRenderScale(): String? =
+        preferences?.getString(ProfileScopedKey.of(libassRenderScaleKey), null)
+
+    actual fun saveLibassRenderScale(scale: String) {
+        preferences
+            ?.edit()
+            ?.putString(ProfileScopedKey.of(libassRenderScaleKey), scale)
+            ?.apply()
+    }
+
+    actual fun loadLibassRenderMode(): String? =
+        preferences?.getString(ProfileScopedKey.of(libassRenderModeKey), null)
+
+    actual fun saveLibassRenderMode(mode: String) {
+        preferences
+            ?.edit()
+            ?.putString(ProfileScopedKey.of(libassRenderModeKey), mode)
             ?.apply()
     }
 

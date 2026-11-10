@@ -1099,7 +1099,7 @@
     <string name="settings_playback_duration_hour_one">%1$d hora</string>
     <string name="settings_playback_duration_hours">%1$d horas</string>
     <string name="settings_playback_enable_libass">Subtítulos ASS/SSA con libass</string>
-    <string name="settings_playback_enable_libass_description">Dibuja los subtítulos ASS/SSA en ExoPlayer con el libass que trae libmpv: estilos, posiciones, fuentes y efectos tal como los define el archivo. mpv usa siempre su propio libass.</string>
+    <string name="settings_playback_enable_libass_description">Dibuja los subtítulos ASS/SSA en ExoPlayer con libass (nuvio-libass): estilos, posiciones, fuentes y efectos tal como los define el archivo, y AutoSync puede sincronizarlos. mpv usa siempre su propio libass.</string>
     <string name="settings_playback_external_player">Reproductor externo</string>
     <string name="settings_playback_external_player_app">Aplicación de reproductor externo</string>
     <string name="settings_playback_external_player_description_android">Abrir la reproducción con la app de vídeo predeterminada de Android o el selector del sistema.</string>
@@ -1170,7 +1170,7 @@
     <string name="settings_playback_render_scale_description">Una resolución más baja mejora el rendimiento con subtítulos muy elaborados, a costa de perder nitidez</string>
     <string name="settings_playback_render_mode">Modo de renderizado ASS</string>
     <string name="settings_playback_render_mode_description">Cómo se dibujan los subtítulos ASS/SSA sobre el vídeo</string>
-    <string name="settings_playback_render_mode_tunneled">La reproducción tunneled omite el flujo de efectos de vídeo. Se usa automáticamente la superposición.</string>
+    <string name="settings_playback_render_mode_tunneled">La reproducción por túnel no pasa por los efectos de vídeo, así que se usa la superposición.</string>
     <string name="settings_playback_render_mode_video_effect">Efecto de vídeo</string>
     <string name="settings_playback_render_mode_video_effect_description">Dibuja los subtítulos directamente sobre cada fotograma, con sincronización exacta en cualquier hardware. El contenido HDR se convierte a SDR mediante mapeo de tonos.</string>
     <string name="settings_playback_render_mode_overlay">Superposición</string>
