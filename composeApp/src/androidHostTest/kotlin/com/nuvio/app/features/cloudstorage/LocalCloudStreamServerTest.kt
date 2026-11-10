@@ -136,6 +136,9 @@ class LocalCloudStreamServerTest {
             val body = response.body.bytes()
             assertArrayEquals(ByteArray(65_536) { byteAt(middle + it) }, body)
         }
+        // The server counts the last chunk on its own thread, just after the player got it.
+        val deadline = System.currentTimeMillis() + 2_000
+        while (upstreamBytes.get() < 65_536L && System.currentTimeMillis() < deadline) Thread.sleep(10)
         assertEquals(65_536L, upstreamBytes.get())
         assertEquals(listOf<String?>("ndus=test"), seenCookies.toList())
     }
