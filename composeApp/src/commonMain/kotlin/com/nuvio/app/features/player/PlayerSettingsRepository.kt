@@ -128,7 +128,7 @@ data class PlayerSettingsUiState(
     val preloadNextEpisodeSources: Boolean = false,
     val miniPlayerEnabled: Boolean = true,
     val privateViewingEnabled: Boolean = false,
-    /** ASS/SSA subtitles in ExoPlayer through libmpv's libass, the only ASS renderer there. */
+    /** ASS/SSA subtitles in ExoPlayer through nuvio-libass. */
     /** nuvio-libass draws ASS/SSA in ExoPlayer (on by default). */
     val useLibass: Boolean = true,
     /** libmpv's libass draws ASS/SSA in ExoPlayer instead; it wins over [useLibass]. */
