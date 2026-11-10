@@ -60,10 +60,6 @@ object ThemeSettingsRepository {
     private val _showCatalogAccentEnabled = MutableStateFlow(false)
     val showCatalogAccentEnabled: StateFlow<Boolean> = _showCatalogAccentEnabled.asStateFlow()
 
-    private val _highQualityArtworkEnabled = MutableStateFlow(true)
-    /** Artwork loads at the resolution the screen needs instead of the size the source linked. */
-    val highQualityArtworkEnabled: StateFlow<Boolean> = _highQualityArtworkEnabled.asStateFlow()
-
     private val _selectedAppLanguage = MutableStateFlow(AppLanguage.DEVICE)
     val selectedAppLanguage: StateFlow<AppLanguage> = _selectedAppLanguage.asStateFlow()
 
@@ -126,7 +122,6 @@ object ThemeSettingsRepository {
         _liquidGlassNativeTabBarEnabled.value = NuvioTabBarBehavior.Default.isEnabled
         applyArtworkBackgroundStyle(ArtworkBackgroundStyle.Normal)
         _showCatalogAccentEnabled.value = false
-        _highQualityArtworkEnabled.value = true
         NativeTabBridge.publishAccentColor(
             hexColor = AppTheme.WHITE.nativeTabAccentHex(),
             gradientHexColors = ThemeColors.getColorPalette(AppTheme.WHITE).nativeAccentGradientHex(),
@@ -175,8 +170,6 @@ object ThemeSettingsRepository {
         )
         _showCatalogAccentEnabled.value =
             ThemeSettingsStorage.loadShowCatalogAccentEnabled() ?: false
-        _highQualityArtworkEnabled.value =
-            ThemeSettingsStorage.loadHighQualityArtworkEnabled() ?: true
         val appLanguage = AppLanguage.fromCode(ThemeSettingsStorage.loadSelectedAppLanguage())
         ThemeSettingsStorage.applySelectedAppLanguage(appLanguage.code)
         _selectedAppLanguage.value = appLanguage
@@ -270,13 +263,6 @@ object ThemeSettingsRepository {
         if (_showCatalogAccentEnabled.value == enabled) return
         _showCatalogAccentEnabled.value = enabled
         ThemeSettingsStorage.saveShowCatalogAccentEnabled(enabled)
-    }
-
-    fun setHighQualityArtwork(enabled: Boolean) {
-        ensureLoaded()
-        if (_highQualityArtworkEnabled.value == enabled) return
-        _highQualityArtworkEnabled.value = enabled
-        ThemeSettingsStorage.saveHighQualityArtworkEnabled(enabled)
     }
 
     fun setAppLanguage(language: AppLanguage) {

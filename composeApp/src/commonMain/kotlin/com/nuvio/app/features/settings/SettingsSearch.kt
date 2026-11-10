@@ -444,14 +444,6 @@ internal fun settingsSearchEntries(
     )
     addRow(
         page = SettingsPage.Appearance,
-        key = "high-quality-artwork",
-        title = stringResource(Res.string.settings_appearance_high_quality_artwork),
-        description = stringResource(Res.string.settings_appearance_high_quality_artwork_description),
-        pageLabel = appearancePage,
-        section = stringResource(Res.string.settings_appearance_section_display),
-    )
-    addRow(
-        page = SettingsPage.Appearance,
         key = "app-font",
         title = stringResource(Res.string.settings_appearance_app_font),
         description = stringResource(Res.string.settings_appearance_app_font_description),

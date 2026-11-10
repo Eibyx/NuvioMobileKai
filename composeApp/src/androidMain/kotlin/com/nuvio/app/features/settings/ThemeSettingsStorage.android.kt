@@ -22,7 +22,6 @@ actual object ThemeSettingsStorage {
     private const val dynamicArtworkBackgroundEnabledKey = "dynamic_artwork_background_enabled"
     private const val artworkGlassBackgroundEnabledKey = "artwork_glass_background_enabled"
     private const val showCatalogAccentEnabledKey = "show_catalog_accent_enabled"
-    private const val highQualityArtworkEnabledKey = "high_quality_artwork_enabled"
     private const val tabBarBehaviorKey = "tab_bar_behavior"
     private const val selectedAppLanguageKey = "selected_app_language"
     private const val NAV_BAR_STYLE_KEY = "nav_bar_style"
@@ -194,19 +193,6 @@ actual object ThemeSettingsStorage {
         preferences
             ?.edit()
             ?.putBoolean(ProfileScopedKey.of(showCatalogAccentEnabledKey), enabled)
-            ?.apply()
-    }
-
-    actual fun loadHighQualityArtworkEnabled(): Boolean? =
-        preferences?.let { prefs ->
-            val key = ProfileScopedKey.of(highQualityArtworkEnabledKey)
-            if (prefs.contains(key)) prefs.getBoolean(key, true) else null
-        }
-
-    actual fun saveHighQualityArtworkEnabled(enabled: Boolean) {
-        preferences
-            ?.edit()
-            ?.putBoolean(ProfileScopedKey.of(highQualityArtworkEnabledKey), enabled)
             ?.apply()
     }
 

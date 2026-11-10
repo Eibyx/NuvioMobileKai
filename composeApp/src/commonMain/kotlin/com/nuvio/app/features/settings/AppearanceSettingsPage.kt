@@ -60,8 +60,6 @@ import nuvio.composeapp.generated.resources.settings_nav_bar_glow_off
 import nuvio.composeapp.generated.resources.settings_nav_bar_summary
 import nuvio.composeapp.generated.resources.settings_appearance_amoled_black
 import nuvio.composeapp.generated.resources.settings_appearance_amoled_description
-import nuvio.composeapp.generated.resources.settings_appearance_high_quality_artwork
-import nuvio.composeapp.generated.resources.settings_appearance_high_quality_artwork_description
 import nuvio.composeapp.generated.resources.settings_appearance_app_font
 import nuvio.composeapp.generated.resources.settings_appearance_app_font_description
 import nuvio.composeapp.generated.resources.settings_appearance_app_font_nuvio
@@ -139,7 +137,6 @@ internal fun LazyListScope.appearanceSettingsContent(
         val layoutDirection = LocalLayoutDirection.current
         var showAppIconPicker by remember { mutableStateOf(false) }
         val liquidGlassEffectsEnabled by ThemeSettingsRepository.liquidGlassEffectsEnabled.collectAsStateWithLifecycle()
-        val highQualityArtworkEnabled by ThemeSettingsRepository.highQualityArtworkEnabled.collectAsStateWithLifecycle()
         SettingsSection(
             title = stringResource(Res.string.settings_appearance_section_display),
             isTablet = isTablet,
@@ -151,14 +148,6 @@ internal fun LazyListScope.appearanceSettingsContent(
                     checked = amoledEnabled,
                     isTablet = isTablet,
                     onCheckedChange = onAmoledToggle,
-                )
-                SettingsGroupDivider(isTablet = isTablet)
-                SettingsSwitchRow(
-                    title = stringResource(Res.string.settings_appearance_high_quality_artwork),
-                    description = stringResource(Res.string.settings_appearance_high_quality_artwork_description),
-                    checked = highQualityArtworkEnabled,
-                    isTablet = isTablet,
-                    onCheckedChange = ThemeSettingsRepository::setHighQualityArtwork,
                 )
                 if (isLiquidGlassAvailable()) {
                     SettingsGroupDivider(isTablet = isTablet)

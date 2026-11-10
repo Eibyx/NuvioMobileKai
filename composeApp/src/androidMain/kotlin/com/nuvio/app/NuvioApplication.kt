@@ -3,7 +3,6 @@ package com.nuvio.app
 import android.app.Application
 import android.os.Build
 import coil3.ImageLoader
-import coil3.memory.MemoryCache
 import coil3.SingletonImageLoader
 import coil3.gif.AnimatedImageDecoder
 import coil3.gif.GifDecoder
@@ -15,7 +14,6 @@ import coil3.svg.SvgDecoder
 import com.nuvio.app.core.diagnostics.AppDiagnostics
 import com.nuvio.app.core.network.DnsPlatform
 import com.nuvio.app.core.network.SharedOkHttpClient
-import com.nuvio.app.core.poster.ArtworkQualityInterceptor
 import com.nuvio.app.core.poster.CustomPosterFallbackInterceptor
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
@@ -41,12 +39,8 @@ class NuvioApplication : Application(), SingletonImageLoader.Factory {
             .crossfade(true)
             .diskCachePolicy(CachePolicy.ENABLED)
             .memoryCachePolicy(CachePolicy.ENABLED)
-            // A third of the app's memory for decoded images (Coil's default is a fifth), so the
-            // heroes and backdrops already seen stay ready when scrolled back into view.
-            .memoryCache { MemoryCache.Builder().maxSizePercent(context, 0.33).build() }
             .components {
                 add(CustomPosterFallbackInterceptor())
-                add(ArtworkQualityInterceptor())
                 add(SvgDecoder.Factory())
                 add(
                     KtorNetworkFetcherFactory(

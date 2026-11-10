@@ -12,7 +12,6 @@ import coil3.compose.setSingletonImageLoaderFactory
 import coil3.request.CachePolicy
 import coil3.request.crossfade
 import coil3.svg.SvgDecoder
-import com.nuvio.app.core.poster.ArtworkQualityInterceptor
 import com.nuvio.app.core.poster.CustomPosterFallbackInterceptor
 import com.nuvio.app.core.ui.AppFontSettingsRepository
 import com.nuvio.app.core.ui.AppearanceSettingsRepository
@@ -85,7 +84,6 @@ internal fun AppEnvironment(
                 .memoryCachePolicy(CachePolicy.ENABLED)
                 .components {
                     add(CustomPosterFallbackInterceptor())
-                    add(ArtworkQualityInterceptor())
                     add(SvgDecoder.Factory())
                     add(
                         coil3.network.ktor3.KtorNetworkFetcherFactory(

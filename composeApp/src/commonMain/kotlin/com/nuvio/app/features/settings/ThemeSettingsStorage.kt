@@ -20,8 +20,6 @@ internal expect object ThemeSettingsStorage {
     fun saveArtworkGlassBackgroundEnabled(enabled: Boolean)
     fun loadShowCatalogAccentEnabled(): Boolean?
     fun saveShowCatalogAccentEnabled(enabled: Boolean)
-    fun loadHighQualityArtworkEnabled(): Boolean?
-    fun saveHighQualityArtworkEnabled(enabled: Boolean)
     fun loadSelectedAppLanguage(): String?
     fun saveSelectedAppLanguage(languageCode: String)
     fun applySelectedAppLanguage(languageCode: String)
