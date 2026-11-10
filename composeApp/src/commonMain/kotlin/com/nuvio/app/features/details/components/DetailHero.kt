@@ -56,6 +56,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.graphicsLayer
 import coil3.compose.AsyncImage
 import com.nuvio.app.core.ui.focusedAlignment
+import com.nuvio.app.core.ui.logHeroImageLoaded
 import com.nuvio.app.core.ui.rememberBackdropFocusState
 import com.nuvio.app.core.ui.revealAlpha
 import com.nuvio.app.core.ui.featherArtwork
@@ -154,6 +155,7 @@ fun DetailHero(
                             ),
                             contentScale = ContentScale.Crop,
                             onSuccess = { state ->
+                                logHeroImageLoaded("detail", imageUrl, state.result)
                                 backdropFocus.onImageLoaded(state.result.image)
                                 onBackdropLoaded(
                                     state.painter,

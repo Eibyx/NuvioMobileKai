@@ -92,6 +92,7 @@ import com.nuvio.app.core.ui.LocalArtworkGlassBackgroundActive
 import com.nuvio.app.core.ui.rememberDynamicArtworkBackgroundEnabled
 import com.nuvio.app.core.ui.PrefetchArtworkDominantColors
 import com.nuvio.app.core.ui.focusedAlignment
+import com.nuvio.app.core.ui.logHeroImageLoaded
 import com.nuvio.app.core.ui.rememberBackdropFocusState
 import com.nuvio.app.core.ui.revealAlpha
 import com.nuvio.app.core.ui.heroStretchHeight
@@ -492,7 +493,10 @@ internal fun HomeHeroSection(
                                         if (layout.isTablet) Alignment.TopCenter else Alignment.Center,
                                     ),
                                     contentScale = ContentScale.Crop,
-                                    onSuccess = { state -> backdropFocus.onImageLoaded(state.result.image) },
+                                    onSuccess = { state ->
+                                        logHeroImageLoaded("home", artworkUrl, state.result)
+                                        backdropFocus.onImageLoaded(state.result.image)
+                                    },
                                     onError = { backdropFocus.onImageFailed() },
                                 )
                             }
