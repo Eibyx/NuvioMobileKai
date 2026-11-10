@@ -11,7 +11,6 @@ import coil3.SingletonImageLoader
 import coil3.PlatformContext
 import coil3.compose.LocalPlatformContext
 import coil3.compose.asPainter
-import coil3.request.ImageRequest
 import coil3.request.SuccessResult
 import com.kmpalette.extensions.painter.rememberPainterDominantColorState
 import com.kmpalette.DominantColorState
@@ -20,7 +19,6 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.painter.Painter
 import com.nuvio.app.features.details.components.loadedBackdropImageBitmap
 
-private const val PALETTE_SAMPLE_PX = 96
 private const val CACHE_CAPACITY = 256
 
 private val NoTint = Color.Transparent
@@ -114,10 +112,7 @@ private suspend fun sampleArtworkDominantColor(
     bitmapState: DominantColorState<ImageBitmap>,
     painterState: DominantColorState<Painter>,
 ): Color? {
-    val request = ImageRequest.Builder(platformContext)
-        .data(url)
-        .size(PALETTE_SAMPLE_PX, PALETTE_SAMPLE_PX)
-        .build()
+    val request = dominantColorSampleRequest(platformContext, url)
     val result = SingletonImageLoader.get(platformContext).execute(request) as? SuccessResult ?: return null
     val bitmap = loadedBackdropImageBitmap(result)
     val extracted = runCatching {

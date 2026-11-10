@@ -28,13 +28,10 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import coil3.SingletonImageLoader
 import coil3.compose.LocalPlatformContext
-import coil3.request.ImageRequest
 import coil3.request.SuccessResult
-import coil3.size.Precision
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-private const val BackdropDecodeSize = 320
 internal val LocalOnBackdrop = staticCompositionLocalOf { false }
 
 @Composable
@@ -59,11 +56,7 @@ internal fun rememberArtworkBackdrop(imageUrl: String?, enabled: Boolean = true)
 
     LaunchedEffect(imageUrl, enabled, context) {
         if (!enabled || imageUrl.isNullOrBlank() || image != null) return@LaunchedEffect
-        val request = ImageRequest.Builder(context)
-            .data(imageUrl)
-            .size(BackdropDecodeSize)
-            .precision(Precision.EXACT)
-            .build()
+        val request = cinematicBackdropRequest(context, imageUrl)
         val result = SingletonImageLoader.get(context).execute(request) as? SuccessResult
             ?: return@LaunchedEffect
         val blurred = withContext(Dispatchers.Default) {
