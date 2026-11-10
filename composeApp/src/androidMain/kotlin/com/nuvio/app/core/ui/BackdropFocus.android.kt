@@ -12,10 +12,22 @@ internal actual fun sampleBackdropPixels(image: Image, targetWidth: Int): Sample
     } else {
         source
     }
-    val width = software.width
-    val height = software.height
+    // Reading every pixel of a large backdrop (up to 3840 px from fanart.tv) costs tens of MB
+    // and time. A filtered copy at a few times the sample width keeps the area average accurate.
+    val intermediateWidth = (targetWidth * IntermediateScale).coerceAtMost(software.width)
+    val small = if (intermediateWidth < software.width) {
+        val height = (software.height.toLong() * intermediateWidth / software.width).toInt().coerceAtLeast(1)
+        Bitmap.createScaledBitmap(software, intermediateWidth, height, true)
+    } else {
+        software
+    }
+    val width = small.width
+    val height = small.height
     val pixels = IntArray(width * height)
-    software.getPixels(pixels, 0, width, 0, 0, width, height)
+    small.getPixels(pixels, 0, width, 0, 0, width, height)
+    if (small !== software && small !== source) small.recycle()
     if (software !== source) software.recycle()
     return downsampleArgb(pixels, width, height, targetWidth)
 }
+
+private const val IntermediateScale = 4

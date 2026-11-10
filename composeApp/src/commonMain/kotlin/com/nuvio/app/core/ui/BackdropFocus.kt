@@ -12,7 +12,9 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import coil3.Image
+import com.nuvio.app.core.logging.InAppLogger
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import kotlin.math.abs
 import kotlin.math.max
@@ -20,6 +22,7 @@ import kotlin.math.min
 import kotlin.math.pow
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
+import kotlin.time.TimeSource
 
 /**
  * Horizontal "interest" profile of a backdrop, used to pick the crop window
@@ -463,6 +466,7 @@ internal class BackdropFocusState(
     /**
      * False only while a freshly loaded image is being analyzed. The image should
      * stay hidden during that short window so it appears directly in its final framing.
+     * The window is capped at [MaxHiddenMillis]: past it the image shows centered.
      */
     var isResolved by mutableStateOf(initial != null || url == null)
         private set
@@ -480,24 +484,48 @@ internal class BackdropFocusState(
         isResolved = true
     }
 
+    /** The analysis took too long: show the image now, centered. */
+    internal fun stopHiding() {
+        isResolved = true
+    }
+
     internal suspend fun process() {
         val image = pending ?: return
         val key = url ?: return
+        val started = TimeSource.Monotonic.markNow()
+        var failure: Throwable? = null
         val result = withContext(Dispatchers.Default) {
             runCatching {
                 sampleBackdropPixels(image, BackdropFocusSampleWidth)?.let(::analyzeBackdropFocus)
-            }.getOrNull()
+            }.onFailure { failure = it }.getOrNull()
         }
         pending = null
-        if (result != null) {
-            BackdropFocusCache.put(key, result)
-            profile = result
+        // A failed analysis is cached too (centered framing), so the image is never
+        // hidden and analyzed again each time it comes back on screen.
+        val cached = result ?: BackdropFocusProfile(FloatArray(0))
+        BackdropFocusCache.put(key, cached)
+        val elapsed = started.elapsedNow().inWholeMilliseconds
+        if (result == null) {
+            InAppLogger.warn(
+                BackdropFocusLogTag,
+                "framing failed in ${elapsed}ms: ${failure?.let { it::class.simpleName } ?: "no pixels"}; showing centered",
+            )
+        } else if (elapsed > MaxHiddenMillis) {
+            InAppLogger.info(BackdropFocusLogTag, "framing took ${elapsed}ms")
         }
+        // Once shown, keep the framing it has: moving it now would make the image jump.
+        if (!isResolved) profile = cached
         isResolved = true
     }
 
     internal val pendingImage: Image? get() = pending
+
+    internal companion object {
+        const val MaxHiddenMillis = 300L
+    }
 }
+
+private const val BackdropFocusLogTag = "Images/Focus"
 
 @Composable
 internal fun rememberBackdropFocusState(url: String?): BackdropFocusState {
@@ -505,6 +533,12 @@ internal fun rememberBackdropFocusState(url: String?): BackdropFocusState {
         BackdropFocusState(url, url?.let(BackdropFocusCache::get))
     }
     LaunchedEffect(state, state.pendingImage) { state.process() }
+    LaunchedEffect(state, state.pendingImage != null) {
+        if (state.pendingImage != null && !state.isResolved) {
+            delay(BackdropFocusState.MaxHiddenMillis)
+            state.stopHiding()
+        }
+    }
     return state
 }
 
