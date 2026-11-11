@@ -13,6 +13,9 @@ import java.io.RandomAccessFile
 import java.security.MessageDigest
 import kotlin.coroutines.coroutineContext
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
@@ -63,6 +66,7 @@ internal object SubtitleLibraryService {
     private const val MAX_SUBTITLE_BYTES = 50L * 1024 * 1024
     /** Fonts downloaded to find the used ones in one folder, at most. */
     private const val MAX_FONT_FETCH_BYTES = 80L * 1024 * 1024
+    private const val FONT_FETCH_PARALLELISM = 4
 
     @Serializable
     private class CachedListing(val atEpochMs: Long, val entries: List<LibraryEntry>)
@@ -286,24 +290,51 @@ internal object SubtitleLibraryService {
         val files = mutableMapOf<String, File>()
         val readFaces = mutableListOf<FontFaceNames>()
         var fetched = 0L
-        for (entry in ordered) {
+        // Fetched a few at a time: a cloud font needs its own download link and request.
+        var index = 0
+        while (index < ordered.size) {
             coroutineContext.ensureActive()
             // Once every name is found, only files that look like a used family (its bold, its italic) follow.
-            if (FontSelection.allCovered(used, readFaces) && !FontSelection.looksLike(used, entry.name)) break
-            if (entry.sizeBytes > limits.maxFileBytes) continue
-            if (fetched + entry.sizeBytes > MAX_FONT_FETCH_BYTES) break
-            val file = runCatching { fetch(source, entry, limits.maxFileBytes) }
-                .getOrElse { if (it is CancellationException) throw it; null } ?: continue
-            fetched += file.length()
-            val faces = synchronized(lock) { faceIndex[file.name] } ?: SfntNames.read(file).also { faces ->
-                synchronized(lock) {
-                    faceIndex[file.name] = faces
-                    while (faceIndex.size > MAX_FACE_INDEX) faceIndex.remove(faceIndex.keys.first())
+            val covered = FontSelection.allCovered(used, readFaces)
+            val batch = mutableListOf<LibraryEntry>()
+            var budget = fetched
+            while (index < ordered.size && batch.size < FONT_FETCH_PARALLELISM) {
+                val entry = ordered[index]
+                if (covered && !FontSelection.looksLike(used, entry.name)) {
+                    index = ordered.size
+                    break
                 }
+                index++
+                if (entry.sizeBytes > limits.maxFileBytes) continue
+                if (budget + entry.sizeBytes > MAX_FONT_FETCH_BYTES) {
+                    index = ordered.size
+                    break
+                }
+                budget += entry.sizeBytes
+                batch += entry
             }
-            readFaces += faces
-            files[file.name] = file
-            candidates += FontCandidate(file.name, entry.name, file.length(), faces.ifEmpty { null })
+            if (batch.isEmpty()) break
+            val downloaded = coroutineScope {
+                batch.map { entry ->
+                    async {
+                        entry to runCatching { fetch(source, entry, limits.maxFileBytes) }
+                            .getOrElse { if (it is CancellationException) throw it; null }
+                    }
+                }.awaitAll()
+            }
+            for ((entry, file) in downloaded) {
+                file ?: continue
+                fetched += file.length()
+                val faces = synchronized(lock) { faceIndex[file.name] } ?: SfntNames.read(file).also { faces ->
+                    synchronized(lock) {
+                        faceIndex[file.name] = faces
+                        while (faceIndex.size > MAX_FACE_INDEX) faceIndex.remove(faceIndex.keys.first())
+                    }
+                }
+                readFaces += faces
+                files[file.name] = file
+                candidates += FontCandidate(file.name, entry.name, file.length(), faces.ifEmpty { null })
+            }
         }
         val plan = FontSelection.plan(used, candidates, limits)
         return plan.selected.mapNotNull { selected -> files[selected.key]?.let { LibraryFont(selected.fileName, it.absolutePath) } } to plan.missing
