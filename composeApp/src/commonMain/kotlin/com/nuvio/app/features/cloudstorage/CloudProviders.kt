@@ -27,6 +27,12 @@ internal interface CloudProvider {
     /** Indexes [folders]; reuses [previous] when the provider can tell what changed. */
     suspend fun index(folders: List<CloudFolderRef>, previous: CloudIndexSnapshot?): CloudIndexSnapshot
 
+    /**
+     * Every file and folder directly in [folder], unfiltered (fonts and subtitles too), for the
+     * subtitle folders. Read-only: it does not touch the account's video index.
+     */
+    suspend fun listAll(folder: CloudFolderRef): List<CloudListing> = emptyList()
+
     /** Where to read [file] from right now. [forceRefresh] asks for a new link after a failure. */
     suspend fun resolve(file: CloudFile, forceRefresh: Boolean): CloudPlaybackSource
 
@@ -55,6 +61,18 @@ internal class TeraBoxCloudProvider(
             .filter { it.isDir || it.name.isCloudVideoName() }
             .map { CloudEntry(id = it.path, path = it.path, name = it.name, isFolder = it.isDir, sizeBytes = it.sizeBytes) }
             .sortedWith(compareByDescending<CloudEntry> { it.isFolder }.thenBy { it.name.lowercase() })
+
+    override suspend fun listAll(folder: CloudFolderRef): List<CloudListing> =
+        api.list(teraBoxPath(folder.path)).map { item ->
+            CloudListing(
+                id = if (item.isDir) item.path else item.fsId.toString(),
+                path = item.path,
+                name = item.name,
+                isFolder = item.isDir,
+                sizeBytes = item.sizeBytes,
+                modifiedEpochSec = item.modifiedEpochSec,
+            )
+        }
 
     /** TeraBox has no change feed, so every sync walks the selected folders again. */
     override suspend fun index(folders: List<CloudFolderRef>, previous: CloudIndexSnapshot?): CloudIndexSnapshot {
@@ -116,6 +134,20 @@ internal class GoogleDriveCloudProvider(
             .filter { it.isFolder || it.name.isCloudVideoName() || it.mimeType.startsWith("video/") }
             .map { CloudEntry(id = it.id, path = "$parentPath/${it.name}", name = it.name, isFolder = it.isFolder, sizeBytes = it.sizeBytes) }
             .sortedWith(compareByDescending<CloudEntry> { it.isFolder }.thenBy { it.name.lowercase() })
+    }
+
+    override suspend fun listAll(folder: CloudFolderRef): List<CloudListing> {
+        val parentPath = folder.path.trimEnd('/')
+        return api.children(folder.id).map { item ->
+            CloudListing(
+                id = item.id,
+                path = "$parentPath/${item.name}",
+                name = item.name,
+                isFolder = item.isFolder,
+                sizeBytes = item.sizeBytes,
+                modifiedEpochSec = item.modifiedEpochSec,
+            )
+        }
     }
 
     override suspend fun index(folders: List<CloudFolderRef>, previous: CloudIndexSnapshot?): CloudIndexSnapshot {

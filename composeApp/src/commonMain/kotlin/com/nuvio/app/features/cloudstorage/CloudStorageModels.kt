@@ -72,6 +72,16 @@ data class CloudEntry(
     val sizeBytes: Long = 0,
 )
 
+/** A file or folder as [CloudProvider.listAll] lists it. */
+data class CloudListing(
+    val id: String,
+    val path: String,
+    val name: String,
+    val isFolder: Boolean,
+    val sizeBytes: Long = 0,
+    val modifiedEpochSec: Long = 0,
+)
+
 /** Where a player reads a cloud file from, with the request headers it needs. */
 class CloudPlaybackSource(
     val url: String,
