@@ -13,7 +13,6 @@ import com.nuvio.app.features.subtitlelibrary.SubtitleFolderLink
 import com.nuvio.app.features.subtitlelibrary.SubtitleLibraryPlatform
 import com.nuvio.app.features.subtitlelibrary.SubtitleLibraryStore
 import com.nuvio.app.features.subtitlelibrary.SubtitleOrigin
-import kotlin.time.Clock
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import nuvio.composeapp.generated.resources.Res
@@ -30,7 +29,6 @@ import org.jetbrains.compose.resources.getString
 
 private const val TAG = "Subtitles/Folders"
 internal const val LIBRARY_SUBTITLE_ID_PREFIX = "kai-lib:"
-private const val AUTO_SELECT_WINDOW_MS = 2_000L
 
 /** A subtitle found in the user's subtitle folders (a cached `file://` copy). */
 internal val AddonSubtitle.isLibrarySubtitle: Boolean
@@ -51,7 +49,6 @@ internal data class SubtitleLibraryBrowserState(
     val busy: Boolean = false,
 )
 
-private fun nowMs(): Long = Clock.System.now().toEpochMilliseconds()
 
 /**
  * Looks for the episode in the user's subtitle folders. Runs in the player's own coroutine (it is
@@ -69,7 +66,6 @@ internal suspend fun PlayerScreenRuntime.runSubtitleLibrarySearch() {
     if (!SubtitleLibraryPlatform.isSupported || isLiveTvPlayback) return
     if (SubtitleLibraryStore.current().enabledFolders.isEmpty()) return
     librarySubtitlesVideoId = videoId
-    libraryAutoSelectDeadlineMs = nowMs() + AUTO_SELECT_WINDOW_MS
     librarySearching = true
     try {
         val query = buildLibraryQuery()
@@ -153,9 +149,9 @@ internal fun PlayerScreenRuntime.preferredSubtitlePrimaryTarget(): String? {
 
 /**
  * "Elegir automáticamente mis subtítulos": a folder subtitle picked by hand for this episode, or
- * one in the preferred language, is chosen before the file's and the add-ons'. When it arrives
- * more than two seconds after the episode opened and something is already chosen, it only joins
- * the menu. Returns true when a folder subtitle is (now) the selection.
+ * one in the preferred language, is chosen before the file's and the add-ons', and it replaces an
+ * automatic choice even when it arrives later (cloud fonts take a while). A subtitle the user chose
+ * is never replaced. Returns true when a folder subtitle is (now) the selection.
  */
 internal fun PlayerScreenRuntime.tryAutoSelectLibrarySubtitle(primaryTarget: String?): Boolean {
     if (isUserExplicitSubtitleSelection) return false
@@ -166,7 +162,6 @@ internal fun PlayerScreenRuntime.tryAutoSelectLibrarySubtitle(primaryTarget: Str
         preferredSubtitleSelectionApplied = true
         return true
     }
-    if (preferredSubtitleSelectionApplied && nowMs() > libraryAutoSelectDeadlineMs) return false
     val candidate = library.firstOrNull { libraryPrepared[it.id]?.picked == true }
         ?: primaryTarget?.let { target -> library.firstOrNull { SubtitleLanguageMatching.matchesLanguageCode(it.language, target) } }
         ?: return false

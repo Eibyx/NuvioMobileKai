@@ -307,8 +307,6 @@ internal class PlayerScreenRuntime(
     var librarySearching by mutableStateOf(false)
     var libraryBrowser by mutableStateOf<SubtitleLibraryBrowserState?>(null)
     var libraryQuery: com.nuvio.app.features.subtitlelibrary.LibraryQuery? = null
-    /** Until then a folder subtitle may still replace the automatic choice (it arrived "from the start"). */
-    var libraryAutoSelectDeadlineMs = 0L
     val libraryWarnedIds = mutableSetOf<String>()
     var useCustomSubtitles by mutableStateOf(false)
     var preferredAudioSelectionApplied by mutableStateOf(false)
