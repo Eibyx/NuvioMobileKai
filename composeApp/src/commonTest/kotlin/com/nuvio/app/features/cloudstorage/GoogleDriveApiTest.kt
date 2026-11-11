@@ -93,6 +93,58 @@ class GoogleDriveApiTest {
         assertNull(http.requests.firstOrNull { "/files?" in it.url })
     }
 
+    /** A My Drive whose root's real id is 0AREAL, with "Black Clover" holding one episode. */
+    private fun myDriveHttp(changes: String = """{"newStartPageToken":"c2","changes":[]}""") = FakeCloudHttp { request ->
+        val url = request.url
+        fun asksChildrenOf(id: String) = "/files?" in url && ("%27$id%27" in url || "'$id'" in url)
+        when {
+            url == GoogleDriveApi.TOKEN_URL -> json("""{"access_token":"at","expires_in":3600}""")
+            "/changes/startPageToken" in url -> json("""{"startPageToken":"c1"}""")
+            "/changes?" in url -> json(changes)
+            "/files/root?" in url -> json("""{"id":"0AREAL","name":"My Drive","mimeType":"application/vnd.google-apps.folder"}""")
+            asksChildrenOf("root") -> json("""{"files":[{"id":"bc","name":"Black Clover","mimeType":"application/vnd.google-apps.folder","parents":["0AREAL"]}]}""")
+            asksChildrenOf("bc") -> json("""{"files":[{"id":"ep1","name":"[MLF] Black Clover S01E01 (1080).mp4","mimeType":"video/mp4","size":"9","parents":["bc"]}]}""")
+            else -> error("Unexpected $url")
+        }
+    }
+
+    @Test
+    fun aWalkOfMyDriveRecordsTheRootsRealId() = runTest {
+        val snapshot = GoogleDriveCloudProvider(api(myDriveHttp())).index(listOf(CloudFolderRef("root", "/")), previous = null)
+        assertEquals("", snapshot.folderPaths["0AREAL"])
+        assertEquals(listOf("/Black Clover/[MLF] Black Clover S01E01 (1080).mp4"), snapshot.files.map { it.path })
+    }
+
+    @Test
+    fun aShowFolderCreatedInMyDriveAfterTheLastSyncIsFound() = runTest {
+        // The changes feed names the new folder's parent by the root's real id, not "root".
+        val http = myDriveHttp(
+            changes = """{"newStartPageToken":"c2","changes":[
+                {"fileId":"bc","file":{"id":"bc","name":"Black Clover","mimeType":"application/vnd.google-apps.folder","parents":["0AREAL"]}},
+                {"fileId":"ep1","file":{"id":"ep1","name":"[MLF] Black Clover S01E01 (1080).mp4","mimeType":"video/mp4","size":"9","parents":["bc"]}}
+            ]}""",
+        )
+        val previous = CloudIndexSnapshot(
+            folderIds = listOf("root"),
+            cursor = "c1",
+            folderPaths = mapOf("root" to "", "0AREAL" to ""),
+        )
+        val snapshot = GoogleDriveCloudProvider(api(http)).index(listOf(CloudFolderRef("root", "/")), previous)
+        assertEquals(listOf("ep1"), snapshot.files.map { it.id })
+    }
+
+    @Test
+    fun anIndexOfMyDriveWithoutTheRootsRealIdIsWalkedOnceAgain() = runTest {
+        // Built before the fix: only the "root" alias. The change feed cannot place anything
+        // created in My Drive, so the next sync walks it again instead.
+        val http = myDriveHttp()
+        val previous = CloudIndexSnapshot(folderIds = listOf("root"), cursor = "c1", folderPaths = mapOf("root" to ""))
+        val snapshot = GoogleDriveCloudProvider(api(http)).index(listOf(CloudFolderRef("root", "/")), previous)
+        assertEquals(listOf("ep1"), snapshot.files.map { it.id })
+        assertEquals("", snapshot.folderPaths["0AREAL"])
+        assertNull(http.requests.firstOrNull { "/changes?" in it.url })
+    }
+
     @Test
     fun playbackUsesTheOfficialMediaEndpointWithABearerToken() = runTest {
         val http = FakeCloudHttp { json("""{"access_token":"at","expires_in":3600}""") }

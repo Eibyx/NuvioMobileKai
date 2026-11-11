@@ -110,7 +110,7 @@ internal class GoogleDriveCloudProvider(
     override suspend fun verify(): String? = api.accountName()
 
     override suspend fun browse(folder: CloudFolderRef?): List<CloudEntry> {
-        val parentId = folder?.id ?: "root"
+        val parentId = folder?.id ?: DRIVE_ROOT_ALIAS
         val parentPath = folder?.path?.trimEnd('/') ?: ""
         return api.children(parentId)
             .filter { it.isFolder || it.name.isCloudVideoName() || it.mimeType.startsWith("video/") }
@@ -144,6 +144,14 @@ internal class GoogleDriveCloudProvider(
                 }
             }
         }
+        // "All folders" is indexed as Drive's `root` alias, but the changes feed names the
+        // parent of a file or folder in My Drive by the root's real id. Without it, anything
+        // created in My Drive after this walk (a new show folder) was never picked up.
+        folderPaths[DRIVE_ROOT_ALIAS]?.let { rootPath ->
+            runCatching { api.file(DRIVE_ROOT_ALIAS).id }.getOrNull()
+                ?.takeIf { it != DRIVE_ROOT_ALIAS }
+                ?.let { realRootId -> folderPaths[realRootId] = rootPath }
+        }
         return CloudIndexSnapshot(
             files = files,
             subtitles = subtitles,
@@ -157,6 +165,8 @@ internal class GoogleDriveCloudProvider(
     /** Applies Drive's change feed. Null when a folder moved or changed: then a full walk is safer. */
     private suspend fun incremental(previous: CloudIndexSnapshot): CloudIndexSnapshot? {
         val cursor = previous.cursor ?: return null
+        // An index of My Drive built before the root's real id was recorded: walk it once.
+        if (!previous.knowsDriveRootId()) return null
         val result = try {
             api.changes(cursor)
         } catch (error: CloudStorageException) {
@@ -226,4 +236,12 @@ internal class GoogleDriveCloudProvider(
             else -> cloudMimeTypeFor(name)
         },
     )
+}
+
+private const val DRIVE_ROOT_ALIAS = "root"
+
+/** False for an index of My Drive that only knows the `root` alias, not the root's real id. */
+private fun CloudIndexSnapshot.knowsDriveRootId(): Boolean {
+    val rootPath = folderPaths[DRIVE_ROOT_ALIAS] ?: return true
+    return folderPaths.any { (id, path) -> id != DRIVE_ROOT_ALIAS && path == rootPath }
 }
