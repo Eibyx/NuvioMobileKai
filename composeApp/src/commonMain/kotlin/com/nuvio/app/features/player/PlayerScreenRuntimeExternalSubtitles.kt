@@ -42,12 +42,13 @@ internal fun PlayerScreenRuntime.selectAddonSubtitle(addon: AddonSubtitle) {
     selectedSubtitleIndex = -1
     useCustomSubtitles = true
     preferredSubtitleSelectionApplied = true
-    if (addon.isImportedFile) {
+    if (addon.isImportedFile || addon.isLibrarySubtitle) {
         // Not remembered for later (the copy lives in the cache) and not sent to AutoSync, which
         // fetches subtitles over HTTP. The current delay and style still apply.
         subtitleAutoSyncState = SubtitleAutoSyncUiState()
         playerController?.setSubtitleUri(addon.url)
         playerController?.setSubtitleDelayMs(subtitleDelayMs)
+        if (addon.isLibrarySubtitle) onLibrarySubtitleSelected(addon)
     } else {
         persistAddonSubtitlePreference(addon)
         attachSelectedAddonSubtitleWithAutoSync(addon.url) // AutoSync hook

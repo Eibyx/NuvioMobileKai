@@ -128,6 +128,14 @@ internal class AiostreamsAssEngine(
         this.context.registerComponentCallbacks(this)
     }
 
+    /** The font directory's fonts plus the fonts of a subtitle from the user's subtitle folders. */
+    fun folderFonts(fonts: List<java.io.File>) {
+        ass.directoryFonts(
+            com.nuvio.app.features.player.SubtitleFontDirectoryPlatform.fontFiles() +
+                fonts.filter { it.isFile }.map { FontFile(it, null) },
+        )
+    }
+
     fun reset(fontSource: DataSource.Factory) {
         this.fontSource = fontSource
         closeFonts()

@@ -211,6 +211,7 @@ object ProfileRepository {
         DownloadsRepository.onProfileChanged()
         ServerRepository.onProfileChanged()
         com.nuvio.app.features.cloudstorage.CloudStorageRepository.onProfileChanged()
+        com.nuvio.app.features.subtitlelibrary.SubtitleLibraryStore.onProfileChanged()
         ProfileSettingsSync.onProfileChanged()
     }
 
@@ -325,6 +326,7 @@ object ProfileRepository {
             }
             ServerRepository.removeProfile(profileIndex)
             com.nuvio.app.features.cloudstorage.CloudStorageRepository.removeProfile(profileIndex)
+            com.nuvio.app.features.subtitlelibrary.SubtitleLibraryStore.removeProfile(profileIndex)
             _state.value = _state.value.copy(
                 profiles = remaining,
                 activeProfile = if (_state.value.activeProfile?.profileIndex == profileIndex) {
@@ -347,6 +349,7 @@ object ProfileRepository {
             SupabaseProvider.client.postgrest.rpc("sync_delete_profile_data", params)
             ServerRepository.removeProfile(profileIndex)
             com.nuvio.app.features.cloudstorage.CloudStorageRepository.removeProfile(profileIndex)
+            com.nuvio.app.features.subtitlelibrary.SubtitleLibraryStore.removeProfile(profileIndex)
             // Remote deletion succeeded; remove device-local authentication artifacts even if
             // the subsequent profile refresh is interrupted or unavailable.
             val localLockCleanupSucceeded = withContext(Dispatchers.IO) {

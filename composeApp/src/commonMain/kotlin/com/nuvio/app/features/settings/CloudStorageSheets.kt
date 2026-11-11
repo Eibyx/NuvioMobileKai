@@ -350,7 +350,12 @@ private fun RcloneImportSheet(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun CloudFolderBrowserSheet(account: CloudAccount, onDismiss: () -> Unit) {
+internal fun CloudFolderBrowserSheet(
+    account: CloudAccount,
+    onDismiss: () -> Unit,
+    /** Another feature choosing a folder (subtitle folders): the account's own folders are left alone. */
+    onChoose: ((CloudFolderRef) -> Unit)? = null,
+) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var stack by remember { mutableStateOf(listOf<CloudFolderRef>()) }
     var entries by remember { mutableStateOf<List<CloudEntry>?>(null) }
@@ -374,7 +379,11 @@ internal fun CloudFolderBrowserSheet(account: CloudAccount, onDismiss: () -> Uni
     }
 
     fun choose(folder: CloudFolderRef) {
-        CloudStorageRepository.setFolders(account.id, account.folders + folder)
+        if (onChoose != null) {
+            onChoose(folder)
+        } else {
+            CloudStorageRepository.setFolders(account.id, account.folders + folder)
+        }
         onDismiss()
     }
 
@@ -417,7 +426,11 @@ internal fun CloudFolderBrowserSheet(account: CloudAccount, onDismiss: () -> Uni
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable {
-                        if (entry.isFolder) stack = stack + CloudFolderRef(entry.id, entry.path) else linking = entry
+                        if (entry.isFolder) {
+                            stack = stack + CloudFolderRef(entry.id, entry.path)
+                        } else if (onChoose == null) {
+                            linking = entry
+                        }
                     }
                     .padding(vertical = NuvioTokens.Space.s8),
                 verticalAlignment = Alignment.CenterVertically,

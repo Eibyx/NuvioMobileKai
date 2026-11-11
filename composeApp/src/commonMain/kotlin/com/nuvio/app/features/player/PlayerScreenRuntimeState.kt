@@ -299,6 +299,15 @@ internal class PlayerScreenRuntime(
     /** Subtitle files the user added while watching [localSubtitlesVideoId]. */
     var localSubtitles by mutableStateOf<List<AddonSubtitle>>(emptyList())
     var localSubtitlesVideoId by mutableStateOf<String?>(null)
+    /** Subtitles found in the user's subtitle folders for [librarySubtitlesVideoId]. */
+    var librarySubtitles by mutableStateOf<List<AddonSubtitle>>(emptyList())
+    var librarySubtitlesVideoId by mutableStateOf<String?>(null)
+    var libraryPrepared by mutableStateOf<Map<String, com.nuvio.app.features.subtitlelibrary.PreparedLibrarySubtitle>>(emptyMap())
+    var libraryResult by mutableStateOf<com.nuvio.app.features.subtitlelibrary.LibrarySearchResult?>(null)
+    var librarySearching by mutableStateOf(false)
+    var libraryBrowser by mutableStateOf<SubtitleLibraryBrowserState?>(null)
+    var libraryQuery: com.nuvio.app.features.subtitlelibrary.LibraryQuery? = null
+    val libraryWarnedIds = mutableSetOf<String>()
     var useCustomSubtitles by mutableStateOf(false)
     var preferredAudioSelectionApplied by mutableStateOf(false)
     var appliedAudioPreferences: AppliedAudioPreferences? = null

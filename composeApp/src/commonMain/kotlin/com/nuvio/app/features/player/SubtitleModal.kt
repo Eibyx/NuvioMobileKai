@@ -83,6 +83,8 @@ fun SubtitleModal(
     onStyleChanged: (SubtitleStyleState) -> Unit,
     /** Opens the file picker for "Add external subtitles"; null hides the entry. */
     onAddExternalSubtitle: (() -> Unit)? = null,
+    /** The user's subtitle folders ("Buscar en mis carpetas…"); null hides the rows. */
+    subtitleLibraryMenu: SubtitleLibraryMenu? = null,
     onSubtitleDelayChanged: (Int) -> Unit,
     onSubtitleDelayReset: () -> Unit,
     onSyncByEarClick: () -> Unit,
@@ -209,6 +211,11 @@ fun SubtitleModal(
                                         AddExternalSubtitleRow(onClick = onAddExternalSubtitle)
                                     }
                                 }
+                            if (subtitleLibraryMenu != null) {
+                                item(key = "subtitle-library") {
+                                    SubtitleLibraryMenuRows(subtitleLibraryMenu)
+                                }
+                            }
                             items(languageItems, key = { it.key }) { item ->
                                 SubtitleLanguageRow(
                                     item = item,

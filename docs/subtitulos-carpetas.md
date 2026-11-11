@@ -1,0 +1,149 @@
+# Mis carpetas de subtítulos (portado desde NuvioArcKai)
+
+Rama `kai-subtitle-folders`, creada desde `kai` (`7ceae418d`, versión 3.3.4). La rama por defecto de este repositorio
+es `kai`, no `main`: el PR va hacia `kai` y no se fusiona hasta que se pruebe en el teléfono. El nombre
+`kai/subtitle-folders` no es posible: git no admite una rama `kai/…` mientras exista la rama `kai`.
+
+Referencia (solo lectura): Eibyx/NuvioArcKai, rama `kai/subtitle-folders` (`3dd4901`), `docs/kai/subtitulos-carpetas.md`.
+
+## Fase 0: lo que hay en Mobile (evidencia)
+
+### 1. Licencias
+
+- Repositorio: GPL-3.0 (`LICENSE`, «GNU GENERAL PUBLIC LICENSE Version 3»). Arc también es GPL-3.0.
+- `SubtitleFontDirectory.kt` (common y android) lleva `SPDX-License-Identifier: AGPL-3.0-or-later` porque deriva de
+  mpvRx. GPL-3.0 §13 permite combinarlo con AGPL-3.0. Esta función **no modifica** esos archivos: lee la carpeta
+  `filesDir/subtitle_fonts` que ellos llenan (ver punto 3).
+
+### 2. Plataformas
+
+KMP con Android e iOS (`composeApp/src/{commonMain,androidMain,iosMain}`). La función es solo Android: la lógica pura
+va en `commonMain` (compila sin Android), el acceso a archivos, a la nube y a los motores en `androidMain`, y en iOS
+la sección de ajustes no se muestra (implementaciones vacías detrás de `expect/actual`).
+
+### 3. Reproductores y fuentes
+
+- **mpv**: `app.gyrolet.mpvlib:mpvlib:1.1.3` (`gradle/libs.versions.toml:36`). `strings libmpv.so` →
+  `mpv v0.41.0-dev-gc3ac7f395-dirty`, con `libass` en «List of enabled features».
+- **Cuándo lee mpv `sub-fonts-dir`** (código de mpv v0.41.0): cada decodificador ASS, al crearse, llama a
+  `assobjects_init` → `mp_ass_init` (`sub/sd_ass.c:254`), que lee `opts->fonts_dir` en ese momento y llama a
+  `ass_set_fonts_dir` (`sub/ass_mp.c:133-143`). Un decodificador se crea con cada `sub-add` y al volver a elegir
+  una pista. Por eso basta con reescribir el contenido de la carpeta antes de cada `sub-add`.
+- **Hoy**: `sub-fonts-dir` = `filesDir/subtitle_fonts` (`PlayerEngine.android.kt:2292`, `SubtitleFontFiles.android.kt`),
+  con las fuentes de la función «Directorio de fuentes» (`dir_*`, copiadas por `SubtitleFontDirectory.android.kt`).
+- **ExoPlayer/Media3 1.8.0** (`lib-exoplayer-release.aar`) con **nuvio-libass** (`nuvio-libass-release.aar`,
+  `com.nuvio.tv.libass`, la misma biblioteca que Arc): `AssHandler.addFont(String, byte[])` deja las fuentes en
+  `AssFontStore` (pendientes) y `createTrack` las vuelca (javap). `PlayerLibassCompat.kt` crea el parser
+  (`CompatAssSubtitleParserFactory.create`).
+- **ExoPlayer con el libass de libmpv** (opción experimental `useLibmpvAss`): `AiostreamsAssEngine` pasa las fuentes
+  con `AssSurface.directoryFonts(List<FontFile>)` (`AiostreamsAssEngine.kt:127`).
+
+### 4. Subtítulos externos (ruta existente que se reutiliza)
+
+- Menú: `runtime.addonSubtitles = currentLocalSubtitles + merge(...)` (`PlayerScreenContent.kt:151`). Los archivos
+  que añade el usuario son `AddonSubtitle` con id `local:` y `url = file://…` (`ExternalSubtitleImport.kt:177`), y se
+  eligen con `selectAddonSubtitle` → `playerController.setSubtitleUri(url)` (`PlayerScreenRuntimeExternalSubtitles.kt`).
+- **mpv**: `setSubtitleUri` → `sub-add <url> select` (`PlayerEngine.android.kt:2900`).
+- **ExoPlayer**: con libass y un ASS no se usa el sidecar (`PlayerSidecarSubtitles.kt:72`): el medio se recarga con
+  una `SubtitleConfiguration` de id `addonSubtitleTrackId(url)` (`PlayerEngine.android.kt:1540`).
+- **`format.id`** (javap de `lib-exoplayer-release.aar`): `DefaultMediaSourceFactory.createMediaSource` hace
+  `Format.Builder.setId(SubtitleConfiguration.id)` y llama a `SubtitleParser.Factory.create(format)` dentro de
+  `lambda$createMediaSource$0` (en el hilo de carga). Las fuentes se añaden en `CompatAssSubtitleParserFactory.create`
+  antes de `delegate.create` (que llama a `createTrack` y las vuelca), como en Arc. `onMediaItemTransition` (que
+  borra las fuentes) llega en `setMediaItem`, antes de `prepare()`, y el parser se crea después, al cargar.
+- Sin libass (sidecar de texto) el ASS se muestra como texto plano: las fuentes no se pueden usar y se avisa.
+
+### 5. Nube
+
+- `CloudProvider.browse` filtra a carpetas y vídeos (`CloudProviders.kt`), así que se añade `listAll` de solo lectura
+  (TeraBox `TeraBoxApi.list`, Drive `GoogleDriveApi.children`, ya sin filtro).
+- `CloudProvider.resolve(file)` da la URL firmada y sus cabeceras (`CloudPlaybackSource`).
+- Credenciales cifradas: `CloudVault` (Android Keystore AES-GCM), nunca sincronizado. La configuración de esta función
+  se guarda en el mismo almacén, por perfil (no contiene tokens).
+
+### 6. Metadatos del episodio
+
+`CloudStreams.request(type, videoId, season, episode)` (`CloudStreams.kt:72`) ya da título, alias de AniList/ARM
+(`CloudTitleAliases`), temporada, episodio y número absoluto. El reproductor tiene `contentType`, `parentMetaId`,
+`activeVideoId`, `activeSeasonNumber` y `activeEpisodeNumber` (`PlayerScreenRuntimeState.kt`).
+
+### 7. Ajustes y textos
+
+Reproducción → Subtítulos (`PlaybackSubtitleSettings.kt`), después de «Fuentes» (`SubtitleFontDirectorySection`).
+Idiomas de `strings`: en (`values`) y es (`values-es`). Ninguna prueba obliga a indexar filas nuevas en la búsqueda
+de ajustes; se añade la entrada igualmente (`SettingsSearch.kt`).
+
+### 8. Compilación y publicación
+
+- `applicationId` `com.eibyx.nuviokai` (`androidApp/build.gradle.kts:125`); CI compila `arm64-v8a`.
+- `versionCode` = mayor·1 000 000 + menor·1000 + parche de `MARKETING_VERSION` (`androidApp/build.gradle.kts:73-84`);
+  último release 3.3.4 (3003004).
+- Workflow `mobile-release.yml`; secretos de firma `NUVIO_RELEASE_KEYSTORE_BASE64` y `NUVIO_LOCAL_PROPERTIES_BASE64`
+  (nombres, nunca valores). `publish`/`draft` solo desde `kai`, y no tenía modo pre-release: se añade el modo
+  `prerelease` (cualquier rama, `--prerelease --latest=false`, mismas validaciones).
+- El actualizador de la app solo ofrece pre-releases en el canal beta (`ReleaseSelector.kt:23`).
+- Pruebas base: 2567 pruebas JVM en verde en `c7790c38e` (la 3.3.4 solo cambia notas y versión).
+
+Ninguna condición de parada: se puede compilar y firmar, y los dos motores pueden usar fuentes.
+
+## Decisiones (la opción más conservadora)
+
+| Punto | Decisión |
+|---|---|
+| Rama | `kai-subtitle-folders` desde `kai` (ver arriba). |
+| Integración | Los subtítulos de carpeta son `AddonSubtitle` con id `kai-lib:` y `file://` en la caché, como los importados (`local:`): mismo menú, `selectAddonSubtitle`, `setSubtitleUri`, retardo y estilo. Sin ruta paralela. |
+| mpv | `sub-fonts-dir` pasa a `noBackupFilesDir/mpv-sub-fonts-active/`: enlaces duros (o copias) de `filesDir/subtitle_fonts` (las fuentes del «Directorio de fuentes», como hoy) más las del subtítulo de carpeta que se va a añadir; se reescribe antes de cada `sub-add`. `SubtitleFontDirectory*.kt` no cambia. |
+| Solo Wi-Fi | No hay un ajuste general de «solo Wi-Fi». «Permitir datos móviles» (`DownloadsSettingsRepository.kt:13`) es de las descargas para ver sin conexión, no de la reproducción: no se aplica. |
+| Almacenamiento | Solo SAF (`OpenDocumentTree` + `takePersistableUriPermission`) y, en API 29+, acceso por volumen (`StorageVolume.createOpenDocumentTreeIntent`). Sin permisos nuevos en el manifest. |
+| Límites de fuentes | 32 MB por subtítulo y 25 MB por archivo, como Arc. |
+| AutoSync | No se aplica a los subtítulos de carpeta, como a los importados (`local:`): AutoSync descarga por HTTP. |
+
+## Implementación
+
+| Pieza | Archivos |
+|---|---|
+| Núcleo (commonMain) | `subtitlelibrary/AssFontNames.kt`, `SfntNames.kt`, `FontSelection.kt`, `LibraryMatcher.kt`, `LibraryRedaction.kt`, `SubtitleLibrarySettings.kt`, `SubtitleLibrary.kt` |
+| Android | `subtitlelibrary/LibrarySources.kt` (nube y SAF), `SubtitleLibraryService.kt`, `LibraryDiskCache.kt`, `SubtitleLibrary.android.kt` (selector) |
+| Motores | `player/MpvLibraryFonts.kt`, `player/LibraryFontRegistry.kt`, `PlayerEngine.android.kt`, `PlayerLibassCompat.kt`, `aiostreams/AiostreamsAssEngine.kt` |
+| Reproductor | `player/PlayerScreenRuntimeSubtitleLibrary.kt`, `SubtitleLibraryPlayerUi.kt`, `SubtitleModal.kt` |
+| Ajustes | `settings/SubtitleFoldersSection.kt`, `PlaybackSubtitleSettings.kt`, `SettingsSearch.kt` |
+| Nube | `CloudProvider.listAll`, `CloudStorageRepository.listAll`, `CloudFolderBrowserSheet(onChoose)` |
+
+## Licencias
+
+- Portado de NuvioArcKai (GPL-3.0, la misma licencia que Mobile): el núcleo, la caché, la redacción, los orígenes,
+  `LibraryFontRegistry` y `MpvLibraryFonts`; cada archivo lo indica. Las pruebas del núcleo también vienen de Arc.
+- AGPL-3.0: nada nuevo. `SubtitleFontDirectory*.kt` (mpvRx) no se modifica; `MpvLibraryFonts` solo enlaza los
+  archivos de la carpeta que ese código llena.
+- Nuevo: la integración con el menú, la selección automática, los ajustes, el selector por volumen y el modo
+  `prerelease` del workflow.
+
+## Permisos
+
+Ninguno nuevo en el manifest: el almacenamiento usa el selector de documentos con permiso persistido de solo lectura.
+
+## Lista de comprobación para el teléfono (NO VERIFICADO)
+
+1. mpv: episodio con su `.ass` y dos fuentes en la carpeta; se ven las fuentes del subtítulo (no la predeterminada).
+2. ExoPlayer con libass: lo mismo. Cambiar a otro subtítulo de carpeta y volver; las fuentes siguen bien.
+3. ExoPlayer sin libass: el subtítulo se carga y avisa de que hace falta libass.
+4. TeraBox: carpeta `Subtítulos` añadida desde Ajustes; el episodio aparece como «Español · TeraBox» con «N fuentes».
+5. Google Drive: igual, «Español · Drive».
+6. Carpeta del teléfono (Otra carpeta…): igual, «Español · Almacenamiento».
+7. USB-OTG / SD elegida por volumen: con la memoria conectada funciona; desconectada, el menú dice «USB no conectado»
+   sin errores.
+8. Fuente que falta: quitar una fuente usada → «Faltan fuentes: …» una sola vez.
+9. Cambio de episodio (siguiente y elegir otro): subtítulo y fuentes del nuevo episodio.
+10. «Buscar en mis carpetas…» y «Vincular carpeta…»: elegir, salir y volver; se recuerda.
+11. Memoria: episodio con 30 MB de fuentes en un teléfono modesto; 20 minutos sin cierres.
+
+## Pre-releases y verificación
+
+| Versión | Qué trae | Verificación del APK publicado |
+|---|---|---|
+| 3.4.0 | La función completa | APK compilado y firmado aquí (Actions caído por la incidencia de GitHub del 11-nov, 20:48 UTC: `startup_failure` también en `kai` sin cambios) |
+| 3.4.1 | ExoPlayer selecciona la pista adjunta; el subtítulo de carpeta sustituye la elección automática; fuentes de 4 en 4 | APK compilado y firmado aquí |
+| 3.4.2 | No arranca en pausa (`playWhenReady`), sin aviso de fuentes, búsqueda mientras cargan los streams | https://github.com/Eibyx/NuvioMobileKai/releases/tag/3.4.2-beta (ejecución 43114510005): SHA-256 `5ef0b90d939455c2f112021b8e442e266738f48539daa5d466ac72b1fab83216` = `SHA256SUMS.txt`; v2 válida, certificado `fd94c851ea0e9009e2eac9f48f6582a9cce6ad5e2a663fe2e6da78f77f24152f` (el mismo que 3.3.4); `com.eibyx.nuviokai` 3004002; solo `arm64-v8a` con `libmpv.so` y `libasskt.so`; mismos permisos que 3.3.4 |
+
+Ejecuciones fallidas: 34, 35, 36 (`kai`, dry-run de diagnóstico) y 37: `startup_failure` sin jobs durante la incidencia de
+Actions de GitHub (confirmada en githubstatus.com); `actionlint` sin errores sobre el workflow.

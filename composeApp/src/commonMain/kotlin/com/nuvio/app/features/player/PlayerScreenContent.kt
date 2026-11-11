@@ -148,7 +148,7 @@ internal fun PlayerScreenContent(args: PlayerScreenArgs) {
         runtime.episodeStreamsRepoState = episodeStreamsRepoState
         runtime.metaUiState = metaUiState
         runtime.addonsUiState = addonsUiState
-        runtime.addonSubtitles = runtime.currentLocalSubtitles +
+        runtime.addonSubtitles = runtime.currentLibrarySubtitles + runtime.currentLocalSubtitles +
             mergeStreamAndAddonSubtitles(addonSubtitles, runtime.externalSubtitles)
         runtime.isLoadingAddonSubtitles = isLoadingAddonSubtitles
         runtime.horizontalSafePadding = horizontalSafePadding

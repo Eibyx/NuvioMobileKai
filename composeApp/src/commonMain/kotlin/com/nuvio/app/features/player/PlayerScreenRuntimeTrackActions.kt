@@ -214,6 +214,9 @@ private fun PlayerScreenRuntime.tryAutoSelectPreferredSubtitleFromAvailableTrack
     }
     val primaryTarget = preferredSubtitleTargets.firstOrNull()
 
+    // "Elegir automáticamente mis subtítulos": the user's own folder subtitle comes first.
+    if (tryAutoSelectLibrarySubtitle(primaryTarget)) return
+
     if (preferredSubtitleSelectionApplied) {
         val currentSelectedLang = when {
             selectedAddonSubtitle != null -> selectedAddonSubtitle?.language

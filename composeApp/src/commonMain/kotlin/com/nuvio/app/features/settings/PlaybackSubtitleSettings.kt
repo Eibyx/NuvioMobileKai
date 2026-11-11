@@ -195,6 +195,7 @@ internal fun PlaybackSubtitleSettings(
 
         // Fonts for ASS subtitles that name fonts the file does not carry (mpv and libass).
         SubtitleFontDirectorySection(isTablet = isTablet)
+        SubtitleFoldersSection(isTablet = isTablet)
     }
 
     if (showPreferredSubtitleDialog) {

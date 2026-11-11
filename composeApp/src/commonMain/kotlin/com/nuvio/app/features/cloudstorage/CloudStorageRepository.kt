@@ -167,6 +167,10 @@ internal object CloudStorageRepository {
         }
     }
 
+    /** Every file and folder of [folder], unfiltered; for the subtitle folders. */
+    suspend fun listAll(id: String, folder: CloudFolderRef): List<CloudListing> =
+        (provider(id) ?: throw CloudStorageException(CloudFailure.NOT_FOUND)).listAll(folder)
+
     suspend fun browse(id: String, folder: CloudFolderRef?): List<CloudEntry> =
         (provider(id) ?: throw CloudStorageException(CloudFailure.NOT_FOUND)).browse(folder)
 

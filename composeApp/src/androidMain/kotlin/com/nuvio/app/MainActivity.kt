@@ -153,6 +153,7 @@ open class MainActivity : AppCompatActivity() {
         PlayerSettingsStorage.initialize(applicationContext)
         com.nuvio.app.features.player.SubtitleFontFiles.initialize(applicationContext)
         com.nuvio.app.features.player.SubtitleFontDirectoryPlatform.initialize(applicationContext)
+        com.nuvio.app.features.subtitlelibrary.SubtitleLibraryService.initialize(applicationContext)
         com.nuvio.app.features.player.MpvRenderer.initialize(applicationContext)
         com.nuvio.app.features.player.shaders.ShaderFiles.initialize(applicationContext)
         com.nuvio.app.features.player.shaders.ShaderSettingsStorage.initialize(applicationContext)

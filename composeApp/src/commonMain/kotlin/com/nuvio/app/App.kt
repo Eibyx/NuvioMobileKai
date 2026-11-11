@@ -91,7 +91,7 @@ internal fun AppEnvironment(
                     add(SvgDecoder.Factory())
                     add(
                         coil3.network.ktor3.KtorNetworkFetcherFactory(
-                            cacheStrategy = { coil3.network.cachecontrol.CacheControlCacheStrategy() },
+                            cacheStrategy = { com.nuvio.app.core.images.ArtworkCacheStrategy() },
                         ),
                     )
                 }

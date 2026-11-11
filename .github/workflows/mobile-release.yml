@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: Validate only, create a draft, or publish the release
+        description: Validate only, create a draft, publish the release, or publish a pre-release from any branch
         required: true
         type: choice
         options:
@@ -13,6 +13,7 @@ on:
           - test-build
           - draft
           - publish
+          - prerelease
         default: dry-run
       target:
         description: Choose which platform to build
@@ -87,6 +88,8 @@ jobs:
               echo "Use mode 'test-build' to build '${RELEASE_BRANCH}' without tagging." >&2
               exit 1
             fi
+          elif [[ "${RELEASE_MODE}" == "prerelease" ]]; then
+            echo "Mode 'prerelease' on branch '${RELEASE_BRANCH}': a pre-release (not marked latest) will be tagged on this branch."
           else
             echo "Mode '${RELEASE_MODE}' on branch '${RELEASE_BRANCH}': no tag or release will be created."
           fi
@@ -416,7 +419,7 @@ jobs:
     # always() lets the release go ahead when one platform was skipped by the target choice.
     if: >-
       always()
-      && (inputs.mode == 'draft' || inputs.mode == 'publish')
+      && (inputs.mode == 'draft' || inputs.mode == 'publish' || inputs.mode == 'prerelease')
       && needs.prepare.result == 'success'
       && contains(fromJSON('["success","skipped"]'), needs.android.result)
       && contains(fromJSON('["success","skipped"]'), needs.ios.result)
@@ -458,5 +461,10 @@ jobs:
           )
           if [[ "${RELEASE_MODE}" == "draft" ]]; then
             release_args+=(--draft)
+          fi
+          if [[ "${RELEASE_MODE}" == "prerelease" ]]; then
+            release_args+=(--prerelease --latest=false)
+            (cd release-assets && sha256sum $(for file in "${release_files[@]}"; do basename "$file"; done) > SHA256SUMS.txt)
+            release_files+=(release-assets/SHA256SUMS.txt)
           fi
           gh release create "${release_args[@]}" "${release_files[@]}"
