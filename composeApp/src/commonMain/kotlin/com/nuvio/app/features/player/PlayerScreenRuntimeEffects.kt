@@ -343,6 +343,12 @@ internal fun PlayerScreenRuntime.BindPlayerRuntimeEffects() {
         fetchAddonSubtitlesForActiveItem()
     }
 
+    // The user's subtitle folders: searched when an episode opens, in the player's own scope (it is
+    // cancelled with the player or when the episode changes).
+    LaunchedEffect(activeVideoId, parentMetaId) {
+        runSubtitleLibrarySearch()
+    }
+
     LaunchedEffect(
         playerController, playerControllerSourceUrl, activeSourceUrl, activePlaybackSourceUrl, p2pResolvedSourceUrl,
         preferredAudioLanguageTargets,

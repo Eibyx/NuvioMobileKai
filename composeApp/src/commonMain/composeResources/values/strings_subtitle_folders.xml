@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="subtitle_folders_title">My subtitle folders</string>
+    <string name="subtitle_folders_description">Your own ASS subtitles and the fonts next to them, from TeraBox, Google Drive or this phone\'s storage. Searched when an episode opens.</string>
+    <string name="subtitle_folders_none">No folders yet. Keep one folder per series (Subtitles/Frieren/…), each with its subtitles and their fonts; a Season 2 or Fonts subfolder also works.</string>
+    <string name="subtitle_folders_add">Add folder</string>
+    <string name="subtitle_folders_add_terabox">TeraBox</string>
+    <string name="subtitle_folders_add_drive">Google Drive</string>
+    <string name="subtitle_folders_add_storage">Storage</string>
+    <string name="subtitle_folders_add_storage_description">A folder on this phone, an SD card or a USB drive</string>
+    <string name="subtitle_folders_connect_account">Connect the account in %1$s</string>
+    <string name="subtitle_folders_choose_volume">Choose the storage</string>
+    <string name="subtitle_folders_volume_other">Other folder…</string>
+    <string name="subtitle_folders_origin_terabox">TeraBox</string>
+    <string name="subtitle_folders_origin_drive">Drive</string>
+    <string name="subtitle_folders_origin_storage">Storage</string>
+    <string name="subtitle_folders_enabled">Use this folder</string>
+    <string name="subtitle_folders_refresh">Refresh</string>
+    <string name="subtitle_folders_refresh_done">%1$s will be read again</string>
+    <string name="subtitle_folders_remove">Remove</string>
+    <string name="subtitle_folders_auto_select">Choose my subtitles automatically</string>
+    <string name="subtitle_folders_auto_select_description">Selects your folder\'s subtitle for the episode: the one you picked by hand, or the one in your preferred subtitle language</string>
+    <string name="subtitle_folders_cache">Cache limit</string>
+    <string name="subtitle_folders_cache_value">%1$d MB · %2$s used</string>
+    <string name="subtitle_folders_clear_cache">Clear cache</string>
+    <string name="subtitle_folders_clear_cache_description">Deletes the copied subtitles and fonts; they are fetched again when needed</string>
+    <string name="subtitle_folders_search">Search my folders…</string>
+    <string name="subtitle_folders_link">Link folder…</string>
+    <string name="subtitle_folders_link_this">Link this folder</string>
+    <string name="subtitle_folders_linked">Folder linked: %1$s</string>
+    <string name="subtitle_folders_searching">Searching your folders…</string>
+    <string name="subtitle_folders_missing_fonts">Missing fonts: %1$s</string>
+    <string name="subtitle_folders_engine_no_fonts">This subtitle\'s fonts need libass: turn on ASS/SSA subtitles with libass in Settings → Playback → Subtitles</string>
+    <string name="subtitle_folders_usb_disconnected">USB not connected: %1$s</string>
+    <string name="subtitle_folders_storage_unavailable">Storage not available: %1$s</string>
+    <string name="subtitle_folders_account_disconnected">%1$s: connect the account in %2$s</string>
+    <string name="subtitle_folders_read_failed">Could not read %1$s</string>
+    <string name="subtitle_folders_needs_link">%1$s: more than one folder or none fits this title</string>
+    <string name="subtitle_folders_empty_folder">Nothing here</string>
+    <string name="subtitle_folders_up">Up</string>
+    <string name="subtitle_folders_failed">Could not open this subtitle</string>
+    <plurals name="subtitle_folders_fonts">
+        <item quantity="one">%1$d font</item>
+        <item quantity="other">%1$d fonts</item>
+    </plurals>
+</resources>

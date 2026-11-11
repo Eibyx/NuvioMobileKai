@@ -1048,7 +1048,9 @@ private fun PlayerScreenRuntime.RenderPlayerModals() {
             controlsVisible = true
         },
     )
+    SubtitleLibraryBrowserHost()
     PlayerScreenModalHosts(
+        subtitleLibraryMenu = rememberSubtitleLibraryMenu(),
         pendingP2pSwitch = pendingP2pSwitch,
         onPendingP2pSwitchChanged = { pendingP2pSwitch = it },
         onP2pEpisodeStreamSelected = { stream, episode, isAutoPlay ->

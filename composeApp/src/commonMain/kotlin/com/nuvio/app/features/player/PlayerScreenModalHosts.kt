@@ -25,6 +25,7 @@ import org.jetbrains.compose.resources.stringResource
 
 @Composable
 internal fun PlayerScreenModalHosts(
+    subtitleLibraryMenu: SubtitleLibraryMenu?,
     pendingP2pSwitch: PendingPlayerP2pSwitch?,
     onPendingP2pSwitchChanged: (PendingPlayerP2pSwitch?) -> Unit,
     onP2pEpisodeStreamSelected: (StreamItem, MetaVideo, Boolean) -> Unit,
@@ -212,6 +213,7 @@ internal fun PlayerScreenModalHosts(
         onAddonSubtitleSelected = onAddonSubtitleSelected,
         onFetchAddonSubtitles = onFetchAddonSubtitles,
         onAddExternalSubtitle = pickExternalSubtitle,
+        subtitleLibraryMenu = subtitleLibraryMenu,
         onStyleChanged = onSubtitleStyleChanged,
         onSubtitleDelayChanged = onSubtitleDelayChanged,
         onSubtitleDelayReset = onSubtitleDelayReset,
