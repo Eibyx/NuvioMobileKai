@@ -758,10 +758,15 @@ internal fun settingsSearchEntries(
         pageLabel = playbackPage,
         section = playbackSubtitleAudio,
         page = SettingsPage.PlaybackSubtitles,
-        rows = listOf(
+        rows = listOfNotNull(
             PlaybackSearchRow("preferred-audio", stringResource(Res.string.settings_playback_preferred_audio_language), page = SettingsPage.PlaybackAudio),
             PlaybackSearchRow("secondary-audio", stringResource(Res.string.settings_playback_secondary_audio_language), page = SettingsPage.PlaybackAudio),
             PlaybackSearchRow("subtitle-font", stringResource(Res.string.subtitle_font), stringResource(Res.string.subtitle_font_import_hint)),
+            PlaybackSearchRow(
+                "subtitle-folders",
+                stringResource(Res.string.subtitle_folders_title),
+                stringResource(Res.string.subtitle_folders_description),
+            ).takeIf { com.nuvio.app.features.subtitlelibrary.SubtitleLibraryPlatform.isSupported },
             PlaybackSearchRow("subtitle-background-opacity", stringResource(Res.string.subtitle_background_opacity)),
             PlaybackSearchRow("subtitle-background-roundness", stringResource(Res.string.subtitle_background_roundness)),
             PlaybackSearchRow("subtitle-shadow", stringResource(Res.string.subtitle_shadow), stringResource(Res.string.subtitle_shadow_description)),
