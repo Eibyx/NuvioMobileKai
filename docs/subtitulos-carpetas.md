@@ -144,6 +144,8 @@ Ninguno nuevo en el manifest: el almacenamiento usa el selector de documentos co
 | 3.4.0 | La función completa | APK compilado y firmado aquí (Actions caído por la incidencia de GitHub del 11-nov, 20:48 UTC: `startup_failure` también en `kai` sin cambios) |
 | 3.4.1 | ExoPlayer selecciona la pista adjunta; el subtítulo de carpeta sustituye la elección automática; fuentes de 4 en 4 | APK compilado y firmado aquí |
 | 3.4.2 | No arranca en pausa (`playWhenReady`), sin aviso de fuentes, búsqueda mientras cargan los streams | https://github.com/Eibyx/NuvioMobileKai/releases/tag/3.4.2-beta (ejecución 43114510005): SHA-256 `5ef0b90d939455c2f112021b8e442e266738f48539daa5d466ac72b1fab83216` = `SHA256SUMS.txt`; v2 válida, certificado `fd94c851ea0e9009e2eac9f48f6582a9cce6ad5e2a663fe2e6da78f77f24152f` (el mismo que 3.3.4); `com.eibyx.nuviokai` 3004002; solo `arm64-v8a` con `libmpv.so` y `libasskt.so`; mismos permisos que 3.3.4 |
+| 3.4.3 | Imágenes del destacado desde el disco (fanart.tv, TMDB, TheTVDB) | https://github.com/Eibyx/NuvioMobileKai/releases/tag/3.4.3-beta (ejecución 43116626123): SHA-256 `af20d833e44ac295bbb65347abcdcea948ddaf195f1417836d539976a6fe14d7` = `SHA256SUMS.txt`; mismo certificado; 3004003; solo `arm64-v8a` con `libmpv.so` y `libasskt.so`; mismos permisos |
+| 3.4.4 | Primera release normal: PR #2 fusionado en `kai` con el visto bueno del usuario | Ver la release 3.4.4 |
 
 Ejecuciones fallidas: 34, 35, 36 (`kai`, dry-run de diagnóstico) y 37: `startup_failure` sin jobs durante la incidencia de
 Actions de GitHub (confirmada en githubstatus.com); `actionlint` sin errores sobre el workflow.
