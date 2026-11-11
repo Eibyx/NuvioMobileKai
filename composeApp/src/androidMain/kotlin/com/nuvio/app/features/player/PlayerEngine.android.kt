@@ -1138,6 +1138,26 @@ private fun ExoPlayerSurface(
                         exoPlayer.selectTrackByIndex(C.TRACK_TYPE_TEXT, idx)
                     }
                 }
+                // The attached external subtitle (an add-on's ASS, or one from the user's subtitle
+                // folders, through libass) is marked DEFAULT, but the selector ignores DEFAULT while
+                // the system's captions are off, and the file carries no language: select its track
+                // by id once the reloaded media exposes it.
+                attachedAddonSubtitleConfig?.id?.let { attachedId ->
+                    val textDisabled = exoPlayer.trackSelectionParameters.disabledTrackTypes.contains(C.TRACK_TYPE_TEXT)
+                    if (pendingSubtitleTrackIndex.isEmpty() && !textDisabled) {
+                        val attached = tracks.groups.firstOrNull { group ->
+                            group.type == C.TRACK_TYPE_TEXT && group.length > 0 &&
+                                group.getTrackFormat(0).id?.let { it == attachedId || it.endsWith(":$attachedId") } == true
+                        }
+                        if (attached != null && !attached.isSelected) {
+                            InAppLogger.info("ExoPlayer/Android", "selecting the attached external subtitle track")
+                            exoPlayer.trackSelectionParameters = exoPlayer.trackSelectionParameters
+                                .buildUpon()
+                                .setOverrideForType(TrackSelectionOverride(attached.mediaTrackGroup, listOf(0)))
+                                .build()
+                        }
+                    }
+                }
                 // Trigger player rebuild with video effects when ASS track becomes selected
                 // and render mode is VIDEO_EFFECT.
                 if (!videoEffectsNeeded && useLibass && exoVideoEffects.libassRenderMode(libassRenderMode) != "OVERLAY") {
