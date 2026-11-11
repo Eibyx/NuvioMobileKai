@@ -97,3 +97,42 @@ Ninguna condición de parada: se puede compilar y firmar, y los dos motores pued
 | Almacenamiento | Solo SAF (`OpenDocumentTree` + `takePersistableUriPermission`) y, en API 29+, acceso por volumen (`StorageVolume.createOpenDocumentTreeIntent`). Sin permisos nuevos en el manifest. |
 | Límites de fuentes | 32 MB por subtítulo y 25 MB por archivo, como Arc. |
 | AutoSync | No se aplica a los subtítulos de carpeta, como a los importados (`local:`): AutoSync descarga por HTTP. |
+
+## Implementación
+
+| Pieza | Archivos |
+|---|---|
+| Núcleo (commonMain) | `subtitlelibrary/AssFontNames.kt`, `SfntNames.kt`, `FontSelection.kt`, `LibraryMatcher.kt`, `LibraryRedaction.kt`, `SubtitleLibrarySettings.kt`, `SubtitleLibrary.kt` |
+| Android | `subtitlelibrary/LibrarySources.kt` (nube y SAF), `SubtitleLibraryService.kt`, `LibraryDiskCache.kt`, `SubtitleLibrary.android.kt` (selector) |
+| Motores | `player/MpvLibraryFonts.kt`, `player/LibraryFontRegistry.kt`, `PlayerEngine.android.kt`, `PlayerLibassCompat.kt`, `aiostreams/AiostreamsAssEngine.kt` |
+| Reproductor | `player/PlayerScreenRuntimeSubtitleLibrary.kt`, `SubtitleLibraryPlayerUi.kt`, `SubtitleModal.kt` |
+| Ajustes | `settings/SubtitleFoldersSection.kt`, `PlaybackSubtitleSettings.kt`, `SettingsSearch.kt` |
+| Nube | `CloudProvider.listAll`, `CloudStorageRepository.listAll`, `CloudFolderBrowserSheet(onChoose)` |
+
+## Licencias
+
+- Portado de NuvioArcKai (GPL-3.0, la misma licencia que Mobile): el núcleo, la caché, la redacción, los orígenes,
+  `LibraryFontRegistry` y `MpvLibraryFonts`; cada archivo lo indica. Las pruebas del núcleo también vienen de Arc.
+- AGPL-3.0: nada nuevo. `SubtitleFontDirectory*.kt` (mpvRx) no se modifica; `MpvLibraryFonts` solo enlaza los
+  archivos de la carpeta que ese código llena.
+- Nuevo: la integración con el menú, la selección automática, los ajustes, el selector por volumen y el modo
+  `prerelease` del workflow.
+
+## Permisos
+
+Ninguno nuevo en el manifest: el almacenamiento usa el selector de documentos con permiso persistido de solo lectura.
+
+## Lista de comprobación para el teléfono (NO VERIFICADO)
+
+1. mpv: episodio con su `.ass` y dos fuentes en la carpeta; se ven las fuentes del subtítulo (no la predeterminada).
+2. ExoPlayer con libass: lo mismo. Cambiar a otro subtítulo de carpeta y volver; las fuentes siguen bien.
+3. ExoPlayer sin libass: el subtítulo se carga y avisa de que hace falta libass.
+4. TeraBox: carpeta `Subtítulos` añadida desde Ajustes; el episodio aparece como «Español · TeraBox» con «N fuentes».
+5. Google Drive: igual, «Español · Drive».
+6. Carpeta del teléfono (Otra carpeta…): igual, «Español · Almacenamiento».
+7. USB-OTG / SD elegida por volumen: con la memoria conectada funciona; desconectada, el menú dice «USB no conectado»
+   sin errores.
+8. Fuente que falta: quitar una fuente usada → «Faltan fuentes: …» una sola vez.
+9. Cambio de episodio (siguiente y elegir otro): subtítulo y fuentes del nuevo episodio.
+10. «Buscar en mis carpetas…» y «Vincular carpeta…»: elegir, salir y volver; se recuerda.
+11. Memoria: episodio con 30 MB de fuentes en un teléfono modesto; 20 minutos sin cierres.
