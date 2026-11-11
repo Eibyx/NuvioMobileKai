@@ -29,7 +29,6 @@
     <string name="subtitle_folders_link_this">Vincular esta carpeta</string>
     <string name="subtitle_folders_linked">Carpeta vinculada: %1$s</string>
     <string name="subtitle_folders_searching">Buscando en tus carpetas…</string>
-    <string name="subtitle_folders_missing_fonts">Faltan fuentes: %1$s</string>
     <string name="subtitle_folders_engine_no_fonts">Las fuentes de este subtítulo necesitan libass: activa Subtítulos ASS/SSA con libass en Ajustes → Reproducción → Subtítulos</string>
     <string name="subtitle_folders_usb_disconnected">USB no conectado: %1$s</string>
     <string name="subtitle_folders_storage_unavailable">Almacenamiento no disponible: %1$s</string>

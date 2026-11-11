@@ -159,6 +159,20 @@ fun StreamsScreen(
     modifier: Modifier = Modifier,
 ) {
     LaunchedEffect(Unit) { com.nuvio.app.features.player.closeBackgroundPlayerForNewPlayback() }
+    // The user's subtitle folders: find this episode's subtitle and fonts while the streams load.
+    LaunchedEffect(videoId) {
+        if (!downloadMode) {
+            com.nuvio.app.features.player.SubtitleLibraryPrefetch.start(
+                type = type,
+                videoId = videoId,
+                parentMetaId = parentMetaId,
+                title = title,
+                season = seasonNumber,
+                episode = episodeNumber,
+                isMovie = parentMetaType == "movie",
+            )
+        }
+    }
     val useNativeNavigation = LocalUseNativeNavigation.current
     val nativeNavigationBarHidden = LocalNativeNavigationBarHidden.current
     val uiState by StreamsRepository.uiState.collectAsStateWithLifecycle()

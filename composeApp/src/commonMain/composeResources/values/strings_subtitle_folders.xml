@@ -29,7 +29,6 @@
     <string name="subtitle_folders_link_this">Link this folder</string>
     <string name="subtitle_folders_linked">Folder linked: %1$s</string>
     <string name="subtitle_folders_searching">Searching your folders…</string>
-    <string name="subtitle_folders_missing_fonts">Missing fonts: %1$s</string>
     <string name="subtitle_folders_engine_no_fonts">This subtitle\'s fonts need libass: turn on ASS/SSA subtitles with libass in Settings → Playback → Subtitles</string>
     <string name="subtitle_folders_usb_disconnected">USB not connected: %1$s</string>
     <string name="subtitle_folders_storage_unavailable">Storage not available: %1$s</string>

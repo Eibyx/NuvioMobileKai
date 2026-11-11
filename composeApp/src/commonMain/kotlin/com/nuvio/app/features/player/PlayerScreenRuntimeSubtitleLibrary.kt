@@ -20,7 +20,6 @@ import nuvio.composeapp.generated.resources.subtitle_folders_engine_no_fonts
 import nuvio.composeapp.generated.resources.subtitle_folders_failed
 import nuvio.composeapp.generated.resources.subtitle_folders_fonts
 import nuvio.composeapp.generated.resources.subtitle_folders_linked
-import nuvio.composeapp.generated.resources.subtitle_folders_missing_fonts
 import nuvio.composeapp.generated.resources.subtitle_folders_origin_drive
 import nuvio.composeapp.generated.resources.subtitle_folders_origin_storage
 import nuvio.composeapp.generated.resources.subtitle_folders_origin_terabox
@@ -68,9 +67,11 @@ internal suspend fun PlayerScreenRuntime.runSubtitleLibrarySearch() {
     librarySubtitlesVideoId = videoId
     librarySearching = true
     try {
-        val query = buildLibraryQuery()
+        // Usually ready already: the search started while the streams were being fetched.
+        val prefetched = SubtitleLibraryPrefetch.take(activeVideoId ?: parentMetaId)
+        val query = prefetched?.first ?: buildLibraryQuery()
         libraryQuery = query
-        val result = SubtitleLibraryPlatform.search(query)
+        val result = prefetched?.second ?: SubtitleLibraryPlatform.search(query)
         if (activeVideoId != videoId) return
         publishLibraryResult(result)
     } catch (error: CancellationException) {
@@ -83,21 +84,40 @@ internal suspend fun PlayerScreenRuntime.runSubtitleLibrarySearch() {
 }
 
 /** The episode and every title it may be filed under: the catalogue's, the file's and AniList/ARM aliases. */
-private suspend fun PlayerScreenRuntime.buildLibraryQuery(): LibraryQuery {
-    val type = contentType?.takeIf { it.isNotBlank() } ?: parentMetaType
-    val request = runCatching {
-        CloudStreams.request(type, activeVideoId ?: parentMetaId, activeSeasonNumber, activeEpisodeNumber)
-    }.getOrElse { if (it is CancellationException) throw it; null }
+private suspend fun PlayerScreenRuntime.buildLibraryQuery(): LibraryQuery = buildLibraryQuery(
+    type = contentType?.takeIf { it.isNotBlank() } ?: parentMetaType,
+    videoId = activeVideoId ?: parentMetaId,
+    parentMetaId = parentMetaId,
+    title = title,
+    season = activeSeasonNumber,
+    episode = activeEpisodeNumber,
+    isMovie = isMoviePlayback,
+    preferredLanguage = playerSettingsUiState.preferredSubtitleLanguage,
+)
+
+/** The episode and every title it may be filed under: the catalogue's, the given one and AniList/ARM aliases. */
+internal suspend fun buildLibraryQuery(
+    type: String,
+    videoId: String,
+    parentMetaId: String,
+    title: String,
+    season: Int?,
+    episode: Int?,
+    isMovie: Boolean,
+    preferredLanguage: String?,
+): LibraryQuery {
+    val request = runCatching { CloudStreams.request(type, videoId, season, episode) }
+        .getOrElse { if (it is CancellationException) throw it; null }
     val titles = (listOfNotNull(request?.displayTitle, title.takeIf { it.isNotBlank() }) + request?.aliases.orEmpty().map { it.title })
         .filter { it.isNotBlank() }
         .distinct()
     return LibraryQuery(
         seriesKey = parentMetaId.takeIf { it.isNotBlank() },
-        season = request?.season ?: activeSeasonNumber,
-        episode = request?.episode ?: activeEpisodeNumber ?: if (isMoviePlayback) 1 else null,
+        season = request?.season ?: season,
+        episode = request?.episode ?: episode ?: if (isMovie) 1 else null,
         absoluteEpisode = request?.absoluteEpisode,
         titles = titles,
-        preferredLanguage = playerSettingsUiState.preferredSubtitleLanguage,
+        preferredLanguage = preferredLanguage,
     )
 }
 
@@ -177,19 +197,20 @@ internal fun PlayerScreenRuntime.tryAutoSelectLibrarySubtitle(primaryTarget: Str
     return true
 }
 
-/** "Faltan fuentes: X, Y" and the engine notice: once per subtitle, when it is chosen. */
+/**
+ * The engine notice, once per subtitle when it is chosen: its fonts need libass on ExoPlayer.
+ * Missing fonts only go to the log (the user asked not to see that notice).
+ */
 internal fun PlayerScreenRuntime.onLibrarySubtitleSelected(subtitle: AddonSubtitle) {
     val prepared = libraryPrepared[subtitle.id] ?: return
     if (!libraryWarnedIds.add(subtitle.id)) return
     val engineCanUseFonts = playerController?.playbackEngine != AndroidPlaybackEngine.ExoPlayer ||
         playerSettingsUiState.useLibass || playerSettingsUiState.useLibmpvAss
-    val missing = prepared.missingFonts.sorted()
-    scope.launch {
-        if (prepared.isAss && prepared.fonts.isNotEmpty() && !engineCanUseFonts) {
-            NuvioToastController.show(getString(Res.string.subtitle_folders_engine_no_fonts))
-        } else if (missing.isNotEmpty()) {
-            NuvioToastController.show(getString(Res.string.subtitle_folders_missing_fonts, missing.take(4).joinToString(", ")))
-        }
+    if (prepared.missingFonts.isNotEmpty()) {
+        InAppLogger.info(TAG, "fonts not found in the folder: ${prepared.missingFonts.size}")
+    }
+    if (prepared.isAss && prepared.fonts.isNotEmpty() && !engineCanUseFonts) {
+        scope.launch { NuvioToastController.show(getString(Res.string.subtitle_folders_engine_no_fonts)) }
     }
 }
 
