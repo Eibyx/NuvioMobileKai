@@ -1545,7 +1545,8 @@ private fun ExoPlayerSurface(
                     }
                     subtitleSelectionJob = coroutineScope.launch {
                         val currentPosition = exoPlayer.currentPosition
-                        val wasPlaying = exoPlayer.isPlaying
+                        // The intent to play, not isPlaying: while buffering at start isPlaying is false.
+                        val wasPlaying = exoPlayer.playWhenReady
                         val currentMediaItem = exoPlayer.currentMediaItem ?: run {
                             Log.e(TAG, "setSubtitleUri: currentMediaItem is null, aborting")
                             InAppLogger.warn("ExoPlayer/Android", "set external subtitle aborted: currentMediaItem is null")
@@ -1597,7 +1598,7 @@ private fun ExoPlayerSurface(
                     selectedExternalSubtitleMimeType = null
                     attachedAddonSubtitleConfig = null
                     val currentPosition = exoPlayer.currentPosition
-                    val wasPlaying = exoPlayer.isPlaying
+                    val wasPlaying = exoPlayer.playWhenReady
                     val currentMediaItem = exoPlayer.currentMediaItem ?: run {
                         InAppLogger.warn("ExoPlayer/Android", "clear external subtitle aborted: currentMediaItem is null")
                         return
@@ -1625,7 +1626,7 @@ private fun ExoPlayerSurface(
                     selectedExternalSubtitleMimeType = null
                     attachedAddonSubtitleConfig = null
                     val currentPosition = exoPlayer.currentPosition
-                    val wasPlaying = exoPlayer.isPlaying
+                    val wasPlaying = exoPlayer.playWhenReady
                     val currentMediaItem = exoPlayer.currentMediaItem ?: run {
                         InAppLogger.warn("ExoPlayer/Android", "clear external subtitle/select aborted: currentMediaItem is null")
                         return
