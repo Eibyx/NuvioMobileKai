@@ -1492,6 +1492,8 @@ private fun ExoPlayerSurface(
                     if (aiostreamsAss != null && PlayerSubtitleUtils.mimeTypeFromUrl(url) == MimeTypes.TEXT_SSA) {
                         sidecarController.stopSidecarAddonSubtitle(clearView = true)
                         val headers = externalSubtitles.firstOrNull { it.url == url }?.headers.orEmpty()
+                        // Fonts of the user's subtitle folders go with the directory fonts (none for other subtitles).
+                        aiostreamsAss.folderFonts(LibraryFontRegistry.fontsForUrl(url).map { java.io.File(it.path) })
                         subtitleSelectionJob = coroutineScope.launch {
                             if (aiostreamsAss.showExternal(url, headers)) {
                                 exoPlayer.trackSelectionParameters = exoPlayer.trackSelectionParameters
@@ -2289,7 +2291,10 @@ private class NuvioLibmpvView(
         // Room above 100% for the player's amplification (+10 dB is about 316%).
         mpv.setOptionString("volume-max", "$LIBMPV_MAX_VOLUME_PERCENT").logIfMpvError("volume-max")
         mpv.setOptionString("vd-lavc-film-grain", "cpu")
-        SubtitleFontFiles.directoryPath()?.let { mpv.setOptionString("sub-fonts-dir", it).logIfMpvError("sub-fonts-dir") }
+        // The active font directory: the font directory's fonts plus, when a subtitle of the user's
+        // subtitle folders is added, only that subtitle's fonts (rewritten before each sub-add).
+        (MpvLibraryFonts.prepare(context, null) ?: SubtitleFontFiles.directoryPath())
+            ?.let { mpv.setOptionString("sub-fonts-dir", it).logIfMpvError("sub-fonts-dir") }
         // Fonts attached to the file first; then the font directory (copied into sub-fonts-dir),
         // then the default subtitle font.
         mpv.setOptionString("embeddedfonts", "yes").logIfMpvError("embeddedfonts")
@@ -2373,6 +2378,8 @@ private class NuvioLibmpvView(
         applyRequestHeadersNow(currentRequestHeaders)
         setPausedNow(!playWhenReady)
         mpv.setPropertyString("aid", "auto")
+        // A new file: no folder subtitle's fonts of the previous one stay for its embedded tracks.
+        MpvLibraryFonts.prepare(context, null)
         mpv.command("loadfile", sourceUrl.toMpvSource(), "replace")
         currentSourceAudioUrl?.takeIf { it.isNotBlank() }?.let { sourceAudioUrl ->
             mpv.command("audio-add", sourceAudioUrl.toMpvSource(), "auto")
@@ -2382,6 +2389,7 @@ private class NuvioLibmpvView(
 
     fun attachStartupSubtitles() {
         executeMpv {
+            MpvLibraryFonts.prepare(context, null)
             currentExternalSubtitles.forEachIndexed { index, subtitle ->
                 val flag = if (index == 0) "auto" else "cached"
                 mpv.command("sub-add", subtitle.url.toMpvSource(), flag, subtitle.name ?: subtitle.language, subtitle.language)
@@ -2897,7 +2905,14 @@ private class NuvioLibmpvView(
                     addImportedSubtitle(url.removePrefix("file://"))
                     return
                 }
-                executeMpv { mpv.command("sub-add", url, "select") }
+                if (com.nuvio.app.features.subtitlelibrary.SubtitleLibraryService.isLibraryUrl(url)) {
+                    addLibrarySubtitle(url)
+                    return
+                }
+                executeMpv {
+                    MpvLibraryFonts.prepare(context, null)
+                    mpv.command("sub-add", url, "select")
+                }
             }
 
             override fun clearExternalSubtitle() {
@@ -3006,6 +3021,7 @@ private class NuvioLibmpvView(
      */
     fun replaceExternalSubtitle(replacedUrl: String, path: String) {
         executeMpv {
+            MpvLibraryFonts.prepare(context, null)
             fun externalSubtitleTracks() = mpv.getPropertyNode("track-list")?.asArray()?.toList().orEmpty()
                 .filter { node -> node.nodeString("type") == "sub" && node.nodeBoolean("external") == true }
 
@@ -3037,8 +3053,31 @@ private class NuvioLibmpvView(
      * A subtitle file the user added: loaded once under its own name and selected; picking it again
      * selects the track mpv already has (as mpvRx's addSubtitleSuspend does).
      */
+    /**
+     * A subtitle of the user's subtitle folders: the active font directory gets its fonts first, then
+     * mpv adds (or selects again) the cached file; either way a new decoder reads that directory.
+     */
+    private fun addLibrarySubtitle(url: String) {
+        val path = url.removePrefix("file://")
+        executeMpv {
+            MpvLibraryFonts.prepare(context, url)
+            val existing = mpv.getPropertyNode("track-list")?.asArray()?.toList().orEmpty()
+                .firstOrNull { node -> node.nodeString("type") == "sub" && node.nodeString("external-filename") == path }
+                ?.nodeInt("id")
+            if (existing != null) {
+                InAppLogger.info("MPV/Android", "folder subtitle already loaded; selecting sid=$existing")
+                mpv.setPropertyString("sid", "no")
+                mpv.setPropertyInt("sid", existing)
+            } else {
+                InAppLogger.info("MPV/Android", "sub-add folder subtitle")
+                mpv.command("sub-add", path, "select")
+            }
+        }
+    }
+
     private fun addImportedSubtitle(path: String) {
         executeMpv {
+            MpvLibraryFonts.prepare(context, null)
             val existing = mpv.getPropertyNode("track-list")?.asArray()?.toList().orEmpty()
                 .firstOrNull { node -> node.nodeString("type") == "sub" && node.nodeString("external-filename") == path }
                 ?.nodeInt("id")

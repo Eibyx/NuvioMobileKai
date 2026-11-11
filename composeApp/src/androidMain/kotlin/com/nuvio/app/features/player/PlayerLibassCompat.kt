@@ -110,6 +110,11 @@ private class CompatAssSubtitleParserFactory(
 
     override fun create(format: Format): SubtitleParser {
         val normalized = normalizeSsaFormat(format)
+        if (normalized.sampleMimeType == MimeTypes.TEXT_SSA && !LibraryFontRegistry.isEmpty()) {
+            // Fonts of the user's subtitle folders, before delegate.create: AssHandler.createTrack
+            // flushes these pending fonts to libass. format.id is the sidecar's addonSubtitleTrackId.
+            LibraryFontRegistry.addFontsFor(format.id) { name, data -> assHandler.addFont(name, data) }
+        }
         return AutoSyncLibassSubtitles.wrapParser(assHandler, normalized, delegate.create(normalized)) // AutoSync hook
     }
 
