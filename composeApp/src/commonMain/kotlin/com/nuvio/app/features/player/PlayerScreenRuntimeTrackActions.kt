@@ -1,5 +1,7 @@
 package com.nuvio.app.features.player
 
+import com.nuvio.app.core.logging.InAppLogger
+
 internal val PlayerScreenRuntime.subtitleStyle: SubtitleStyleState
     get() = playerSettingsUiState.subtitleStyle
 
@@ -103,6 +105,7 @@ internal fun PlayerScreenRuntime.restorePersistedTrackPreferenceIfNeeded(): Bool
 
     when (preference.subtitleType) {
         PersistedSubtitleSelectionType.DISABLED -> {
+            InAppLogger.info(SubtitleSelectionLogTag, "subtitles off: you turned them off for this title")
             playerController?.selectSubtitleTrack(-1)
             selectedSubtitleIndex = -1
             selectedAddonSubtitleId = null
@@ -239,11 +242,11 @@ private fun PlayerScreenRuntime.tryAutoSelectPreferredSubtitleFromAvailableTrack
         useForcedSubtitles = subtitleStyle.useForcedSubtitles,
     )
     if (selectionPlan == null) {
-        disableAutomaticSubtitleSelection()
+        disableAutomaticSubtitleSelection("forced subtitles wanted but no audio track")
         return
     }
     if (selectionPlan.targets.isEmpty()) {
-        disableAutomaticSubtitleSelection()
+        disableAutomaticSubtitleSelection("no preferred subtitle language")
         preferredSubtitleSelectionApplied = true
         return
     }
@@ -304,7 +307,7 @@ private fun PlayerScreenRuntime.tryAutoSelectPreferredSubtitleFromAvailableTrack
         if (isLoadingAddonSubtitles) {
             val currentTrack = subtitleTracks.firstOrNull { it.index == selectedSubtitleIndex }
             if (currentTrack != null && !currentTrack.isForced) {
-                disableAutomaticSubtitleSelection()
+                disableAutomaticSubtitleSelection("forced-only: waiting for add-on subtitles")
             }
             return
         }
@@ -324,7 +327,7 @@ private fun PlayerScreenRuntime.tryAutoSelectPreferredSubtitleFromAvailableTrack
             useCustomSubtitles = true
             playerController?.setSubtitleUri(forcedAddonMatch.url)
         } else {
-            disableAutomaticSubtitleSelection()
+            disableAutomaticSubtitleSelection("forced-only: no forced track")
         }
         return
     }
@@ -384,13 +387,20 @@ private fun PlayerScreenRuntime.tryAutoSelectPreferredSubtitleFromAvailableTrack
             useCustomSubtitles = false
             return
         }
-        disableAutomaticSubtitleSelection()
+        disableAutomaticSubtitleSelection(
+            "no track in the preferred language: " + subtitleTracks.joinToString(",") { track ->
+                "${track.language ?: "und"}${if (track.isForced) "/forced" else ""}${if (track.isDefault) "/default" else ""}"
+            } + " audio=${selectedAudioTrack?.language ?: "none"}",
+        )
         preferredSubtitleSelectionApplied = true
     }
 }
 
-private fun PlayerScreenRuntime.disableAutomaticSubtitleSelection() {
+private const val SubtitleSelectionLogTag = "Player/Subtitles"
+
+private fun PlayerScreenRuntime.disableAutomaticSubtitleSelection(reason: String) {
     if (selectedSubtitleIndex != -1 || subtitleTracks.any { it.isSelected }) {
+        InAppLogger.info(SubtitleSelectionLogTag, "subtitles off automatically: $reason")
         playerController?.selectSubtitleTrack(-1)
     }
     selectedSubtitleIndex = -1

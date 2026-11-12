@@ -3255,6 +3255,10 @@ private fun Format.toTrackLogSummary(trackType: Int): String =
                 if (sampleRate > 0) append(" sampleRate=${sampleRate}Hz")
                 if (bitrate > 0) append(" bitrate=${bitrate.toLong().formatBitrate()}")
             }
+            C.TRACK_TYPE_TEXT -> {
+                if ((selectionFlags and C.SELECTION_FLAG_DEFAULT) != 0) append(" default")
+                if ((selectionFlags and C.SELECTION_FLAG_FORCED) != 0) append(" forced")
+            }
         }
     }
 

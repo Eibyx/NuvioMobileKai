@@ -115,6 +115,12 @@ private class CompatAssSubtitleParserFactory(
             // flushes these pending fonts to libass. format.id is the sidecar's addonSubtitleTrackId.
             LibraryFontRegistry.addFontsFor(format.id) { name, data -> assHandler.addFont(name, data) }
         }
+        if (normalized.sampleMimeType == MimeTypes.TEXT_SSA) {
+            com.nuvio.app.core.logging.InAppLogger.info(
+                "Subtitles/Libass",
+                "ASS track handed to libass id=${format.id ?: "none"} lang=${format.language ?: "und"}",
+            )
+        }
         return AutoSyncLibassSubtitles.wrapParser(assHandler, normalized, delegate.create(normalized)) // AutoSync hook
     }
 
