@@ -59,6 +59,7 @@ internal object SubtitleLibraryService {
     private val client by lazy { SharedOkHttpClient.base.newBuilder().followRedirects(true).followSslRedirects(true).build() }
 
     private const val LISTING_TTL_MS = 10 * 60 * 1000L
+    private const val FORCED_RELIST_MIN_AGE_MS = 60 * 1000L
     private const val MAX_MEMORY_LISTINGS = 64
     private const val MAX_FACE_INDEX = 256
     private const val MAX_CANDIDATES_PER_ROOT = 4
@@ -96,9 +97,11 @@ internal object SubtitleLibraryService {
     internal suspend fun list(source: LibrarySource, folderId: String, folderPath: String, force: Boolean = false): List<LibraryEntry> {
         val key = "${source.folder.id}|$folderId"
         val now = System.currentTimeMillis()
-        if (!force) {
-            synchronized(lock) { listings[key] }?.takeIf { now - it.atEpochMs < LISTING_TTL_MS }?.let { return it.entries }
-            readListing(key)?.takeIf { now - it.atEpochMs < LISTING_TTL_MS }?.let { cached ->
+        // force re-reads a listing older than a minute; a fresher one is as good as a new read.
+        val maxAge = if (force) FORCED_RELIST_MIN_AGE_MS else LISTING_TTL_MS
+        run {
+            synchronized(lock) { listings[key] }?.takeIf { now - it.atEpochMs < maxAge }?.let { return it.entries }
+            readListing(key)?.takeIf { now - it.atEpochMs < maxAge }?.let { cached ->
                 synchronized(lock) { listings[key] = cached }
                 return cached.entries
             }
@@ -162,14 +165,25 @@ internal object SubtitleLibraryService {
                     subtitles += prepare(source, EpisodeSubtitle(entry, emptyList(), folder), query, picked = true)
                     continue
                 }
-                val top = list(source, source.rootId, root.folderPath)
                 val link = query.seriesKey?.let { settings.links[it] }?.takeIf { it.rootId == root.id }
-                when (val match = LibraryMatcher.animeFolder(top, query.titles, link?.folderEntryId)) {
+                var match = LibraryMatcher.animeFolder(list(source, source.rootId, root.folderPath), query.titles, link?.folderEntryId)
+                if (match !is AnimeFolderMatch.Found) {
+                    // The series folder may have been uploaded after the listing was cached: read it again.
+                    match = LibraryMatcher.animeFolder(list(source, source.rootId, root.folderPath, force = true), query.titles, link?.folderEntryId)
+                    InAppLogger.info(TAG, "${root.origin} series folder not in the cached listing; read again: ${match::class.simpleName}")
+                }
+                when (match) {
                     is AnimeFolderMatch.Found -> {
                         animeFolders[root.id] = match.folder
-                        val files = episodeTree(source, match.folder, root)
-                        LibraryMatcher.episodeSubtitles(files, query.season, query.episode, query.absoluteEpisode)
-                            .take(MAX_CANDIDATES_PER_ROOT)
+                        fun episodeCandidates(files: List<EpisodeSubtitle>) =
+                            LibraryMatcher.episodeSubtitles(files, query.season, query.episode, query.absoluteEpisode)
+                        var candidates = episodeCandidates(episodeTree(source, match.folder, root))
+                        if (candidates.isEmpty()) {
+                            // The episode's subtitle may be new: read the series folder again.
+                            candidates = episodeCandidates(episodeTree(source, match.folder, root, force = true))
+                            InAppLogger.info(TAG, "${root.origin} episode not in the cached listing; read again: ${candidates.size} found")
+                        }
+                        candidates.take(MAX_CANDIDATES_PER_ROOT)
                             .forEach { candidate -> subtitles += prepare(source, candidate, query, picked = false) }
                     }
                     is AnimeFolderMatch.Ambiguous -> needsLink += root
@@ -190,14 +204,19 @@ internal object SubtitleLibraryService {
     }
 
     /** Subtitles in the anime folder and in its season folders (`Temporada 2`, `Season 2`, `S2`). */
-    private suspend fun episodeTree(source: LibrarySource, anime: LibraryEntry, root: SubtitleFolder): List<EpisodeSubtitle> {
-        val entries = list(source, anime.id, anime.path.ifEmpty { "${root.folderPath.trimEnd('/')}/${anime.name}" })
+    private suspend fun episodeTree(
+        source: LibrarySource,
+        anime: LibraryEntry,
+        root: SubtitleFolder,
+        force: Boolean = false,
+    ): List<EpisodeSubtitle> {
+        val entries = list(source, anime.id, anime.path.ifEmpty { "${root.folderPath.trimEnd('/')}/${anime.name}" }, force)
         val here = entries.filter { !it.isFolder && LibraryMatcher.isSubtitleName(it.name) }
             .map { EpisodeSubtitle(it, emptyList(), anime) }
         val seasons = entries.filter { it.isFolder && LibraryMatcher.seasonOfFolder(it.name) != null }
             .take(MAX_SEASON_FOLDERS)
             .flatMap { season ->
-                list(source, season.id, season.path)
+                list(source, season.id, season.path, force)
                     .filter { !it.isFolder && LibraryMatcher.isSubtitleName(it.name) }
                     .map { EpisodeSubtitle(it, listOf(season.name), season) }
             }
