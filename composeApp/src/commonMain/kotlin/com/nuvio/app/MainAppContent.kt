@@ -779,11 +779,14 @@ internal fun MainAppContent(
             InAppLogger.info("Sync/Foreground", "initial pull profile=$profileId")
             SyncManager.pullAllForProfile(profileId)
         }
+        // TeraBox / Google Drive: new files show up without a manual sync.
+        com.nuvio.app.features.cloudstorage.CloudStorageRepository.refreshOnAppOpen()
         try {
             AppForegroundMonitor.events().collect { visibility ->
                 when (visibility) {
                     AppVisibility.Foreground -> {
                         InAppLogger.debug("App/Foreground", "foreground event: refreshing network status")
+                        com.nuvio.app.features.cloudstorage.CloudStorageRepository.refreshOnAppOpen()
                         NetworkStatusRepository.requestForegroundRefresh()
                         DeviceSessionRegistration.registerIfAuthenticated()
                         MemberAccessRepository.refreshIfStale()

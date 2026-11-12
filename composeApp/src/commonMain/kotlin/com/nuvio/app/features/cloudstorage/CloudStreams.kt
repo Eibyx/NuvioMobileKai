@@ -55,7 +55,9 @@ internal object CloudStreams {
             InAppLogger.info("Cloud/Match", "${account.kind.id} no request for id=$videoId type=$type")
             return emptyList()
         }
-        val files = CloudStorageRepository.index(account.id)?.files.orEmpty()
+        // Opening an episode re-indexes the account first (when not done in the last minutes), so a
+        // file uploaded a moment ago is found without a manual sync.
+        val files = CloudStorageRepository.freshIndex(account.id)?.files.orEmpty()
         val matches = CloudMatcher.match(files, request, account.manualLinks)
         log.d { "${matches.size} matches in a ${account.kind.id} account" }
         val (titled, misses) = if (matches.isEmpty()) CloudMatcher.nearMisses(files, request) else (0 to emptyList())

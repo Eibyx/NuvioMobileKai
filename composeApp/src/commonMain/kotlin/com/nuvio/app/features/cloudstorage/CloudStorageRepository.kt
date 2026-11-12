@@ -8,8 +8,11 @@ import kotlinx.atomicfu.locks.synchronized
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -40,6 +43,13 @@ internal object CloudStorageRepository {
     private var loadedProfileId: Int? = null
     private val backgroundScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private const val STALE_AFTER_MS = 6 * 60 * 60 * 1000L
+
+    /** Opening the app (or coming back to it) re-indexes accounts not indexed for this long. */
+    internal const val APP_OPEN_REFRESH_MS = 10 * 60 * 1000L
+
+    /** Opening an episode re-indexes an account not indexed for this long, and waits for it. */
+    internal const val EPISODE_REFRESH_MS = 2 * 60 * 1000L
+    private const val EPISODE_WAIT_MS = 20_000L
     private val indexes = mutableMapOf<String, CloudIndexSnapshot>()
     private val providers = mutableMapOf<String, CloudProvider>()
 
@@ -120,9 +130,41 @@ internal object CloudStorageRepository {
         syncInBackground(account.id)
     }
 
-    fun syncInBackground(id: String) {
-        if (id in _uiState.value.syncing) return
-        backgroundScope.launch {
+    /**
+     * When Nuvio opens or comes back: re-indexes, in the background, every enabled account not
+     * indexed in the last [APP_OPEN_REFRESH_MS], so new files show up without a manual sync.
+     */
+    fun refreshOnAppOpen() {
+        val accounts = runCatching { enabledAccounts() }.getOrDefault(emptyList())
+        accounts.filter { isOlderThan(it, APP_OPEN_REFRESH_MS) }.forEach { account ->
+            log.i { "Re-indexing a ${account.kind.id} account on app open" }
+            syncInBackground(account.id)
+        }
+    }
+
+    /**
+     * The index to match an episode against: re-indexed first when older than
+     * [EPISODE_REFRESH_MS] (or joins a sync already running), waiting at most [EPISODE_WAIT_MS].
+     * The sync is never cancelled by the wait: past the limit it finishes in the background.
+     */
+    suspend fun freshIndex(id: String): CloudIndexSnapshot? {
+        val account = account(id) ?: return null
+        if (account.folders.isNotEmpty() && isOlderThan(account, EPISODE_REFRESH_MS)) {
+            val job = syncInBackground(id)
+            val done = withTimeoutOrNull(EPISODE_WAIT_MS) {
+                if (job != null) job.join() else uiState.first { id !in it.syncing }
+            }
+            if (done == null) log.i { "A ${account.kind.id} re-index is still running; matching the previous index" }
+        }
+        return index(id)
+    }
+
+    private fun isOlderThan(account: CloudAccount, ageMs: Long): Boolean =
+        nowMs() - (account.lastSyncEpochMs ?: 0L) >= ageMs
+
+    fun syncInBackground(id: String): Job? {
+        if (id in _uiState.value.syncing) return null
+        return backgroundScope.launch {
             runCatching { sync(id) }.onFailure { error ->
                 if (error is CancellationException) throw error
                 log.w { "Background sync failed: ${(error as? CloudStorageException)?.failure ?: error::class.simpleName}" }
