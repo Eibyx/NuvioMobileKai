@@ -367,7 +367,7 @@ private fun PlayerScreenRuntime.switchToPreparedLiveChannel(channel: LiveTvChann
     }
     stopActiveP2pStream()
     activeSourceUrl = channel.streamUrl
-    activePlaybackSourceUrl = if (channel.streamUrl.contains(".m3u8", ignoreCase = true)) null else channel.streamUrl
+    activePlaybackSourceUrl = channel.streamUrl
     activeSourceAudioUrl = null
     activeSourceHeaders = sanitizePlaybackHeaders(channel.headers)
     activeSourceResponseHeaders = emptyMap()
@@ -774,7 +774,7 @@ private fun PlayerScreenRuntime.applyEpisodeStreamMetadata(
     controlsVisible = true
 }
 
-private fun PlayerScreenRuntime.saveDirectStreamForReuse(
+internal fun PlayerScreenRuntime.saveDirectStreamForReuse(
     stream: StreamItem,
     url: String,
     videoId: String,

@@ -627,6 +627,7 @@ internal fun ResumeBanner(
                 shape = RoundedCornerShape(18.dp),
                 tint = streamGlassTint(),
                 fallback = streamGlassFallback(MaterialTheme.colorScheme.surface.copy(alpha = 0.72f)),
+                staticFromBackdrop = true,
             )
             .padding(horizontal = 14.dp, vertical = 10.dp),
     ) {
@@ -1586,6 +1587,7 @@ internal fun StreamSearchField(
                 shape = fieldShape,
                 tint = streamGlassTint(),
                 fallback = streamGlassFallback(tokens.colors.surfaceCard),
+                staticFromBackdrop = true,
                 blurRadius = 14.dp,
                 refractionHeight = 8.dp,
             ),

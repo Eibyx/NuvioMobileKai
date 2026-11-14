@@ -24,6 +24,7 @@ import androidx.compose.material.icons.automirrored.rounded.ListAlt
 import androidx.compose.material.icons.automirrored.rounded.OpenInNew
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.automirrored.rounded.Toc
+import androidx.compose.material.icons.rounded.Album
 import androidx.compose.material.icons.rounded.Build
 import androidx.compose.material.icons.rounded.Cast
 import androidx.compose.material.icons.rounded.CastConnected
@@ -94,6 +95,7 @@ internal fun PlayerToolbar(
     onPictureInPictureClick: (() -> Unit)? = null,
     /** Hold-to-compare with the original picture; shown while shaders run. */
     showShaderCompare: Boolean = false,
+    onDiscTitlesClick: (() -> Unit)? = null,
 ) {
     Row(modifier = modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Spacer(Modifier.weight(1f))
@@ -114,6 +116,13 @@ internal fun PlayerToolbar(
             ),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            onDiscTitlesClick?.let {
+                PlayerAction(
+                    description = stringResource(Res.string.player_disc_titles),
+                    icon = Icons.Rounded.Album,
+                    onClick = it,
+                )
+            }
             onPictureInPictureClick?.let {
                 PlayerAction(
                     description = stringResource(Res.string.compose_player_picture_in_picture),
