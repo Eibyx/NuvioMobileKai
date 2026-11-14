@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Blu-ray en ExoPlayer -->
+    <string name="player_disc_titles">Títulos del disco</string>
+    <string name="player_disc_titles_count">Títulos del disco (%1$d)</string>
+    <string name="player_disc_title_feature">Película · %1$s</string>
+    <string name="player_disc_title_extra">Extra · %1$s</string>
+    <string name="player_disc_title_clip">%1$d clip</string>
+    <string name="player_disc_title_clips">%1$d clips</string>
+    <string name="player_disc_title_audio">Audio %1$s</string>
+    <string name="player_disc_title_subtitles">Subtítulos %1$s</string>
+    <string name="player_disc_title_failed">No se pudo reproducir este título</string>
+
+    <!-- Seguir viendo: qué abre al elegirlo -->
+    <string name="settings_continue_watching_click_action_title">Al elegir</string>
+    <string name="settings_continue_watching_click_action_description">Qué se abre al elegir un elemento de Seguir viendo</string>
+    <string name="settings_continue_watching_click_action_stream">Abrir stream</string>
+    <string name="settings_continue_watching_click_action_stream_desc">Elegir una fuente o seguir reproduciendo</string>
+    <string name="settings_continue_watching_click_action_details">Abrir ficha</string>
+    <string name="settings_continue_watching_click_action_details_desc">Abrir la página de detalles del título</string>
+    <string name="settings_continue_watching_click_action_details_upcoming">Ficha solo para próximos</string>
+    <string name="settings_continue_watching_click_action_details_upcoming_desc">Abre la ficha para episodios que aún no se han emitido y el stream para el resto</string>
+
+    <!-- TV en directo -->
+    <plurals name="live_tv_category_channel_count">
+        <item quantity="one">%1$d canal</item>
+        <item quantity="other">%1$d canales</item>
+    </plurals>
+
+    <!-- Siguiente fuente si una falla -->
+    <string name="settings_playback_auto_switch_engine_blocked_by_fallback">Desactiva «Probar la siguiente fuente si falla» para usar esto.</string>
+    <string name="settings_playback_fallback_next_source">Probar la siguiente fuente si falla</string>
+    <string name="settings_playback_fallback_next_source_description">Si la fuente elegida automáticamente falla o no arranca a tiempo, prueba sin avisar las siguientes fuentes que encajan.</string>
+    <string name="settings_playback_fallback_max_sources">Fuentes que probar si falla</string>
+    <string name="settings_playback_fallback_startup_timeout">Tiempo para que arranque una fuente</string>
+    <string name="settings_playback_fallback_next_source_blocked_by_engine_switch">Desactiva «Cambiar de motor automáticamente si falla la reproducción» para usar esto.</string>
+    <string name="player_error_source_startup_timeout">La fuente no arrancó en %1$d segundos.</string>
+
+    <!-- Capítulos -->
+    <string name="settings_playback_chapter_title">Mostrar título del capítulo</string>
+    <string name="settings_playback_chapter_title_description">Muestra el nombre del capítulo actual encima de la barra de progreso.</string>
+</resources>
