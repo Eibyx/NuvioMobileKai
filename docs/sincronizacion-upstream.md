@@ -1,3 +1,33 @@
+# Sincronización con el oficial y con luqman (14-nov-2026)
+
+Dos fusiones en `kai-sync-0612` (después en `kai`), sin rebase: primero **luqman** (`enhanced`, hasta el 14-nov, con el oficial hasta su 0.6.12-beta) y después los 12 commits del **oficial** (`cmp-rewrite`) que luqman aún no tenía. 15 archivos en conflicto con luqman y 7 con el oficial.
+
+## Qué entró
+
+| Cambio | De | Notas |
+|---|---|---|
+| Siguiente fuente si una falla: si la fuente elegida automáticamente falla o no arranca a tiempo, se prueba la siguiente | Oficial | En Reproducción. No se puede activar a la vez que «Cambiar de motor automáticamente si falla la reproducción». |
+| Búsqueda de streams compartida entre la pantalla de streams y el panel de fuentes del reproductor; caché de debrid comprobada una vez por búsqueda | Oficial | Incluye las fuentes de servidor, y con ellas TeraBox y Drive. Los registros `Streams/AddonFetch` y `Streams/PluginFetch` de Kai pasan a `StreamSearchSessions`. |
+| Enlaces de debrid con token reutilizados y vueltos a resolver al caducar | Oficial | |
+| Seguir viendo: «Al elegir» (stream, ficha o ficha solo para próximos) y quitar de «A continuación» por id | Oficial | |
+| Teclado: volumen con las flechas arriba y abajo | Oficial | Sobre los atajos de Kai (`PlayerKeyboardShortcuts`), no los del oficial. |
+| Capítulos en mpv y título del capítulo; errores de ExoPlayer y mpv como NuvioTV, con el estado HTTP | Oficial | Capítulos activados por defecto, como en Kai. `MpvErrorLog` usa el `MPVLib` de mpvRx. |
+| Blu-ray en bruto en ExoPlayer (títulos del disco) | luqman (chrisk325) | |
+| TV en directo: carga infinita y pantalla negra; selector de calidad HLS | luqman | |
+| Simkl OAuth v2, botón de IMDb de Discord, marcas de stream sincronizadas antes de la descarga | luqman | |
+| Preferencias de subtítulos por dispositivo | luqman | Con exportación de ajustes y borrado de perfil. |
+| Cristal estático con la imagen de la serie en la pantalla de streams | luqman | Sobre el cristal de Kai. |
+| Afinado de líneas de Anime4K en ExoPlayer más fuerte, iOS, traducciones | luqman / oficial | |
+
+## Qué se quedó de Kai
+
+| Kai | Notas |
+|---|---|
+| Aspecto cinemático y claro de la ficha (móvil y tablet) y de Streams | luqman lo cambió (sin difuminado, velo 0.36); Kai mantiene el suyo. |
+| Miniaturas de la barra (`SeekPreviewController`) | Las de luqman (precarga, pausa al cargar) chocan con el índice de Kai. |
+| Carga del inicio (`HomeRepository`) | Kai ya evita el parpadeo del destacado («el destacado nunca se queda vacío»); el arreglo del oficial es para lo mismo. |
+| Opacidad del cristal de los streams (0.55) | luqman la bajó a 0.45. |
+
 # Sincronización con el oficial y con luqman (10-nov-2026)
 
 Una sola fusión en `kai`, sin rebase: **luqman** (`enhanced`) ya había fusionado el **oficial** (`cmp-rewrite`) hasta su 0.6.11-beta, así que con luqman entra todo: unos 129 commits (de luqman, del oficial y de sus colaboradores). Hubo 15 archivos en conflicto.
