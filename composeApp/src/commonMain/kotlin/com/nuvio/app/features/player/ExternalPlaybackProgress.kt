@@ -51,6 +51,9 @@ internal suspend fun recordExternalPlaybackProgress(
             positionMs = result.positionMs,
         ),
     )
+    // A returning external player reports once: write it now rather than on the background queue,
+    // so it survives the app being closed right after (and a reload reads it back).
+    WatchProgressRepository.flushPendingWrites()
     if (durationMs != null && durationMs > 0L) {
         val media = buildTrackingMediaReference(
             contentType = session.parentMetaType,
