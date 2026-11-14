@@ -94,6 +94,7 @@ import com.nuvio.app.features.watchprogress.ContinueWatchingItem
 import com.nuvio.app.features.watchprogress.ContinueWatchingSectionStyle
 import com.nuvio.app.features.tracking.WatchProgressSource
 import kotlinx.coroutines.flow.MutableStateFlow
+import org.junit.Before
 import org.junit.Rule
 import org.junit.runner.RunWith
 import org.robolectric.ParameterizedRobolectricTestRunner
@@ -114,6 +115,12 @@ import kotlin.test.Test
 class AppearanceScreenshotTest(private val appearance: AppearanceMode) {
     @get:Rule
     val compose = createComposeRule()
+
+    /** The player settings (read by the detail page) keep subtitle choices per device since 0.6.12. */
+    @Before
+    fun initializePlayerSettingsStorage() {
+        com.nuvio.app.features.player.PlayerSettingsStorage.initialize(RuntimeEnvironment.getApplication())
+    }
 
     private val outputDir: File = File(
         "build/screenshots",
