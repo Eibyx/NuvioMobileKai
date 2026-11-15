@@ -247,12 +247,12 @@ internal fun PlayerScreenRuntime.handleKeyboardShortcut(shortcut: PlayerKeyboard
         PlayerKeyboardShortcut.TogglePlayback -> togglePlayback()
         PlayerKeyboardShortcut.SeekBackward -> seekBy(-skipStepMs(PlayerSeekDirection.Backward))
         PlayerKeyboardShortcut.SeekForward -> seekBy(skipStepMs(PlayerSeekDirection.Forward))
+        PlayerKeyboardShortcut.VolumeUp -> changeVolumeBy(PlayerKeyVolumeStep)
+        PlayerKeyboardShortcut.VolumeDown -> changeVolumeBy(-PlayerKeyVolumeStep)
         PlayerKeyboardShortcut.Exit -> {
             flushWatchProgress()
             args.onBack()
         }
-        PlayerKeyboardShortcut.VolumeUp -> changeVolumeBy(PlayerKeyVolumeStep)
-        PlayerKeyboardShortcut.VolumeDown -> changeVolumeBy(-PlayerKeyVolumeStep)
     }
 }
 

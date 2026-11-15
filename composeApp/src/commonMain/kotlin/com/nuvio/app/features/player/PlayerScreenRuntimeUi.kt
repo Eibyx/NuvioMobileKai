@@ -917,7 +917,7 @@ private fun BoxScope.RenderPlaybackOverlays(
             p2pInitialLoadingMessage ?: playerLoadingStatusMessage(
                 showStatus = true,
                 controllerReady = playerController != null,
-                buffering = snapshotIsLoading,
+                snapshot = playbackSnapshot,
             )
         } else null,
         openingNetworkSpeed = networkSpeedText,
