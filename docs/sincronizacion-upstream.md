@@ -1,3 +1,26 @@
+# Sincronización con el oficial y con luqman (15-nov-2026)
+
+Dos fusiones en `kai-sync-100`, sin rebase: **luqman** (`enhanced`, su 0.6.13) y después el **oficial** (`cmp-rewrite`, su 1.0.0). 12 archivos en conflicto con luqman y 4 con el oficial (solo publicación).
+
+## Qué entró
+
+| Cambio | De | Notas |
+|---|---|---|
+| Pantalla de carga del reproductor: cada paso del arranque (crear el reproductor, abrir el stream, cargar) | Oficial | Con «Mostrar estado de carga». En mpv sobre el `MPVLib` de mpvRx. |
+| Inicio: menos recomposiciones al arrancar | Oficial | Lo de `HomeScreen`; la carga de catálogos sigue siendo la de Kai. |
+| Logo de la app decodificado en segundo plano | Oficial | Con el logo del tema claro de Kai. |
+| Cuadrículas de pósters: 6 por fila en horizontal, 7 en tablets | luqman | Sustituye el cálculo de columnas propio de Kai en las carpetas. |
+| Simkl como fuente de «Más como esto» | luqman | |
+| Traducciones (francés, vietnamita), iOS (Dolby Vision en PiP, MPVKit) | Oficial / luqman | |
+
+## Qué se quedó de Kai
+
+| Kai | Notas |
+|---|---|
+| Publicación: `mobile-release.yml`, `release-metadata.sh` (etiqueta `-beta`), versión y `store.json` | El oficial pasa a releases estables y beta con `CURRENT_PROJECT_VERSION`; `android-release.yml` y `update-store-source.yml` siguen fuera. |
+| Carga del inicio (`HomeRepository`) y aspecto cinemático de Streams | Como en la 3.5.0: la fusión suave de la cabecera de episodio de luqman no entra. |
+| Atajos de teclado | luqman añadió también el volumen; queda una sola vez. |
+
 # Sincronización con el oficial y con luqman (14-nov-2026)
 
 Dos fusiones en `kai-sync-0612` (después en `kai`), sin rebase: primero **luqman** (`enhanced`, hasta el 14-nov, con el oficial hasta su 0.6.12-beta) y después los 12 commits del **oficial** (`cmp-rewrite`) que luqman aún no tenía. 15 archivos en conflicto con luqman y 7 con el oficial.
