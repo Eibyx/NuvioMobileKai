@@ -1,3 +1,30 @@
+# Sincronización con el oficial y con luqman (17-nov-2026)
+
+Dos fusiones en `kai-sync-110`, sin rebase: **luqman** (`enhanced`, su 1.1.0-beta.1) y después el **oficial** (`cmp-rewrite`, después de su 1.0.0). 11 archivos en conflicto con luqman y 3 con el oficial. Primera release sin `-beta`: 4.0.0.
+
+## Qué entró
+
+| Cambio | De | Notas |
+|---|---|---|
+| Plex Media Server y Silo como servidores | Oficial | En el mismo sistema de servidores que TeraBox y Drive. |
+| Biblioteca: lista y tipo recordados por perfil; filtros de género, año y visto | Oficial | |
+| Addons de seguimiento de Stremio (reproducción y biblioteca) | Oficial | Con aviso de consentimiento. |
+| Subtítulos con estilo: colores, nueve posiciones, cursiva/negrita/subrayado y grosor del contorno | Oficial | |
+| Siguiente fuente si falla también para el episodio siguiente; controles de abajo sin los márgenes de gestos | Oficial | |
+| TorBox: respuestas de caché por hash alternativo | Oficial | |
+| Descargas por temporada, cola de descargas y almacenamiento | luqman (Ronak Sanpui) | Ya no hay modo descarga en Streams: la búsqueda de subtítulos de mis carpetas se hace siempre. |
+| «Más como esto» al terminar una película y TMDB si Simkl no tiene; imagen de la serie si falla la del episodio | luqman | |
+| Traducciones: ucraniano, chino simplificado, portugués de Brasil, hebreo, urdu | Oficial | |
+
+## Qué se quedó de Kai
+
+| Kai | Notas |
+|---|---|
+| mpv de mpvRx (`mpvlib` 1.1.3) | El oficial pasa a `mpv-android-lib` 0.2.1, otra librería. |
+| Publicación (`mobile-release.yml`, `release-metadata.sh`), versión, README, `store.json` | Desde la 4.0.0 la etiqueta y la versión son la versión sola (`4.0.0`, no `4.0.0-beta`); las notas siguen empezando tras la 3.5.1-beta. |
+| Portada de Ajustes (organización de Kai) | Descargas sigue donde estaba en Kai. |
+| `combinedSeriesPrimaryAction` (AniList) en la ficha | |
+
 # Sincronización con el oficial y con luqman (15-nov-2026)
 
 Dos fusiones en `kai-sync-100`, sin rebase: **luqman** (`enhanced`, su 0.6.13) y después el **oficial** (`cmp-rewrite`, su 1.0.0). 12 archivos en conflicto con luqman y 4 con el oficial (solo publicación).
