@@ -3,6 +3,7 @@ package com.nuvio.app.features.details.components
 import com.nuvio.app.core.ui.NuvioWindowSize
 import com.nuvio.app.core.ui.surfaceOverlay
 import com.nuvio.app.core.ui.readableOnBackground
+import com.nuvio.app.features.details.seasonLabel
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateContentSize
@@ -107,10 +108,21 @@ import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Pause
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nuvio.app.core.ui.glass.ambientLiquidGlass
 import com.nuvio.app.core.ui.glass.detailCardGlass
 import com.nuvio.app.core.ui.glass.detailCardSecondaryText
 import com.nuvio.app.core.i18n.localizedEpisodeTitle
+import com.nuvio.app.features.downloads.DownloadItem
+import com.nuvio.app.features.downloads.EpisodeDownloadIndex
+import com.nuvio.app.features.downloads.DownloadStatus
+import com.nuvio.app.features.downloads.DownloadsRepository
+import com.nuvio.app.features.downloads.DownloadProgressSpinner
+import com.nuvio.app.features.downloads.animatedDownloadProgress
+import com.nuvio.app.features.downloads.formatDownloadBadgeProgress
+import com.nuvio.app.features.downloads.knownProgress
 
 private val log = Logger.withTag("SeriesContent")
 
@@ -127,12 +139,15 @@ fun DetailSeriesContent(
     episodeCardStyle: MetaEpisodeCardStyle = MetaEpisodeCardStyle.Horizontal,
     progressByVideoId: Map<String, WatchProgressEntry> = emptyMap(),
     watchedKeys: Set<String> = emptySet(),
+    episodeDownloadFor: (MetaVideo) -> DownloadItem?,
     episodeRatings: Map<Pair<Int, Int>, Double> = emptyMap(),
     episodeRatingsVisibility: EpisodeRatingsVisibility = EpisodeRatingsVisibility.SHOW_ALL,
     blurUnwatchedEpisodes: Boolean = false,
     onEpisodeClick: ((MetaVideo) -> Unit)? = null,
     onEpisodeLongPress: ((MetaVideo) -> Unit)? = null,
     onSeasonLongPress: ((Int) -> Unit)? = null,
+    selectedSeason: Int?,
+    onSeasonSelected: (Int) -> Unit,
 ) {
     val hasVideos = meta.videos.isNotEmpty()
     if (meta.type != "series" && !hasVideos) return
@@ -188,10 +203,10 @@ fun DetailSeriesContent(
     val defaultSeason = preferredSeasonNumber
         ?.takeIf { it in groupedEpisodes }
         ?: seasons.first()
-    var selectedSeasonOverride by rememberSaveable(meta.id) { mutableStateOf<Int?>(null) }
-    val currentSeason = selectedSeasonOverride
+    val currentSeason = selectedSeason
         ?.takeIf { it in groupedEpisodes }
         ?: defaultSeason
+
 
     BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
         val sizing = seriesContentSizing(maxWidth.value)
@@ -207,7 +222,9 @@ fun DetailSeriesContent(
                 currentSeason = currentSeason,
                 sizing = sizing,
                 horizontalScrollPadding = horizontalScrollPadding,
-                onSelect = { selectedSeasonOverride = it },
+                onSelect = {
+                    onSeasonSelected(it)
+                },
                 onLongPress = onSeasonLongPress,
             )
 
@@ -232,7 +249,7 @@ fun DetailSeriesContent(
                             title = if (meta.type != "series" && seasonForContent <= 0) {
                                 stringResource(Res.string.details_videos)
                             } else {
-                                seasonForContent.label()
+                                seasonLabel(seasonForContent)
                             },
                         )
                     }
@@ -314,6 +331,7 @@ fun DetailSeriesContent(
                                 preferredSeasonNumber = preferredSeasonNumber,
                                 preferredEpisodeNumber = preferredEpisodeNumber,
                             ),
+                            episodeDownloadFor = episodeDownloadFor,
                             onEpisodeClick = onEpisodeClick,
                             onEpisodeLongPress = onEpisodeLongPress,
                         )
@@ -351,6 +369,7 @@ fun DetailSeriesContent(
                                             metaId = meta.id,
                                             episode = episode,
                                         ),
+                                    downloadItem = episodeDownloadFor(episode),
                                     episodeRatingsVisibility = episodeRatingsVisibility,
                                     blurUnwatchedEpisodes = blurUnwatchedEpisodes,
                                     sizing = sizing,
@@ -410,7 +429,7 @@ internal fun DetailSeriesListHeader(
                     title = if (meta.type != "series" && currentSeason <= 0) {
                         stringResource(Res.string.details_videos)
                     } else {
-                        currentSeason.label()
+                        seasonLabel(currentSeason)
                     },
                 )
             }
@@ -425,6 +444,7 @@ internal fun DetailSeriesListEpisode(
     progressByVideoId: Map<String, WatchProgressEntry>,
     watchedKeys: Set<String>,
     episodeRatings: Map<Pair<Int, Int>, Double>,
+    episodeDownloadFor: (MetaVideo) -> DownloadItem?,
     episodeRatingsVisibility: EpisodeRatingsVisibility,
     blurUnwatchedEpisodes: Boolean,
     onEpisodeClick: ((MetaVideo) -> Unit)?,
@@ -442,6 +462,7 @@ internal fun DetailSeriesListEpisode(
             fallbackVideoId = episode.id,
         )
         val userRatingTarget = remember(meta, episode) { meta.episodeUserRatingTarget(episode) }
+        val downloadItem = episodeDownloadFor(episode)
         EpisodeListCard(
             video = episode,
             userRating = rememberUserRating(userRatingTarget),
@@ -456,6 +477,7 @@ internal fun DetailSeriesListEpisode(
                     metaId = meta.id,
                     episode = episode,
                 ),
+            downloadItem = downloadItem,
             episodeRatingsVisibility = episodeRatingsVisibility,
             blurUnwatchedEpisodes = blurUnwatchedEpisodes,
             sizing = sizing,
@@ -489,7 +511,7 @@ internal fun MetaDetails.isEpisodeWatchedForNavigator(
 
 @Composable
 internal fun seasonDisplayLabel(meta: MetaDetails, season: Int): String =
-    if (meta.type != "series" && season <= 0) stringResource(Res.string.details_videos) else season.label()
+    if (meta.type != "series" && season <= 0) stringResource(Res.string.details_videos) else seasonLabel(season)
 
 @Composable
 private fun SeriesSeasonSelector(
@@ -684,7 +706,7 @@ private fun SeasonTextChipScrollRow(
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    text = season.label(),
+                    text = seasonLabel(season),
                     style = MaterialTheme.typography.bodyLarge.copy(
                         fontSize = sizing.seasonChipTextSize,
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
@@ -736,7 +758,7 @@ private fun SeasonPosterScrollRow(
     ) {
         items(seasons, key = { season -> season }) { season ->
             SeasonPosterButton(
-                label = season.label(),
+                label = seasonLabel(season),
                 imageUrl = resolveSeasonPoster(
                     season = season,
                     groupedEpisodes = groupedEpisodes,
@@ -860,6 +882,7 @@ private fun EpisodeHorizontalRow(
     preferredEpisodeNumber: Int? = null,
     listState: LazyListState = rememberLazyListState(),
     highlightedKey: String? = null,
+    episodeDownloadFor: ((MetaVideo) -> DownloadItem?)? = null,
     onEpisodeClick: ((MetaVideo) -> Unit)?,
     onEpisodeLongPress: ((MetaVideo) -> Unit)?,
 ) {
@@ -923,6 +946,7 @@ private fun EpisodeHorizontalRow(
                         metaId = parentMetaId,
                         episode = episode,
                     ),
+                downloadItem = episodeDownloadFor?.invoke(episode),
                 episodeRatingsVisibility = episodeRatingsVisibility,
                 blurUnwatchedEpisodes = blurUnwatchedEpisodes,
                 metrics = rowMetrics,
@@ -944,6 +968,7 @@ private fun EpisodeHorizontalCard(
     tmdbRating: Double?,
     imdbRating: Double?,
     isWatched: Boolean,
+    downloadItem: DownloadItem? = null,
     episodeRatingsVisibility: EpisodeRatingsVisibility,
     blurUnwatchedEpisodes: Boolean,
     metrics: EpisodeHorizontalCardMetrics,
@@ -961,7 +986,8 @@ private fun EpisodeHorizontalCard(
     val hasAnyRating = tmdbRatingLabel != null || imdbRatingLabel != null || userRating != null
     val formattedDate = remember(video.released) { video.released?.let { formatReleaseDateForDisplay(it) } }
     val runtimeLabel = remember(video.runtime) { video.runtime?.takeIf { it > 0 }?.let(::formatEpisodeRuntime) }
-    val imageUrl = video.thumbnail ?: fallbackImage
+    val episodeImage = rememberEpisodeImageState(video.thumbnail, fallbackImage)
+    val imageUrl = episodeImage.url
     val visibleProgressEntry = progressEntry?.takeIf { it.progressFraction > 0f && !it.isEffectivelyCompleted }
     val progressBarHeight = 3.dp
     val progressBarContentSpacing = 6.dp
@@ -1004,6 +1030,7 @@ private fun EpisodeHorizontalCard(
                     .fillMaxSize()
                     .then(if (shouldBlurArtwork) Modifier.blur(18.dp) else Modifier),
                 contentScale = ContentScale.Crop,
+                onError = { episodeImage.onError() },
             )
         }
 
@@ -1048,14 +1075,22 @@ private fun EpisodeHorizontalCard(
                 ),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            EpisodeCodeBadge(
-                text = video.episodeBadge(),
-                textSize = metrics.badgeTextSize,
-                radius = metrics.badgeRadius,
-                horizontalPadding = metrics.badgeHorizontalPadding,
-                verticalPadding = metrics.badgeVerticalPadding,
-                backgroundAlpha = 0.42f,
-            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                EpisodeCodeBadge(
+                    text = video.episodeBadge(),
+                    textSize = metrics.badgeTextSize,
+                    radius = metrics.badgeRadius,
+                    horizontalPadding = metrics.badgeHorizontalPadding,
+                    verticalPadding = metrics.badgeVerticalPadding,
+                    backgroundAlpha = 0.42f,
+                )
+                if (downloadItem != null) {
+                    EpisodeDownloadBadge(downloadItem = downloadItem)
+                }
+            }
 
             Text(
                 text = localizedEpisodeTitle(video.title, video.episode) ?: video.title,
@@ -1290,6 +1325,89 @@ private fun EpisodeCodeBadge(
     }
 }
 
+/** Looks up an episode's download for title [metaId], updating as downloads change. */
+@Composable
+internal fun rememberEpisodeDownloadLookup(metaId: String): (MetaVideo) -> DownloadItem? {
+    val downloadsUiState by remember {
+        DownloadsRepository.ensureLoaded()
+        DownloadsRepository.uiState
+    }.collectAsStateWithLifecycle()
+    val downloadIndexKey = remember(downloadsUiState.items) {
+        downloadsUiState.items.map { it.id to it.status }
+    }
+    val index = remember(downloadIndexKey, metaId) {
+        EpisodeDownloadIndex.build(downloadsUiState.items, metaId)
+    }
+    return remember(index, downloadsUiState.items) {
+        { video ->
+            val matchId = index.find(video.season, video.episode, video.id)?.id
+            downloadsUiState.items.firstOrNull { it.id == matchId }
+        }
+    }
+}
+
+@Composable
+internal fun EpisodeDownloadBadge(
+    downloadItem: DownloadItem,
+    modifier: Modifier = Modifier,
+) {
+    if (downloadItem.status == DownloadStatus.Failed) return
+
+    val hasKnownSize = downloadItem.knownProgress != null
+    val animatedProgress = animatedDownloadProgress(downloadItem.progressFraction)
+    val contentColor = MaterialTheme.colorScheme.onPrimary
+    val label = when (downloadItem.status) {
+        DownloadStatus.Completed -> stringResource(Res.string.provider_downloaded)
+        DownloadStatus.Paused -> stringResource(Res.string.downloads_badge_paused)
+        DownloadStatus.Queued -> if (hasKnownSize) {
+            formatDownloadBadgeProgress(downloadItem.downloadedBytes, downloadItem.totalBytes)
+        } else {
+            stringResource(Res.string.downloads_status_queued)
+        }
+        else -> formatDownloadBadgeProgress(downloadItem.downloadedBytes, downloadItem.totalBytes)
+    }
+
+    Row(
+        modifier = modifier
+            .clip(RoundedCornerShape(4.dp))
+            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.9f))
+            .padding(horizontal = 5.dp, vertical = 2.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        when (downloadItem.status) {
+            DownloadStatus.Completed -> Icon(
+                imageVector = Icons.Rounded.Check,
+                contentDescription = null,
+                tint = contentColor,
+                modifier = Modifier.size(11.dp),
+            )
+            DownloadStatus.Paused -> Icon(
+                imageVector = Icons.Rounded.Pause,
+                contentDescription = null,
+                tint = contentColor,
+                modifier = Modifier.size(10.dp),
+            )
+            DownloadStatus.Downloading -> DownloadProgressSpinner(
+                progress = animatedProgress.takeIf { hasKnownSize },
+                color = contentColor,
+            )
+            else -> DownloadProgressSpinner(progress = null, color = contentColor.copy(alpha = 0.8f))
+        }
+        Text(
+            text = label.uppercase(),
+            style = MaterialTheme.typography.labelSmall.copy(
+                fontSize = 9.sp,
+                letterSpacing = 0.2.sp,
+            ),
+            fontWeight = FontWeight.Bold,
+            color = contentColor,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
 @Composable
 private fun EpisodeRatingBadges(
     // Over an episode thumbnail the brand colours stay as they are.
@@ -1416,6 +1534,7 @@ private fun EpisodeListCard(
     tmdbRating: Double?,
     imdbRating: Double?,
     isWatched: Boolean,
+    downloadItem: DownloadItem? = null,
     episodeRatingsVisibility: EpisodeRatingsVisibility,
     blurUnwatchedEpisodes: Boolean,
     sizing: SeriesContentSizing,
@@ -1475,7 +1594,8 @@ private fun EpisodeListCard(
                     .fillMaxHeight()
                     .clip(RoundedCornerShape(topStart = cornerRadius, bottomStart = cornerRadius)),
             ) {
-                val imageUrl = video.thumbnail ?: fallbackImage
+                val episodeImage = rememberEpisodeImageState(video.thumbnail, fallbackImage)
+                val imageUrl = episodeImage.url
                 val shouldBlurArtwork = blurUnwatchedEpisodes && !isWatched
                 if (imageUrl != null) {
                     AsyncImage(
@@ -1485,6 +1605,7 @@ private fun EpisodeListCard(
                             .fillMaxSize()
                             .then(if (shouldBlurArtwork) Modifier.blur(18.dp) else Modifier),
                         contentScale = ContentScale.Crop,
+                        onError = { episodeImage.onError() },
                     )
                 } else {
                     Box(
@@ -1494,17 +1615,25 @@ private fun EpisodeListCard(
                     )
                 }
 
-                EpisodeCodeBadge(
-                    text = video.episodeBadge(),
-                    textSize = sizing.badgeTextSize,
-                    radius = sizing.badgeRadius,
-                    horizontalPadding = sizing.badgeHorizontalPadding,
-                    verticalPadding = sizing.badgeVerticalPadding,
-                    backgroundAlpha = 0.85f,
+                Row(
                     modifier = Modifier
                         .align(Alignment.TopStart)
                         .padding(start = 8.dp, top = 8.dp),
-                )
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    EpisodeCodeBadge(
+                        text = video.episodeBadge(),
+                        textSize = sizing.badgeTextSize,
+                        radius = sizing.badgeRadius,
+                        horizontalPadding = sizing.badgeHorizontalPadding,
+                        verticalPadding = sizing.badgeVerticalPadding,
+                        backgroundAlpha = 0.85f,
+                    )
+                    if (downloadItem != null) {
+                        EpisodeDownloadBadge(downloadItem = downloadItem)
+                    }
+                }
 
                 NuvioAnimatedWatchedBadge(
                     isVisible = isWatched,
@@ -1764,13 +1893,6 @@ private fun seriesContentSizing(maxWidthDp: Float): SeriesContentSizing =
         )
     }
 
-private fun Int.label(): String =
-    if (this <= 0) {
-        runBlocking { getString(Res.string.episodes_specials) }
-    } else {
-        runBlocking { getString(Res.string.episodes_season, this@label) }
-    }
-
 private fun MetaVideo.episodeBadge(): String =
     when {
         episode != null || season != null ->
@@ -1793,3 +1915,18 @@ private fun formatEpisodeRating(rating: Double): String {
 
 /** The episode cards' and the episode finder bar's glass blur. */
 internal val EpisodeCardGlassBlur = 18.dp
+private class EpisodeImageState(
+    val url: String?,
+    val onError: () -> Unit,
+)
+
+@Composable
+private fun rememberEpisodeImageState(thumbnail: String?, fallbackImage: String?): EpisodeImageState {
+    val primary = thumbnail?.takeIf { it.isNotBlank() }
+    val fallback = fallbackImage?.takeIf { it.isNotBlank() }
+    var primaryFailed by remember(primary, fallback) { mutableStateOf(false) }
+    val url = if (primary != null && !primaryFailed) primary else fallback
+    return EpisodeImageState(url) {
+        if (primary != null && url == primary && fallback != null && fallback != primary) primaryFailed = true
+    }
+}

@@ -1948,7 +1948,7 @@ private fun ExoPlayerSurface(
             },
         )
         StyledSubtitleOverlay(
-            subtitlePresenter.text,
+            subtitlePresenter.cues,
             currentSubtitleStyle,
             videoAspectRatio = videoAspectRatio,
             videoResizeMode = resizeMode,
@@ -2377,7 +2377,7 @@ private fun LibmpvPlayerSurface(
         )
         playerViewRef?.let { view ->
             StyledSubtitleOverlay(
-                view.subtitleText,
+                view.subtitleCues,
                 view.subtitleStyle,
                 videoAspectRatio = view.subtitleVideoAspectRatio,
                 videoResizeMode = resizeMode,
@@ -2431,7 +2431,7 @@ private class NuvioLibmpvView(
     private var latestSubtitleTracks: List<LibmpvTrack> = emptyList()
     private val shaders by lazy { MpvShaderController(mpv, backend) }
 
-    var subtitleText by mutableStateOf("")
+    var subtitleCues by mutableStateOf(StyledSubtitleCues())
         private set
     var subtitleStyle by mutableStateOf(SubtitleStyleState.DEFAULT)
         private set
@@ -2448,11 +2448,16 @@ private class NuvioLibmpvView(
                 mpv.setPropertyBoolean("sub-visibility", !styled)
                 styledSubtitleVisible = styled
             }
-            val text = if (styled) mpv.getPropertyString("sub-text").orEmpty() else ""
+            val text = if (styled) {
+                mpv.getPropertyString("sub-text/ass") ?: mpv.getPropertyString("sub-text").orEmpty()
+            } else {
+                ""
+            }
+            val cues = parseMpvSubtitleText(text)
             val style = appliedSubtitleStyle
             post {
                 if (!released.get()) {
-                    subtitleText = text
+                    subtitleCues = cues
                     subtitleStyle = style
                 }
             }

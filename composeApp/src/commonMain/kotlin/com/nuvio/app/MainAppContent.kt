@@ -173,6 +173,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import com.nuvio.app.features.settings.AccountSettingsScreen
 import com.nuvio.app.features.settings.AddonsSettingsScreen
 import com.nuvio.app.features.settings.ContinueWatchingSettingsScreen
+import com.nuvio.app.features.settings.DownloadsSettingsScreen
 import com.nuvio.app.features.settings.HomescreenSettingsScreen
 import com.nuvio.app.features.settings.LicensesAttributionsSettingsScreen
 import com.nuvio.app.features.settings.MetaScreenSettingsScreen
@@ -895,6 +896,10 @@ internal fun MainAppContent(
                                 )
                             }
 
+                            is AddAddonResult.TrackingConsentRequired -> {
+                                AddonRepository.requestTrackingConsent(result.manifest)
+                            }
+
                             is AddAddonResult.Error -> {
                                 InAppLogger.warn("App/DeepLink", "addon install failed message=${result.message}")
                                 NuvioToastController.show(result.message)
@@ -1097,7 +1102,6 @@ internal fun MainAppContent(
             resumeProgressFraction: Float?,
             manualSelection: Boolean,
             startFromBeginning: Boolean,
-            downloadMode: Boolean = false,
             forceExternalPlayer: Boolean = false,
             // Downloads still play directly; only the stream page skips automatic selection.
             skipAutoPlay: Boolean = false,
@@ -1152,7 +1156,7 @@ internal fun MainAppContent(
 
             val isPartyMedia = PartyRepository.state.value.party?.media?.key ==
                 partyMediaKey(parentMetaType, parentMetaId, seasonNumber, episodeNumber)
-            if (!isPartyMedia && !PlaybackAvailability.current().canStream(type, videoId)) {
+            if (!isPartyMedia && !PlaybackAvailability.current().canPlay(type, videoId, parentMetaId, seasonNumber, episodeNumber)) {
                 NuvioToastController.show(playbackUnavailableMessage)
                 return
             }
@@ -1177,7 +1181,6 @@ internal fun MainAppContent(
                     resumeProgressFraction = targetResumeProgressFraction,
                     manualSelection = manualSelection || skipAutoPlay,
                     startFromBeginning = startFromBeginning,
-                    downloadMode = downloadMode,
                     forceExternalPlayer = forceExternalPlayer,
                 ),
             )
@@ -1258,29 +1261,6 @@ internal fun MainAppContent(
                 )
             }
 
-        val onDownloadContent: ContentPlayAction =
-            { type, videoId, parentMetaId, parentMetaType, title, logo, poster, background, seasonNumber, episodeNumber, episodeTitle, episodeThumbnail, pauseDescription, resumePositionMs ->
-                launchPlaybackWithDownloadPreference(
-                    type = type,
-                    videoId = videoId,
-                    parentMetaId = parentMetaId,
-                    parentMetaType = parentMetaType,
-                    title = title,
-                    logo = logo,
-                    poster = poster,
-                    background = background,
-                    seasonNumber = seasonNumber,
-                    episodeNumber = episodeNumber,
-                    episodeTitle = episodeTitle,
-                    episodeThumbnail = episodeThumbnail,
-                    pauseDescription = pauseDescription,
-                    resumePositionMs = resumePositionMs,
-                    resumeProgressFraction = null,
-                    manualSelection = true,
-                    startFromBeginning = false,
-                    downloadMode = true,
-                )
-            }
 
         val onPlayExternally: ContentPlayAction =
             { type, videoId, parentMetaId, parentMetaType, title, logo, poster, background, seasonNumber, episodeNumber, episodeTitle, episodeThumbnail, pauseDescription, resumePositionMs ->
@@ -1771,6 +1751,7 @@ internal fun MainAppContent(
                                     }
                                 },
                                 onDownloadsClick = { navController.navigate(DownloadsRoute(downloadsTitle)) },
+                                onOpenDownload = ::openDownloadedItem,
                                 onContinueWatchingClick = onContinueWatchingClick,
                                 onContinueWatchingLongPress = onContinueWatchingLongPress,
                                 onLiveTvChannelClick = onLiveTvChannelClick,
@@ -1875,7 +1856,6 @@ internal fun MainAppContent(
                             navController = navController,
                             onPlay = onPlay,
                             onPlayManually = onPlayManually,
-                            onDownload = onDownloadContent,
                             onPlayExternally = onPlayExternally,
                             onPlayFromStart = onPlayFromStart,
                             sharedTransitionScope = this@SharedTransitionLayout,
@@ -2011,6 +1991,11 @@ internal fun MainAppContent(
                         useNativeNavigation = useNativeNavigation,
                         onOpenDownload = ::openDownloadedItem,
                     )
+                }
+                entry<DownloadsSettingsRoute> { route ->
+                    SettingsDestination(route, navController) { onBack ->
+                        DownloadsSettingsScreen(onBack = onBack)
+                    }
                 }
                 entry<DownloadShowRoute> { route ->
                     DownloadShowDestination(

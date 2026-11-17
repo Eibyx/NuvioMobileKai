@@ -13,6 +13,7 @@ import com.nuvio.app.core.tracking.ensureTrackingProvidersRegistered
 import com.nuvio.app.features.addons.AddonRepository
 import com.nuvio.app.features.collection.CollectionMobileSettingsRepository
 import com.nuvio.app.features.collection.CollectionRepository
+import com.nuvio.app.features.downloads.BatchDownloadCoordinator
 import com.nuvio.app.features.downloads.DownloadsRepository
 import com.nuvio.app.features.details.MetaScreenSettingsRepository
 import com.nuvio.app.features.home.HomeCatalogSettingsRepository
@@ -212,6 +213,7 @@ object ProfileRepository {
         CollectionRepository.onProfileChanged()
         CollectionMobileSettingsRepository.onProfileChanged()
         DownloadsRepository.onProfileChanged()
+        BatchDownloadCoordinator.clearLocalState()
         ServerRepository.onProfileChanged()
         com.nuvio.app.features.cloudstorage.CloudStorageRepository.onProfileChanged()
         com.nuvio.app.features.subtitlelibrary.SubtitleLibraryStore.onProfileChanged()
