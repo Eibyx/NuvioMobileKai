@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Addons de seguimiento de Stremio -->
+    <string name="addons_tracking_consent_title">Addon de seguimiento</string>
+    <string name="addons_tracking_consent_body">%1$s es un addon de seguimiento. Nuvio le enviará tu actividad: lo que reproduces, pausas y paras con la posición de reproducción, lo que añades o quitas de tu biblioteca y lo que marcas como visto o no visto. Estos datos salen de Nuvio y los maneja el desarrollador del addon y el servicio al que se conecta.</string>
+    <string name="addons_tracking_consent_checkbox">Acepto compartir mi actividad y mi biblioteca con este addon</string>
+
+    <!-- Descargas por temporada -->
+    <string name="downloads_enqueue_queued">La descarga se ha puesto en cola</string>
+    <string name="downloads_enqueue_queued_multiple">Las descargas se han puesto en cola</string>
+    <string name="downloads_resolution_720p">720p</string>
+    <string name="downloads_resolution_1080p">1080p</string>
+    <string name="downloads_resolution_2160p">2160p (4K)</string>
+    <string name="downloads_preferred_resolution_title">Resolución preferida</string>
+    <string name="downloads_preferred_resolution_description">Elige la resolución para las descargas de temporadas.</string>
+    <string name="downloads_max_concurrent_title">Descargas simultáneas máximas</string>
+    <string name="downloads_max_concurrent_description">Limita cuántas descargas se hacen a la vez.</string>
+    <string name="downloads_max_series_episode_concurrent_title">Episodios máximos por serie</string>
+    <string name="downloads_max_series_episode_concurrent_description">Limita cuántos episodios de una misma serie se descargan a la vez.</string>
+    <string name="downloads_max_concurrent_shows_title">Series simultáneas máximas</string>
+    <string name="downloads_max_concurrent_shows_description">Limita cuántas series se pueden descargar a la vez.</string>
+    <plurals name="downloads_count">
+        <item quantity="one">%1$d descarga</item>
+        <item quantity="other">%1$d descargas</item>
+    </plurals>
+    <plurals name="downloads_episodes_count">
+        <item quantity="one">%1$d episodio</item>
+        <item quantity="other">%1$d episodios</item>
+    </plurals>
+    <plurals name="downloads_shows_count">
+        <item quantity="one">%1$d serie</item>
+        <item quantity="other">%1$d series</item>
+    </plurals>
+    <string name="downloads_section_active_queued">Activas y en cola</string>
+    <string name="downloads_show_active_queued">Descargas activas y en cola</string>
+    <string name="downloads_action_pause_all">Pausar todas</string>
+    <string name="downloads_action_resume_all">Reanudar todas</string>
+    <string name="downloads_empty_library_title">Aún no hay descargas</string>
+    <string name="downloads_empty_library_message">Las películas y los episodios que descargues para ver sin conexión aparecerán aquí.</string>
+    <string name="season_download_finding_source">Buscando fuente…</string>
+    <string name="season_download_already_downloaded">Ya descargado</string>
+    <string name="season_download_no_source_found">No se encontró ningún stream</string>
+    <string name="downloads_status_queued">En cola</string>
+    <string name="downloads_status_already_in_progress">La descarga ya está activa o en cola</string>
+    <string name="downloads_badge_paused">En pausa</string>
+    <string name="downloads_summary_downloading">%1$d descargando</string>
+    <string name="downloads_summary_queued">%1$d en cola</string>
+    <string name="downloads_summary_paused">%1$d en pausa</string>
+    <string name="downloads_summary_failed">%1$d con error</string>
+    <string name="downloads_summary_completed">%1$d completadas</string>
+    <string name="downloads_view_empty">No hay descargas en esta vista</string>
+    <string name="downloads_filter_all">Todas las descargas</string>
+    <string name="downloads_selected_count">%1$d seleccionadas</string>
+    <string name="downloads_action_pause_count">Pausar (%1$d)</string>
+    <string name="downloads_action_resume_count">Reanudar (%1$d)</string>
+    <string name="downloads_action_deselect">Quitar selección</string>
+    <string name="downloads_empty_active">No hay descargas activas ni en cola</string>
+    <string name="downloads_show_fallback_title">Serie</string>
+    <string name="downloads_delete_selected_confirm">¿Eliminar las %1$d descargas seleccionadas?</string>
+    <string name="downloads_connecting">Conectando…</string>
+    <string name="downloads_progress_percent">%1$d%%</string>
+    <string name="downloads_episodes_queued">%1$s %2$s</string>
+    <string name="season_download_season_count">%1$s (%2$d)</string>
+    <string name="downloads_progress_episodes">%1$d/%2$d ep.</string>
+    <string name="downloads_action_pause">Pausar</string>
+    <string name="downloads_action_pause_series">Pausar serie</string>
+    <string name="downloads_action_resume_series">Reanudar serie</string>
+    <string name="downloads_series_size_stats">Total: %1$s • Media: %2$s • Mediana: %3$s</string>
+    <string name="downloads_series_size_total">Total: %1$s</string>
+    <string name="downloads_storage_title">Almacenamiento del dispositivo</string>
+    <string name="downloads_storage_free_of_total">%1$s libres de %2$s</string>
+    <string name="downloads_storage_legend_value">%1$s: %2$s</string>
+    <string name="downloads_storage_app">Descargas de Nuvio</string>
+    <string name="downloads_storage_other">Otras apps y sistema</string>
+    <string name="downloads_storage_free">Espacio libre</string>
+    <string name="downloads_episode_fallback_title">Episodio %1$d</string>
+    <string name="downloads_episode_label">T%1$d:E%2$d • %3$s</string>
+    <string name="downloads_stream_selected">Stream elegido</string>
+    <string name="downloads_stream_fallback_title">Stream</string>
+    <string name="downloads_action_queue">Poner en cola</string>
+    <string name="downloads_action_continue_source_selection">Continuar a elegir la fuente</string>
+    <string name="downloads_season_step_indicator">Temporada %1$d de %2$d</string>
+    <string name="downloads_override_source">Cambiar</string>
+    <string name="downloads_select_source_dialog_title">Elegir stream para el E%1$d</string>
+    <string name="downloads_select_source_dialog_title_single">Elegir stream</string>
+    <string name="downloads_select_all">Seleccionar todo</string>
+    <string name="downloads_select_unwatched">Seleccionar no vistos</string>
+    <string name="downloads_deselect_all">Quitar toda la selección</string>
+    <string name="downloads_episodes_selected">%1$d episodios seleccionados</string>
+    <string name="downloads_episodes_selected_multi_season">%1$d episodios seleccionados en %2$d temporadas</string>
+    <string name="downloads_next_season">Siguiente temporada</string>
+    <string name="downloads_episodes_out_of_downloaded">%1$d de %2$d episodios descargados</string>
+    <string name="batch_download_failed_single">No se pudo poner en cola %1$d episodio</string>
+    <string name="batch_download_failed_multiple">No se pudieron poner en cola %1$d episodios</string>
+
+    <!-- Biblioteca -->
+    <string name="library_filter_genre">Género</string>
+    <string name="library_filter_watched">Visto</string>
+    <string name="library_filter_year">Año</string>
+    <string name="library_type_all">Todo</string>
+    <string name="library_watched_filter_all">Todo</string>
+    <string name="library_watched_filter_watched">Vistos</string>
+    <string name="library_watched_filter_unwatched">No vistos</string>
+    <string name="library_source_downloaded">Descargado</string>
+
+    <!-- Subtítulos -->
+    <string name="subtitle_outline_width">Grosor del contorno</string>
+
+    <!-- Plex -->
+    <string name="servers_failure_remote_playback">Fuera de la red de casa, Plex solo deja reproducir desde este servidor con Plex Pass o un Remote Watch Pass.</string>
+    <string name="plex_add_description">Inicia sesión con tu cuenta de Plex.</string>
+    <string name="plex_sign_in_subtitle">Inicia sesión en plex.tv. Tu contraseña de Plex nunca se escribe en Nuvio.</string>
+    <string name="plex_continue">Continuar con Plex</string>
+    <string name="plex_browser_waiting">Termina de iniciar sesión en plex.tv y vuelve aquí.</string>
+    <string name="plex_use_code">Iniciar sesión en otro dispositivo</string>
+    <string name="plex_use_browser">Iniciar sesión en este dispositivo</string>
+    <string name="plex_code_starting">Preparando…</string>
+    <string name="plex_code_instructions">En otro dispositivo, abre %1$s, inicia sesión en Plex y escribe este código.</string>
+    <string name="plex_code_waiting">Esperando a que se escriba el código…</string>
+    <string name="servers_code_copied">Código copiado</string>
+    <string name="plex_code_expired">Este inicio de sesión ha caducado.</string>
+    <string name="plex_new_code">Empezar de nuevo</string>
+    <string name="plex_servers_title">Elige un servidor</string>
+    <string name="plex_servers_subtitle">Sesión iniciada en Plex como %1$s.</string>
+    <string name="plex_servers_finding">Buscando tus servidores…</string>
+    <string name="plex_servers_checking">Comprobando cómo se llega a cada servidor…</string>
+    <string name="plex_servers_none">Esta cuenta no tiene ningún Plex Media Server disponible.</string>
+    <string name="plex_server_owned">Tu servidor</string>
+    <string name="plex_server_shared">Compartido contigo</string>
+    <string name="plex_reach_local">Red de casa</string>
+    <string name="plex_reach_remote">Internet</string>
+    <string name="plex_reach_relay_detail">Plex Relay limita la calidad del vídeo</string>
+    <string name="plex_reach_offline_detail">No se llega desde este dispositivo</string>
+    <string name="plex_users_title">Elige un usuario de Plex Home</string>
+    <string name="plex_users_subtitle">¿Quién está viendo en %1$s?</string>
+    <string name="plex_user_admin">Administrador</string>
+    <string name="plex_user_managed">Usuario gestionado</string>
+    <string name="servers_has_pin">PIN</string>
+    <string name="servers_pin_title">PIN de %1$s</string>
+    <string name="servers_pin_hint">PIN</string>
+    <string name="servers_pin_wrong">PIN incorrecto. Inténtalo de nuevo.</string>
+    <string name="servers_signing_in">Iniciando sesión…</string>
+
+    <!-- Silo -->
+    <string name="silo_add_description">Inicia sesión con tu cuenta de Silo.</string>
+    <string name="silo_address_subtitle">Escribe la dirección con la que abres Silo en el navegador.</string>
+    <string name="silo_address_hint">https://silo.example.com</string>
+    <string name="silo_finding">Buscando Silo…</string>
+    <string name="silo_code_subtitle">Aprueba este dispositivo en %1$s.</string>
+    <string name="silo_approve_in_browser">Aprobar en el navegador</string>
+    <string name="silo_code_starting">Pidiendo un código…</string>
+    <string name="silo_code_instructions">O en otro dispositivo con sesión en Silo, abre %1$s y escribe este código.</string>
+    <string name="silo_code_waiting">Esperando la aprobación…</string>
+    <string name="silo_code_expired">Este código ha caducado.</string>
+    <string name="silo_code_denied">Se ha rechazado este inicio de sesión.</string>
+    <string name="silo_code_unavailable">Este servidor no permite iniciar sesión con un código.</string>
+    <string name="silo_new_code">Nuevo código</string>
+    <string name="silo_use_password">Usar contraseña</string>
+    <string name="silo_use_code">Usar un código</string>
+    <string name="silo_password_subtitle">Inicia sesión con tu cuenta de %1$s.</string>
+    <string name="silo_profiles_title">¿Quién está viendo?</string>
+    <string name="silo_profile_kids">Niños</string>
+    <string name="silo_error_not_silo">No ha respondido ningún servidor de Silo en esta dirección.</string>
+    <string name="silo_error_temporary_password">Primero cambia tu contraseña temporal en la web de Silo y luego vuelve a iniciar sesión.</string>
+    <string name="silo_error_password_off">Este servidor tiene desactivado el inicio de sesión con contraseña. Usa un código.</string>
+    <string name="silo_error_too_many_tries">Demasiados intentos. Espera un momento y vuelve a intentarlo.</string>
+</resources>
