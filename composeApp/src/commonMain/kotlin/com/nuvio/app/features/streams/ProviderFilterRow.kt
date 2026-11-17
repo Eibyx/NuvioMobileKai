@@ -289,7 +289,7 @@ private fun FilterChip(
             .clip(RoundedCornerShape(16.dp))
             .ambientLiquidGlass(
                 shape = RoundedCornerShape(16.dp),
-                tint = if (isSelected) containerColor else StreamGlassTint,
+                tint = containerColor,
                 fallback = containerColor,
                 blurRadius = 14.dp,
                 refractionHeight = 8.dp,
