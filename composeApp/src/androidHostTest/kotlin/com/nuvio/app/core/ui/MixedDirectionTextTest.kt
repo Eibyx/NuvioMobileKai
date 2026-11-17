@@ -20,7 +20,9 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextInput
@@ -63,6 +65,8 @@ class MixedDirectionTextTest {
 
     @Test fun searchContentAndEditing() {
         show { SearchScreen() }
+        // Kai (as Enhanced) shows the search field behind the search button.
+        compose.onNodeWithContentDescription("Search").performClick()
         checkInput()
     }
 
