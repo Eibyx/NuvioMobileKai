@@ -164,8 +164,12 @@ jobs:
             # the previous version's tag, else the newest release tag on this branch. The store
             # publish commits on this branch come from upstream and are far older than Kai's releases.
             git fetch --tags --force --quiet origin || echo "::warning::Could not fetch tags."
-            previous_tag="${PREVIOUS_VERSION%-beta}-beta"
-            latest_tag="$(git tag --merged "${notes_to}" --sort=-creatordate --list '*-beta' | grep -vxF "${RELEASE_TAG}" | head -n 1 || true)"
+            # Releases are tagged with the plain version since 4.0.0; 3.x tags end in -beta.
+            previous_tag="${PREVIOUS_VERSION}"
+            if ! git rev-parse --verify --quiet "refs/tags/${previous_tag}" >/dev/null; then
+              previous_tag="${PREVIOUS_VERSION%-beta}-beta"
+            fi
+            latest_tag="$(git tag --merged "${notes_to}" --sort=-creatordate --list '[0-9]*.[0-9]*.[0-9]*' | grep -vxF "${RELEASE_TAG}" | head -n 1 || true)"
             if [[ -n "${PREVIOUS_VERSION}" ]] && git rev-parse --verify --quiet "refs/tags/${previous_tag}" >/dev/null \
               && git merge-base --is-ancestor "${previous_tag}" "${notes_to}"; then
               notes_from="$(git rev-parse "${previous_tag}^{commit}")"

@@ -47,7 +47,8 @@ if [[ ! "$current_version" =~ ^[0-9A-Za-z][0-9A-Za-z._-]*$ ]]; then
 fi
 
 printf 'version=%s\n' "$current_version"
-printf 'tag=%s-beta\n' "${current_version%-beta}"
+# Kai tags releases with the plain version since 4.0.0 (3.x releases were tagged <version>-beta).
+printf 'tag=%s\n' "$current_version"
 printf 'release_commit=%s\n' "$(git rev-parse "${target_ref}^{commit}")"
 printf 'current_bump=%s\n' "$current_bump"
 printf 'previous_version=%s\n' "$previous_version"
