@@ -66,16 +66,18 @@ class DiagnosticsRedactorTest {
         )
     }
 
+    /**
+     * Provider keys built at run time from an obviously fake body, so no key-shaped literal sits in
+     * the source (secret scanners flag those, real or not). Same shape as the real formats.
+     */
+    private val fakeGoogleKey = "AIza" + "FAKE0TEST0KEY0NOT0A0REAL0KEY".padEnd(35, '0')
+    private val fakeOpenAiKey = "sk-" + "proj-" + "FAKE0TEST0KEY0NOT0A0REAL0KEY"
+
     @Test
     fun aiProviderKeysAreHidden() {
-        assertHidden(
-            "x-goog-api-key: AIzaSyD-9tSrke72PouQMnMX-a7eZSW0jkFMBWY",
-            "AIzaSyD-9tSrke72",
-        )
-        assertHidden(
-            "AI insights request failed with key sk-proj-Ab12Cd34Ef56Gh78Ij90Kl12Mn34Op56",
-            "sk-proj-Ab12",
-        )
+        assertEquals(39, fakeGoogleKey.length)
+        assertHidden("x-goog-api-key: $fakeGoogleKey", fakeGoogleKey, "FAKE0TEST")
+        assertHidden("AI insights request failed with key $fakeOpenAiKey", fakeOpenAiKey, "FAKE0TEST")
     }
 
     @Test
