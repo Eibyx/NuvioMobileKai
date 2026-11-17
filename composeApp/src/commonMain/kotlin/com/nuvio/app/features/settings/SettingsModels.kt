@@ -1,6 +1,7 @@
 package com.nuvio.app.features.settings
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.automirrored.filled.PlaylistPlay
 import androidx.compose.material.icons.automirrored.filled.ViewList
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
@@ -11,7 +12,6 @@ import androidx.compose.material.icons.filled.LiveTv
 import androidx.compose.material.icons.filled.NewReleases
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.Explore
 import androidx.compose.material.icons.filled.Extension
@@ -49,12 +49,7 @@ internal enum class SettingsCategory(
     You(Res.string.settings_group_you, Icons.Default.Person),
     Look(Res.string.settings_group_look, Icons.Default.Palette),
     Watch(Res.string.settings_group_watch, Icons.Rounded.PlayArrow),
-    /** Where streams come from: add-ons, debrid, cloud storage, media servers and plugins. */
-    Sources(Res.string.settings_group_sources, Icons.Default.Extension),
-    /** Metadata, ratings and tracking. */
     Services(Res.string.settings_group_services, Icons.Default.Link),
-    /** Live TV, Discord and the watch party. */
-    Extras(Res.string.settings_group_extras, Icons.Default.LiveTv),
     System(Res.string.settings_group_system, Icons.Rounded.Settings),
 }
 
@@ -205,38 +200,38 @@ internal enum class SettingsPage(
     ),
     ContentDiscovery(
         titleRes = Res.string.compose_settings_page_content_discovery,
-        category = SettingsCategory.Sources,
+        category = SettingsCategory.Watch,
         parentPage = Root,
     ),
     Addons(
         titleRes = Res.string.compose_settings_page_addons,
-        category = SettingsCategory.Sources,
-        parentPage = Root,
+        category = SettingsCategory.Watch,
+        parentPage = ContentDiscovery,
     ),
     Plugins(
         titleRes = Res.string.compose_settings_page_plugins,
-        category = SettingsCategory.Sources,
-        parentPage = Root,
+        category = SettingsCategory.Watch,
+        parentPage = ContentDiscovery,
     ),
     MediaServers(
         titleRes = Res.string.compose_settings_page_media_servers,
-        category = SettingsCategory.Sources,
-        parentPage = Root,
-    ),
-    MediaServer(
-        titleRes = Res.string.compose_settings_page_media_server,
-        category = SettingsCategory.Sources,
-        parentPage = MediaServers,
+        category = SettingsCategory.Watch,
+        parentPage = ContentDiscovery,
     ),
     CloudStorage(
         titleRes = Res.string.compose_settings_page_cloud_storage,
-        category = SettingsCategory.Sources,
-        parentPage = Root,
+        category = SettingsCategory.Watch,
+        parentPage = ContentDiscovery,
     ),
     CloudStorageAccount(
         titleRes = Res.string.compose_settings_page_cloud_storage_account,
-        category = SettingsCategory.Sources,
+        category = SettingsCategory.Watch,
         parentPage = CloudStorage,
+    ),
+    MediaServer(
+        titleRes = Res.string.compose_settings_page_media_server,
+        category = SettingsCategory.Watch,
+        parentPage = MediaServers,
     ),
     Homescreen(
         titleRes = Res.string.compose_settings_page_homescreen,
@@ -256,32 +251,32 @@ internal enum class SettingsPage(
     TmdbEnrichment(
         titleRes = Res.string.compose_settings_page_tmdb_enrichment,
         category = SettingsCategory.Services,
-        parentPage = Root,
+        parentPage = Integrations,
     ),
     MdbListRatings(
         titleRes = Res.string.compose_settings_page_mdblist_ratings,
         category = SettingsCategory.Services,
-        parentPage = Root,
+        parentPage = Integrations,
     ),
     Omdb(
         titleRes = Res.string.compose_settings_page_omdb,
         category = SettingsCategory.Services,
-        parentPage = Root,
+        parentPage = Integrations,
     ),
     Debrid(
         titleRes = Res.string.compose_settings_page_debrid,
-        category = SettingsCategory.Sources,
-        parentPage = Root,
+        category = SettingsCategory.Services,
+        parentPage = Integrations,
     ),
     LiveTv(
         titleRes = Res.string.compose_settings_page_live_tv,
-        category = SettingsCategory.Extras,
-        parentPage = Root,
+        category = SettingsCategory.Services,
+        parentPage = Integrations,
     ),
     DiscordRpc(
         titleRes = Res.string.compose_settings_page_discord_rpc,
-        category = SettingsCategory.Extras,
-        parentPage = Root,
+        category = SettingsCategory.Services,
+        parentPage = Integrations,
     ),
     TraktAuthentication(
         titleRes = Res.string.compose_settings_page_tracking,
@@ -306,7 +301,6 @@ internal val SettingsPage.icon: ImageVector
     get() = when (this) {
         SettingsPage.Root -> Icons.Rounded.Settings
         SettingsPage.Account -> Icons.Default.Person
-        SettingsPage.FavoritePeople -> Icons.Default.Favorite
         SettingsPage.SupportersContributors -> Icons.Default.Favorite
         SettingsPage.LicensesAttributions -> Icons.Default.Info
         SettingsPage.Playback -> Icons.Rounded.PlayArrow
@@ -323,8 +317,6 @@ internal val SettingsPage.icon: ImageVector
         SettingsPage.Plugins -> Icons.Default.Power
         SettingsPage.MediaServers -> Icons.Default.Dns
         SettingsPage.MediaServer -> Icons.Default.Dns
-        SettingsPage.CloudStorage -> Icons.Default.Cloud
-        SettingsPage.CloudStorageAccount -> Icons.Default.Cloud
         SettingsPage.Homescreen -> Icons.Default.Dashboard
         SettingsPage.MetaScreen -> Icons.Default.Description
         SettingsPage.Integrations -> Icons.Default.Link
@@ -343,6 +335,9 @@ internal val SettingsPage.icon: ImageVector
         SettingsPage.PlaybackBuffer -> Icons.Default.NetworkCheck
         SettingsPage.PlaybackP2p -> Icons.Default.Hub
         SettingsPage.Profile -> Icons.Default.Person
+        SettingsPage.FavoritePeople -> Icons.Default.Favorite
+        SettingsPage.CloudStorage -> Icons.Default.Cloud
+        SettingsPage.CloudStorageAccount -> Icons.Default.Cloud
         SettingsPage.WhatsNew -> Icons.Default.NewReleases
         SettingsPage.DebugLogs -> Icons.Default.BugReport
         SettingsPage.Downloads -> Icons.Default.Download

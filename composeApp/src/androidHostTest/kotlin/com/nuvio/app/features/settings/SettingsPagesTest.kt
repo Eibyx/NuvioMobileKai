@@ -75,17 +75,21 @@ class SettingsPagesTest {
         // "Playback" is also the title of its group: the row is the one that opens the page.
         compose.onNode(hasText("Playback") and hasClickAction()).performScrollTo().performClick()
         assertEquals(SettingsPage.Playback, opened)
-        compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Addons") and hasClickAction())
-        compose.onNode(hasText("Addons") and hasClickAction()).performClick()
-        assertEquals(SettingsPage.Addons, opened)
+        // The official layout: add-ons live in Content & Discovery, metadata services in Integrations.
+        compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Content & Discovery") and hasClickAction())
+        compose.onNode(hasText("Content & Discovery") and hasClickAction()).performClick()
+        assertEquals(SettingsPage.ContentDiscovery, opened)
+        compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Integrations") and hasClickAction())
+        compose.onNode(hasText("Integrations") and hasClickAction()).performClick()
+        assertEquals(SettingsPage.Integrations, opened)
         compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Tracking") and hasClickAction())
         compose.onNode(hasText("Tracking") and hasClickAction()).performClick()
         assertEquals(SettingsPage.TraktAuthentication, opened)
-        compose.onNodeWithText("Sources").assertExists()
+        compose.onNodeWithText("Addons").assertDoesNotExist()
     }
 
     @Test
-    fun tabletDataGroupContainsMetadataAndTracking() {
+    fun tabletServicesGroupContainsIntegrationsAndTracking() {
         var opened: SettingsPage? = null
         compose.setContent {
             NuvioTheme {
@@ -98,7 +102,7 @@ class SettingsPagesTest {
                 }
             }
         }
-        compose.onNodeWithText("TMDB Enrichment").assertIsDisplayed()
+        compose.onNodeWithText("Integrations").assertIsDisplayed()
         compose.onNodeWithText("Tracking").performClick()
         assertEquals(SettingsPage.TraktAuthentication, opened)
         compose.onNodeWithText("Appearance").assertDoesNotExist()
