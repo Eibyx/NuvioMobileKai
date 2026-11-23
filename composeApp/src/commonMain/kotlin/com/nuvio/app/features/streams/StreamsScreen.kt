@@ -668,9 +668,9 @@ private fun MovieHeroBlock(
             .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top)),
         contentAlignment = Alignment.Center,
     ) {
-        // Logos are mostly drawn for dark artwork, so the light appearance shows the title.
-        if (logoUrl != null && !logoLoadError && MaterialTheme.isDarkAppearance) {
-            AsyncImage(
+        // The title logo as the detail page draws it, in the light and the dark appearance alike.
+        if (logoUrl != null && !logoLoadError) {
+            com.nuvio.app.core.ui.ArtworkLogoImage(
                 model = logoUrl,
                 contentDescription = title,
                 modifier = Modifier
