@@ -18,6 +18,7 @@ object StreamAutoPlayPolicy {
 
     fun isEffectivelyEnabled(settings: PlayerSettingsUiState): Boolean {
         if (settings.streamReuseLastLinkEnabled) return true
+        if (SmartStreamSettingsRepository.state.value.autoPlay) return true
         if (settings.streamAutoPlayReuseBingeGroup && settings.streamAutoPlayPreferBingeGroup) return true
 
         return when (settings.streamAutoPlayMode) {

@@ -2493,7 +2493,7 @@ private class NuvioLibmpvView(
 
     override fun initOptions() {
         InAppLogger.info("MPV/Android", "Initializing libmpv yuv420p=$yuv420pEnabled")
-        mpv.setOptionString("profile", "fast")
+        mpv.command("apply-profile", "fast")
         // vo, gpu-api, gpu-context and hwdec: Vulkan with shaders on, OpenGL otherwise.
         shaders.applyOptions()
         if (yuv420pEnabled) {

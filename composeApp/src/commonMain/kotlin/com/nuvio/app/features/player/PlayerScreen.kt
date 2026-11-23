@@ -1,5 +1,9 @@
 package com.nuvio.app.features.player
 
+import com.nuvio.app.features.details.MetaLookupOutcome
+import com.nuvio.app.features.details.MetaDetailsRepository
+import androidx.compose.runtime.produceState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.nuvio.app.core.ui.NuvioDarkSurface
@@ -52,6 +56,19 @@ fun PlayerScreen(
     sourceFromLinkCache: Boolean = false,
     sourceAutoSelected: Boolean = false,
 ) {
+    val resolvedLogo by produceState(
+        initialValue = logo?.takeIf { it.isNotBlank() }
+            ?: MetaDetailsRepository.peek(type = parentMetaType, id = parentMetaId)?.logo?.takeIf { it.isNotBlank() },
+        logo,
+        parentMetaType,
+        parentMetaId,
+    ) {
+        if (value != null || parentMetaType in PlayerLogoLookupSkippedTypes) return@produceState
+        val lookup = runCatching {
+            MetaDetailsRepository.fetchLightweight(type = parentMetaType, id = parentMetaId)
+        }.getOrNull()
+        value = (lookup as? MetaLookupOutcome.Loaded)?.meta?.logo?.takeIf { it.isNotBlank() }
+    }
     // The player stays dark in the light appearance.
     NuvioDarkSurface {
     PlayerScreenContent(
@@ -74,7 +91,7 @@ fun PlayerScreen(
             onOpenExternalUrl = onOpenExternalUrl,
             onOpenMetaDetails = onOpenMetaDetails,
             modifier = modifier,
-            logo = logo,
+            logo = resolvedLogo,
             poster = poster,
             background = background,
             seasonNumber = seasonNumber,
@@ -104,3 +121,5 @@ fun PlayerScreen(
     )
     }
 }
+
+private val PlayerLogoLookupSkippedTypes = setOf("tv", "channel")
