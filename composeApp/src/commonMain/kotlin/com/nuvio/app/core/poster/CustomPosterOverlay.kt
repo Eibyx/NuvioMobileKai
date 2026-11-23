@@ -195,5 +195,8 @@ fun com.nuvio.app.features.details.PersonDetail.withCustomPosterUrls(
     return copy(
         movieCredits = movieCredits.withCustomPosterUrls(pattern),
         tvCredits = tvCredits.withCustomPosterUrls(pattern),
+        filmography = filmography.zip(filmography.map { it.item }.withCustomPosterUrls(pattern)) { credit, item ->
+            credit.copy(item = item)
+        },
     )
 }

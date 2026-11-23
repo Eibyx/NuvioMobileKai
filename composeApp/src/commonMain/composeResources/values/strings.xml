@@ -3279,4 +3279,46 @@
     <string name="settings_homescreen_hidden_count">%1$d hidden rows and collections</string>
     <string name="settings_homescreen_no_visible_rows_title">No visible home rows</string>
     <string name="settings_homescreen_no_visible_rows_message">All catalog rows and collections are hidden. Open the hidden section below to restore them.</string>
+    <string name="person_tab_overview">Overview</string>
+    <string name="person_tab_filmography">Filmography</string>
+    <string name="person_tab_images">Images</string>
+    <string name="person_known_for_title">Known for</string>
+    <string name="person_favorite_on">In favorites</string>
+    <string name="person_favorite_off">Favorite</string>
+    <string name="person_titles_since">%1$s · since %2$d</string>
+    <plurals name="person_titles_count">
+        <item quantity="one">%1$d title</item>
+        <item quantity="other">%1$d titles</item>
+    </plurals>
+    <plurals name="person_years_old">
+        <item quantity="one">%1$d year old</item>
+        <item quantity="other">%1$d years old</item>
+    </plurals>
+    <string name="person_role_all">All roles</string>
+    <string name="person_filter_all">All</string>
+    <string name="person_filter_movies">Movies</string>
+    <string name="person_filter_series">Series</string>
+    <string name="person_sort_date">Release date</string>
+    <string name="person_sort_rating">Rating</string>
+    <string name="person_sort_popularity">Popularity</string>
+    <string name="person_view_grid">Show as grid</string>
+    <string name="person_view_list">Show as list</string>
+    <string name="person_type_movie">Movie</string>
+    <string name="person_type_series">Series</string>
+    <string name="person_filmography_empty">No titles match these filters.</string>
+    <string name="person_images_loading">Loading images…</string>
+    <string name="person_images_empty">No images for this person.</string>
+    <string name="person_department_acting">Acting</string>
+    <string name="person_department_directing">Directing</string>
+    <string name="person_department_writing">Writing</string>
+    <string name="person_department_production">Production</string>
+    <string name="person_department_camera">Cinematography</string>
+    <string name="person_department_editing">Editing</string>
+    <string name="person_department_sound">Sound</string>
+    <string name="person_department_art">Art</string>
+    <string name="person_department_costume">Costume &amp; make-up</string>
+    <string name="person_department_visual_effects">Visual effects</string>
+    <string name="person_department_lighting">Lighting</string>
+    <string name="person_department_creator">Creator</string>
+    <string name="person_department_crew">Crew</string>
 </resources>

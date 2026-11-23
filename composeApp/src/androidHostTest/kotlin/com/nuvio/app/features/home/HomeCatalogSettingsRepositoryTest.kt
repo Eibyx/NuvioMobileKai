@@ -119,7 +119,7 @@ class HomeCatalogSettingsRepositoryTest {
         val payload = HomeCatalogSettingsRepository.exportToSyncPayload()
         val serialized = Json.encodeToString(SyncHomeCatalogPayload.serializer(), payload)
 
-        assertTrue("\\"row_placement\\"" !in serialized)
+        assertTrue("\"row_placement\"" !in serialized)
     }
 
     @Test

@@ -2611,4 +2611,46 @@
     <string name="settings_homescreen_hidden_count">%1$d filas y colecciones ocultas</string>
     <string name="settings_homescreen_no_visible_rows_title">No hay filas visibles en Inicio</string>
     <string name="settings_homescreen_no_visible_rows_message">Todas las filas de catálogo y colecciones están ocultas. Abre la sección de ocultas de abajo para recuperarlas.</string>
+    <string name="person_tab_overview">Resumen</string>
+    <string name="person_tab_filmography">Filmografía</string>
+    <string name="person_tab_images">Imágenes</string>
+    <string name="person_known_for_title">Lo más conocido</string>
+    <string name="person_favorite_on">En favoritos</string>
+    <string name="person_favorite_off">Favorito</string>
+    <string name="person_titles_since">%1$s · desde %2$d</string>
+    <plurals name="person_titles_count">
+        <item quantity="one">%1$d título</item>
+        <item quantity="other">%1$d títulos</item>
+    </plurals>
+    <plurals name="person_years_old">
+        <item quantity="one">%1$d año</item>
+        <item quantity="other">%1$d años</item>
+    </plurals>
+    <string name="person_role_all">Todos los roles</string>
+    <string name="person_filter_all">Todo</string>
+    <string name="person_filter_movies">Películas</string>
+    <string name="person_filter_series">Series</string>
+    <string name="person_sort_date">Fecha de estreno</string>
+    <string name="person_sort_rating">Valoración</string>
+    <string name="person_sort_popularity">Popularidad</string>
+    <string name="person_view_grid">Ver en cuadrícula</string>
+    <string name="person_view_list">Ver en lista</string>
+    <string name="person_type_movie">Película</string>
+    <string name="person_type_series">Serie</string>
+    <string name="person_filmography_empty">Ningún título coincide con estos filtros.</string>
+    <string name="person_images_loading">Cargando imágenes…</string>
+    <string name="person_images_empty">No hay imágenes de esta persona.</string>
+    <string name="person_department_acting">Actuación</string>
+    <string name="person_department_directing">Dirección</string>
+    <string name="person_department_writing">Guion</string>
+    <string name="person_department_production">Producción</string>
+    <string name="person_department_camera">Fotografía</string>
+    <string name="person_department_editing">Montaje</string>
+    <string name="person_department_sound">Sonido</string>
+    <string name="person_department_art">Arte</string>
+    <string name="person_department_costume">Vestuario y maquillaje</string>
+    <string name="person_department_visual_effects">Efectos visuales</string>
+    <string name="person_department_lighting">Iluminación</string>
+    <string name="person_department_creator">Creación</string>
+    <string name="person_department_crew">Equipo</string>
 </resources>

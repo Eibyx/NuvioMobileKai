@@ -153,6 +153,8 @@ fun PersonDetailScreen(
             )
             is PersonDetailUiState.Success -> PersonDetailContent(
                 person = state.personDetail,
+                isFavorite = favoritePeopleState.people.any { it.tmdbId == state.personDetail.tmdbId },
+                onToggleFavorite = { FavoritePeopleRepository.toggle(state.personDetail) },
                 watchedKeys = watchedUiState.watchedKeys,
                 fullyWatchedSeriesKeys = fullyWatchedSeriesKeys,
                 onOpenMeta = onOpenMeta,
@@ -168,8 +170,11 @@ fun PersonDetailScreen(
                 onClick = onBack,
                 modifier = Modifier
                     .windowInsetsPadding(WindowInsets.statusBars)
-                    .padding(start = 4.dp, top = 4.dp)
-                    .align(Alignment.TopStart),
+                    .padding(start = 8.dp, top = 4.dp)
+                    .align(Alignment.TopStart)
+                    .size(44.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.72f)),
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
@@ -178,42 +183,6 @@ fun PersonDetailScreen(
                 )
             }
         }
-
-        (uiState as? PersonDetailUiState.Success)?.personDetail?.let { person ->
-            PersonFavoriteButton(
-                isFavorite = favoritePeopleState.people.any { it.tmdbId == person.tmdbId },
-                onClick = { FavoritePeopleRepository.toggle(person) },
-                modifier = Modifier
-                    .windowInsetsPadding(WindowInsets.statusBars)
-                    .padding(end = 8.dp, top = 4.dp)
-                    .align(Alignment.TopEnd),
-            )
-        }
-    }
-}
-
-// Marks the person as a favorite (yesnt10's Enhanced fork); they show up in Profile Insights.
-@Composable
-private fun PersonFavoriteButton(
-    isFavorite: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    IconButton(
-        onClick = onClick,
-        modifier = modifier
-            .size(48.dp)
-            .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.76f))
-            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.22f), CircleShape),
-    ) {
-        Icon(
-            imageVector = if (isFavorite) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
-            contentDescription = stringResource(
-                if (isFavorite) Res.string.person_remove_favorite else Res.string.person_add_favorite,
-            ),
-            tint = if (isFavorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-        )
     }
 }
 
@@ -221,6 +190,8 @@ private fun PersonFavoriteButton(
 @OptIn(ExperimentalSharedTransitionApi::class)
 private fun PersonDetailContent(
     person: PersonDetail,
+    isFavorite: Boolean,
+    onToggleFavorite: () -> Unit,
     watchedKeys: Set<String>,
     fullyWatchedSeriesKeys: Set<String> = emptySet(),
     onOpenMeta: (MetaPreview) -> Unit,
@@ -229,70 +200,7 @@ private fun PersonDetailContent(
     sharedTransitionScope: SharedTransitionScope? = null,
     animatedVisibilityScope: AnimatedVisibilityScope? = null,
 ) {
-    val posterCardStyle = rememberPosterCardStyleUiState()
-    val isLandscapeShelfMode = posterCardStyle.catalogLandscapeModeEnabled
-    val skeletonPosterWidth = if (isLandscapeShelfMode) {
-        landscapePosterWidth(posterCardStyle.widthDp)
-    } else {
-        posterCardStyle.widthDp.dp
-    }
-    val skeletonPosterHeight = if (isLandscapeShelfMode) {
-        landscapePosterHeightForWidth(skeletonPosterWidth)
-    } else {
-        posterCardStyle.heightDp.dp
-    }
     val accentColor = MaterialTheme.colorScheme.primary
-
-    val allCredits = remember(person.movieCredits, person.tvCredits) {
-        (person.movieCredits + person.tvCredits)
-            .distinctBy { it.id }
-    }
-
-    val todayDate = remember { CurrentDateProvider.todayIsoDate() }
-
-    val popularCredits = remember(allCredits) {
-        allCredits
-            .sortedByDescending { it.popularity ?: 0.0 }
-    }
-
-    val latestCredits = remember(allCredits, todayDate) {
-        allCredits
-            .filter { credit ->
-                val date = credit.rawReleaseDate
-                date != null && date <= todayDate
-            }
-            .sortedByDescending { it.rawReleaseDate ?: "" }
-    }
-
-    val upcomingCredits = remember(allCredits, todayDate) {
-        allCredits
-            .filter { credit ->
-                val date = credit.rawReleaseDate
-                date != null && date > todayDate
-            }
-            .sortedBy { it.rawReleaseDate ?: "" }
-    }
-
-    val scrollState = rememberScrollState()
-    val haptic = LocalHapticFeedback.current
-
-    // Hero collapse: 0 = fully expanded, 1 = fully collapsed
-    val collapseProgress by remember {
-        derivedStateOf {
-            (scrollState.value / HERO_COLLAPSE_SCROLL_RANGE).coerceIn(0f, 1f)
-        }
-    }
-
-    val shouldTriggerCatalogHaptic by remember {
-        derivedStateOf { scrollState.value >= HAPTIC_TRIGGER_SCROLL_THRESHOLD_PX }
-    }
-    var didTriggerCatalogHaptic by remember(person.tmdbId) { mutableStateOf(false) }
-    LaunchedEffect(shouldTriggerCatalogHaptic, didTriggerCatalogHaptic) {
-        if (shouldTriggerCatalogHaptic && !didTriggerCatalogHaptic) {
-            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-            didTriggerCatalogHaptic = true
-        }
-    }
 
     val accentGradient = remember(accentColor) {
         Brush.verticalGradient(
@@ -325,9 +233,8 @@ private fun PersonDetailContent(
                 if (useWideLayout) {
                     WidePersonDetailContent(
                         person = person,
-                        popularCredits = popularCredits,
-                        latestCredits = latestCredits,
-                        upcomingCredits = upcomingCredits,
+                        isFavorite = isFavorite,
+                        onToggleFavorite = onToggleFavorite,
                         watchedKeys = watchedKeys,
                         fullyWatchedSeriesKeys = fullyWatchedSeriesKeys,
                         onOpenMeta = onOpenMeta,
@@ -337,60 +244,18 @@ private fun PersonDetailContent(
                         animatedVisibilityScope = animatedVisibilityScope,
                     )
                 } else {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .verticalScroll(scrollState)
-                            .windowInsetsPadding(WindowInsets.statusBars)
-                            .padding(top = 48.dp),
-                    ) {
-                        HeroSection(
-                            person = person,
-                            collapseProgress = collapseProgress,
-                            fallbackProfilePhoto = initialProfilePhoto,
-                            avatarTransitionKey = avatarTransitionKey,
-                            sharedTransitionScope = sharedTransitionScope,
-                            animatedVisibilityScope = animatedVisibilityScope,
-                        )
-
-                        if (popularCredits.isNotEmpty()) {
-                            Spacer(modifier = Modifier.height(24.dp))
-                            DetailPosterRailSection(
-                                title = stringResource(Res.string.person_popular),
-                                items = popularCredits,
-                                watchedKeys = watchedKeys,
-                                fullyWatchedSeriesKeys = fullyWatchedSeriesKeys,
-                                headerHorizontalPadding = 20.dp,
-                                onPosterClick = onOpenMeta,
-                            )
-                        }
-
-                        if (latestCredits.isNotEmpty()) {
-                            Spacer(modifier = Modifier.height(24.dp))
-                            DetailPosterRailSection(
-                                title = stringResource(Res.string.person_latest),
-                                items = latestCredits,
-                                watchedKeys = watchedKeys,
-                                fullyWatchedSeriesKeys = fullyWatchedSeriesKeys,
-                                headerHorizontalPadding = 20.dp,
-                                onPosterClick = onOpenMeta,
-                            )
-                        }
-
-                        if (upcomingCredits.isNotEmpty()) {
-                            Spacer(modifier = Modifier.height(24.dp))
-                            DetailPosterRailSection(
-                                title = stringResource(Res.string.person_upcoming),
-                                items = upcomingCredits,
-                                watchedKeys = watchedKeys,
-                                fullyWatchedSeriesKeys = fullyWatchedSeriesKeys,
-                                headerHorizontalPadding = 20.dp,
-                                onPosterClick = onOpenMeta,
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(32.dp))
-                    }
+                    PhonePersonProfile(
+                        person = person,
+                        watchedKeys = watchedKeys,
+                        fullyWatchedSeriesKeys = fullyWatchedSeriesKeys,
+                        onOpenMeta = onOpenMeta,
+                        fallbackProfilePhoto = initialProfilePhoto,
+                        avatarTransitionKey = avatarTransitionKey,
+                        sharedTransitionScope = sharedTransitionScope,
+                        animatedVisibilityScope = animatedVisibilityScope,
+                        isFavorite = isFavorite,
+                        onToggleFavorite = onToggleFavorite,
+                    )
                 }
             }
         }
@@ -400,16 +265,13 @@ private fun PersonDetailContent(
 private val PERSON_DETAIL_WIDE_LAYOUT_MIN_WIDTH = 900.dp
 private val PERSON_DETAIL_WIDE_SIDEBAR_WIDTH = 392.dp
 
-private const val HERO_COLLAPSE_SCROLL_RANGE = 220f
-private const val HAPTIC_TRIGGER_SCROLL_THRESHOLD_PX = 56
 
 @Composable
 @OptIn(ExperimentalSharedTransitionApi::class)
 private fun WidePersonDetailContent(
     person: PersonDetail,
-    popularCredits: List<MetaPreview>,
-    latestCredits: List<MetaPreview>,
-    upcomingCredits: List<MetaPreview>,
+    isFavorite: Boolean,
+    onToggleFavorite: () -> Unit,
     watchedKeys: Set<String>,
     fullyWatchedSeriesKeys: Set<String> = emptySet(),
     onOpenMeta: (MetaPreview) -> Unit,
@@ -426,6 +288,8 @@ private fun WidePersonDetailContent(
     ) {
         PersonIdentitySidebar(
             person = person,
+            isFavorite = isFavorite,
+            onToggleFavorite = onToggleFavorite,
             fallbackProfilePhoto = fallbackProfilePhoto,
             avatarTransitionKey = avatarTransitionKey,
             sharedTransitionScope = sharedTransitionScope,
@@ -441,47 +305,13 @@ private fun WidePersonDetailContent(
                 .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.30f)),
         )
 
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxHeight()
-                .verticalScroll(rememberScrollState())
-                .padding(start = 40.dp, bottom = 40.dp),
-            verticalArrangement = Arrangement.spacedBy(34.dp),
-        ) {
-            if (popularCredits.isNotEmpty()) {
-                DetailPosterRailSection(
-                    title = stringResource(Res.string.person_popular),
-                    items = popularCredits,
-                    watchedKeys = watchedKeys,
-                    fullyWatchedSeriesKeys = fullyWatchedSeriesKeys,
-                    headerHorizontalPadding = 0.dp,
-                    onPosterClick = onOpenMeta,
-                )
-            }
-
-            if (latestCredits.isNotEmpty()) {
-                DetailPosterRailSection(
-                    title = stringResource(Res.string.person_latest),
-                    items = latestCredits,
-                    watchedKeys = watchedKeys,
-                    fullyWatchedSeriesKeys = fullyWatchedSeriesKeys,
-                    headerHorizontalPadding = 0.dp,
-                    onPosterClick = onOpenMeta,
-                )
-            }
-
-            if (upcomingCredits.isNotEmpty()) {
-                DetailPosterRailSection(
-                    title = stringResource(Res.string.person_upcoming),
-                    items = upcomingCredits,
-                    watchedKeys = watchedKeys,
-                    fullyWatchedSeriesKeys = fullyWatchedSeriesKeys,
-                    headerHorizontalPadding = 0.dp,
-                    onPosterClick = onOpenMeta,
-                )
-            }
-        }
+        WidePersonTabs(
+            person = person,
+            watchedKeys = watchedKeys,
+            fullyWatchedSeriesKeys = fullyWatchedSeriesKeys,
+            onOpenMeta = onOpenMeta,
+            modifier = Modifier.weight(1f).padding(horizontal = 12.dp),
+        )
     }
 }
 
@@ -489,6 +319,8 @@ private fun WidePersonDetailContent(
 @OptIn(ExperimentalSharedTransitionApi::class)
 private fun PersonIdentitySidebar(
     person: PersonDetail,
+    isFavorite: Boolean,
+    onToggleFavorite: () -> Unit,
     fallbackProfilePhoto: String?,
     avatarTransitionKey: String,
     sharedTransitionScope: SharedTransitionScope?,
@@ -581,6 +413,7 @@ private fun PersonIdentitySidebar(
                 maxLines = 3,
                 overflow = TextOverflow.Ellipsis,
             )
+            PersonFavoriteChip(isFavorite = isFavorite, onClick = onToggleFavorite)
         }
 
         Column(verticalArrangement = Arrangement.spacedBy(15.dp)) {
@@ -647,151 +480,6 @@ private fun SidebarLabel(text: String) {
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
     )
-}
-
-@Composable
-@OptIn(ExperimentalSharedTransitionApi::class)
-private fun HeroSection(
-    person: PersonDetail,
-    collapseProgress: Float = 0f,
-    fallbackProfilePhoto: String? = null,
-    avatarTransitionKey: String,
-    sharedTransitionScope: SharedTransitionScope? = null,
-    animatedVisibilityScope: AnimatedVisibilityScope? = null,
-) {
-    val avatarSize = lerp(140.dp, 72.dp, collapseProgress)
-    val heroScale = 1f - (collapseProgress * 0.12f)
-    val heroAlpha = 1f - (collapseProgress * 0.35f)
-    val avatarUrl = person.profilePhoto?.takeIf { it.isNotBlank() } ?: fallbackProfilePhoto
-    val avatarCacheKey = avatarTransitionKey
-    val platformContext = LocalPlatformContext.current
-    val avatarRequest = if (!avatarUrl.isNullOrBlank()) {
-        remember(platformContext, avatarUrl, avatarCacheKey) {
-            ImageRequest.Builder(platformContext)
-                .data(avatarUrl)
-                .memoryCacheKey(avatarCacheKey)
-                .placeholderMemoryCacheKey(avatarCacheKey)
-                .diskCacheKey(avatarUrl)
-                .build()
-        }
-    } else {
-        null
-    }
-    val avatarSharedElementModifier = if (sharedTransitionScope != null && animatedVisibilityScope != null) {
-        with(sharedTransitionScope) {
-            Modifier.sharedElement(
-                sharedContentState = rememberSharedContentState(
-                    key = avatarTransitionKey,
-                ),
-                animatedVisibilityScope = animatedVisibilityScope,
-            )
-        }
-    } else {
-        Modifier
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp)
-            .graphicsLayer {
-                scaleX = heroScale
-                scaleY = heroScale
-                alpha = heroAlpha
-                translationY = -(collapseProgress * 40f)
-            },
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        // Profile Photo
-        Box(
-            modifier = Modifier
-                .then(avatarSharedElementModifier)
-                .size(avatarSize)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.surfaceVariant),
-            contentAlignment = Alignment.Center,
-        ) {
-            if (!avatarUrl.isNullOrBlank()) {
-                AsyncImage(
-                    model = avatarRequest ?: avatarUrl,
-                    contentDescription = person.name,
-                    modifier = Modifier.matchParentSize(),
-                    contentScale = ContentScale.Crop,
-                )
-            } else {
-                Text(
-                    text = person.name.firstOrNull()?.uppercase() ?: "?",
-                    style = MaterialTheme.typography.displayMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Name
-        Text(
-            text = person.name,
-            style = MaterialTheme.typography.headlineSmall.copy(
-                fontWeight = FontWeight.Bold,
-                letterSpacing = (-0.5).sp,
-            ),
-            color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // Personal info
-        val infoItems = buildList {
-            person.birthday?.let { bday ->
-                val age = calculateAge(bday, person.deathday)
-                val ageStr = if (age != null) stringResource(Res.string.person_age, age) else ""
-                val bdayDisplay = formatDateForDisplay(bday) ?: bday
-                val deathDisplay = person.deathday?.let { formatDateForDisplay(it) ?: it }
-                val line = if (deathDisplay != null) {
-                    buildString {
-                        append(stringResource(Res.string.person_born, bdayDisplay, ""))
-                        append(" — ")
-                        append(stringResource(Res.string.person_died, deathDisplay))
-                        append(ageStr)
-                    }
-                } else {
-                    stringResource(Res.string.person_born, bdayDisplay, ageStr)
-                }
-                add(line)
-            }
-            person.placeOfBirth?.let { add(it) }
-            person.knownFor?.let { add(stringResource(Res.string.person_known_for, it)) }
-        }
-        if (infoItems.isNotEmpty()) {
-            infoItems.forEach { info ->
-                Text(
-                    text = info,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Spacer(modifier = Modifier.height(2.dp))
-            }
-        }
-
-        // Biography
-        person.biography?.let { bio ->
-            Spacer(modifier = Modifier.height(12.dp))
-            ExpandableDescription(
-                text = bio,
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    lineHeight = 20.sp,
-                ),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                collapsedMaxLines = 8,
-                modifier = Modifier.fillMaxWidth(),
-            )
-        }
-    }
 }
 
 // ─── Loading / Error States ───
@@ -1234,7 +922,7 @@ private fun personBirthLine(birthday: String, deathday: String?): String {
     }
 }
 
-private fun calculateAge(birthday: String, deathday: String?): Int? {
+internal fun calculateAge(birthday: String, deathday: String?): Int? {
     val birthParts = birthday.split("-").mapNotNull { it.toIntOrNull() }
     if (birthParts.size < 3) return null
     val birthYear = birthParts[0]
@@ -1264,7 +952,7 @@ private fun calculateAge(birthday: String, deathday: String?): Int? {
     return age.takeIf { it >= 0 }
 }
 
-private fun formatDateForDisplay(date: String): String? {
+internal fun formatDateForDisplay(date: String): String? {
     val parts = date.split("-").mapNotNull { it.toIntOrNull() }
     if (parts.size < 3) return null
     val month = parts[1]
