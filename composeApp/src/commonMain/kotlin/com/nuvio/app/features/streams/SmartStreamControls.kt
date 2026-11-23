@@ -65,6 +65,7 @@ import com.nuvio.app.core.ui.NuvioModalBottomSheet
 import com.nuvio.app.core.ui.NuvioToastController
 import com.nuvio.app.core.ui.dismissNuvioBottomSheet
 import com.nuvio.app.core.ui.backdropControlColor
+import com.nuvio.app.core.ui.glass.LocalGlassOverArtwork
 import com.nuvio.app.core.ui.glass.ambientLiquidGlass
 import com.nuvio.app.core.ui.nuvio
 import com.nuvio.app.features.downloads.DownloadNetworkGuard
@@ -144,6 +145,8 @@ internal fun SmartStreamControls(
                         fallback = colors.accent,
                         blurRadius = 14.dp,
                         refractionHeight = 8.dp,
+                        // The rim light only lit some corners of the solid accent button.
+                        withHighlight = false,
                         staticFromBackdrop = true,
                     )
                     .combinedClickable(
@@ -246,8 +249,8 @@ internal fun SmartStreamControls(
                                 .clip(CircleShape)
                                 .ambientLiquidGlass(
                                     shape = CircleShape,
-                                    tint = StreamGlassTint,
-                                    fallback = backdropControlColor(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)),
+                                    tint = smartGlassColor(),
+                                    fallback = smartGlassColor(),
                                     blurRadius = 14.dp,
                                     refractionHeight = 8.dp,
                                     staticFromBackdrop = true,
@@ -314,6 +317,15 @@ internal fun SmartStreamControls(
     }
 }
 
+/** The theme's control glass, as the source filters use: light in the light appearance. */
+@Composable
+private fun smartGlassColor(): Color =
+    if (LocalGlassOverArtwork.current) {
+        streamGlassTint()
+    } else {
+        backdropControlColor(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
+    }
+
 @Composable
 private fun SmartBarButton(
     icon: @Composable () -> Unit,
@@ -331,8 +343,8 @@ private fun SmartBarButton(
             .clip(shape)
             .ambientLiquidGlass(
                 shape = shape,
-                tint = StreamGlassTint,
-                fallback = backdropControlColor(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)),
+                tint = smartGlassColor(),
+                fallback = smartGlassColor(),
                 blurRadius = 14.dp,
                 refractionHeight = 8.dp,
                 staticFromBackdrop = true,

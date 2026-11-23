@@ -310,7 +310,8 @@ internal object SmartStreamRanking {
         val target = target(device, settings)
         fun infoOf(stream: StreamItem): SmartStreamInfo = SmartStreamQuality.cached(stream)
 
-        val candidates = allState.groups.flatMap { it.streams }
+        // With a source chosen at the top (Terabox, Torbox...), the best is picked from that source.
+        val candidates = allState.filteredGroups.flatMap { it.streams }
             .filter { it.isSelectableForPlayback(debridEnabled) }
             .mapIndexed { index, stream ->
                 val info = infoOf(stream)

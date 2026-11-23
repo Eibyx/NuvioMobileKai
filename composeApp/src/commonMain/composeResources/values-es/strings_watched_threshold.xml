@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_watched_threshold_section">Progreso</string>
+    <string name="settings_watched_threshold_title">Cuándo cuenta como visto</string>
+    <string name="settings_watched_threshold_description">Películas y episodios cuentan como vistos al %1$d%. Por debajo, Continuar viendo guarda el punto donde lo dejaste.</string>
+    <string name="settings_watched_threshold_option">%1$d%</string>
+</resources>

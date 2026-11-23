@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="downloads_legacy_mode_title">Descarga heredada</string>
+    <string name="downloads_legacy_mode_description">Guarda las descargas directamente en la carpeta de descargas, como el Nuvio original. Las descargas se pausan cuando la app pasa a segundo plano. Pruébalo si las descargas terminadas no se guardan.</string>
+</resources>

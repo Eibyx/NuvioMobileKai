@@ -293,6 +293,8 @@ private fun FilterChip(
                 fallback = containerColor,
                 blurRadius = 14.dp,
                 refractionHeight = 8.dp,
+                // The rim light lit only some corners of the selected (solid) chip.
+                withHighlight = !isSelected,
                 staticFromBackdrop = true,
             )
             .combinedClickable(
