@@ -1,3 +1,28 @@
+# Sincronización con el oficial y con luqman (23-nov-2026)
+
+Una fusión en `kai-sync-120`: **luqman** (`enhanced`, su 1.1.0-beta.3) ya traía todo lo del **oficial** (`cmp-rewrite`, su 1.0.1 y 1.1.0-beta.2), así que la segunda fusión no añadió nada. 9 archivos en conflicto.
+
+## Qué entró
+
+| Cambio | De | Notas |
+|---|---|---|
+| Smart Streams: orden y filtros según el dispositivo (decodificadores, HDR, memoria, pantalla), idiomas de audio preferidos y reproducción automática inteligente con paso a la siguiente | luqman | En Reproducción. TeraBox y Drive siguen siendo fuentes de servidor dentro de la búsqueda compartida. |
+| Umbral de visto | luqman | |
+| Inicio: filas fijadas arriba o abajo y filas y colecciones ocultas | luqman (Sam3110xavier) | El orden de catálogos usa `orderHomeCatalogDefinitions`. |
+| Destacado: se descartan los elementos que no vienen de las fuentes elegidas | luqman | Sin la espera a que carguen todas las fuentes, que Kai no usa. |
+| Saltar, siguiente episodio y recomendación a la derecha encima de la hora de fin; sin cristal de vídeo en HDR | luqman | |
+| Descargas rediseñadas; subtítulos con el nombre del addon; notas de episodio según el orden del addon; Jellyfin/Emby por perfil; Trakt; wifi opcional | Oficial (vía luqman) | |
+
+## Qué se quedó de Kai
+
+| Kai | Notas |
+|---|---|
+| Publicación, versión, README, mpv de mpvRx | |
+| Reproductor y streams en tablet oscuros en el tema claro (`NuvioDarkSurface`) | Con el modo de fondo de streams de luqman. |
+| Textos en español de Kai | Se quitan 43 traducciones repetidas de Enhanced en `values-es/strings.xml`. |
+
+Una prueba nueva de luqman (`HomeCatalogSettingsRepositoryTest`) tenía una cadena mal escapada y no compilaba: corregida.
+
 # Sincronización con el oficial y con luqman (17-nov-2026)
 
 Dos fusiones en `kai-sync-110`, sin rebase: **luqman** (`enhanced`, su 1.1.0-beta.1) y después el **oficial** (`cmp-rewrite`, después de su 1.0.0). 11 archivos en conflicto con luqman y 3 con el oficial. Primera release sin `-beta`: 4.0.0.
