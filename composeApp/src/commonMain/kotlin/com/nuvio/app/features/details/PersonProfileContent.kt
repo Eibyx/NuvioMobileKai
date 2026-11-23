@@ -55,8 +55,6 @@ import androidx.compose.material.icons.rounded.Place
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -84,6 +82,23 @@ import androidx.compose.ui.unit.min
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.window.Dialog
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.graphicsLayer
+import com.nuvio.app.core.ui.ArtworkBackdrop
+import com.nuvio.app.core.ui.isDarkAppearance
+import com.nuvio.app.core.ui.rememberArtworkBackdrop
+import com.nuvio.app.core.ui.glass.LocalGlassOverArtwork
+import com.nuvio.app.core.ui.glass.LocalLiquidGlassBackdrop
+import com.nuvio.app.core.ui.glass.ambientLiquidGlass
+import com.nuvio.app.core.ui.glass.nuvioBackdropSource
+import com.nuvio.app.core.ui.glass.rememberNuvioBackdrop
+import com.nuvio.app.features.player.HidePlayerSystemBars
+import com.nuvio.app.features.streams.streamCardGlass
 import androidx.compose.ui.window.DialogProperties
 import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
@@ -188,6 +203,20 @@ private fun departmentLabel(department: String): String = when (department.lower
     else -> department
 }
 
+/** The glass the stream screen and the detail page use: over the blurred photo, readable in both themes. */
+@Composable
+private fun Modifier.personGlass(shape: Shape): Modifier {
+    val glass = streamCardGlass()
+    return clip(shape).ambientLiquidGlass(
+        shape = shape,
+        tint = glass.tint,
+        fallback = glass.fallback,
+        blurRadius = 14.dp,
+        refractionHeight = 8.dp,
+        staticFromBackdrop = true,
+    )
+}
+
 private fun personGridColumns(width: Dp): Int =
     (((width - 32.dp + 12.dp) / (112.dp + 12.dp)).toInt()).coerceIn(3, 8)
 
@@ -215,6 +244,24 @@ internal fun PhonePersonProfile(
     var viewerIndex by remember { mutableStateOf<Int?>(null) }
     val images = rememberPersonImages(person.tmdbId, load = tab == PersonTab.Images)
 
+    // Full screen: the photo reaches the top edge without the status bar over it.
+    HidePlayerSystemBars()
+
+    val glassBackdrop = rememberNuvioBackdrop()
+    val artwork = rememberArtworkBackdrop(person.heroPhoto ?: person.profilePhoto ?: fallbackProfilePhoto)
+    val veil = (if (MaterialTheme.isDarkAppearance) Color.Black else MaterialTheme.colorScheme.background)
+        .copy(alpha = 0.62f)
+    Box(modifier = Modifier.fillMaxSize()) {
+    // The blurred photo behind the page, as on the stream screen: the glass of the controls samples it.
+    ArtworkBackdrop(
+        image = artwork,
+        modifier = Modifier.nuvioBackdropSource(glassBackdrop),
+        scrim = SolidColor(veil),
+    )
+    CompositionLocalProvider(
+        LocalLiquidGlassBackdrop provides glassBackdrop,
+        LocalGlassOverArtwork provides (artwork != null),
+    ) {
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val columns = personGridColumns(maxWidth)
         val heroHeight = min(maxWidth * 1.2f, maxHeight * 0.66f)
@@ -282,6 +329,8 @@ internal fun PhonePersonProfile(
             onSelectTab = { tab = it },
         )
     }
+    }
+    }
 
     val shownImages = images
     viewerIndex?.let { index ->
@@ -323,7 +372,7 @@ private fun PersonPhoneTopBar(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(topBarHeight)
-                .background(MaterialTheme.colorScheme.background.copy(alpha = 0.96f * barAlpha)),
+                .background(MaterialTheme.colorScheme.background.copy(alpha = 0.9f * barAlpha)),
         ) {
             Text(
                 text = title,
@@ -341,7 +390,7 @@ private fun PersonPhoneTopBar(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.background.copy(alpha = 0.96f))
+                    .background(MaterialTheme.colorScheme.background.copy(alpha = 0.9f))
                     .padding(start = 16.dp, end = 16.dp, bottom = 10.dp),
             ) {
                 PersonTabRow(tabs = PersonTab.entries, selected = tab, onSelect = onSelectTab)
@@ -381,7 +430,6 @@ private fun PersonHero(
     } else {
         Modifier
     }
-    val background = MaterialTheme.colorScheme.background
     val departmentCount = remember(person.filmography) { person.filmography.distinctBy { it.item.stableKey() }.size }
 
     Box(
@@ -393,7 +441,19 @@ private fun PersonHero(
             modifier = Modifier
                 .fillMaxSize()
                 .then(sharedModifier)
-                .background(MaterialTheme.colorScheme.surfaceVariant),
+                // Only the bottom of the photo melts into the blurred one behind; the rest keeps its colour.
+                .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+                .drawWithContent {
+                    drawContent()
+                    drawRect(
+                        brush = Brush.verticalGradient(
+                            0.0f to Color.Black,
+                            0.72f to Color.Black,
+                            1.0f to Color.Transparent,
+                        ),
+                        blendMode = BlendMode.DstIn,
+                    )
+                },
             contentAlignment = Alignment.Center,
         ) {
             if (request != null) {
@@ -412,19 +472,6 @@ private fun PersonHero(
                 )
             }
         }
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        0.0f to background.copy(alpha = 0.35f),
-                        0.18f to Color.Transparent,
-                        0.52f to Color.Transparent,
-                        0.82f to background.copy(alpha = 0.82f),
-                        1.0f to background,
-                    ),
-                ),
-        )
         Column(
             modifier = Modifier
                 .align(Alignment.BottomStart)
@@ -464,8 +511,13 @@ internal fun PersonFavoriteChip(isFavorite: Boolean, onClick: () -> Unit, modifi
     val accent = MaterialTheme.colorScheme.primary
     Row(
         modifier = modifier
-            .clip(RoundedCornerShape(50))
-            .background(if (isFavorite) accent else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f))
+            .then(
+                if (isFavorite) {
+                    Modifier.clip(RoundedCornerShape(50)).background(accent)
+                } else {
+                    Modifier.personGlass(RoundedCornerShape(50))
+                },
+            )
             .clickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 9.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -507,9 +559,7 @@ internal fun PersonFactsCard(person: PersonDetail, modifier: Modifier = Modifier
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f))
-            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.18f), RoundedCornerShape(18.dp))
+            .personGlass(RoundedCornerShape(18.dp))
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
@@ -567,8 +617,7 @@ internal fun PersonTabRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(50))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f))
+            .personGlass(RoundedCornerShape(50))
             .padding(4.dp),
     ) {
         tabs.forEach { tab ->
@@ -910,20 +959,33 @@ private fun PersonFilmographyControlsBar(
 
 @Composable
 private fun PersonChip(label: String, selected: Boolean, onClick: () -> Unit, leadingIcon: ImageVector? = null) {
-    FilterChip(
-        selected = selected,
-        onClick = onClick,
-        label = { Text(text = label, maxLines = 1) },
-        leadingIcon = leadingIcon?.let { icon ->
-            { Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(18.dp)) }
-        },
-        shape = RoundedCornerShape(50),
-        colors = FilterChipDefaults.filterChipColors(
-            selectedContainerColor = MaterialTheme.colorScheme.onSurface,
-            selectedLabelColor = MaterialTheme.colorScheme.surface,
-            selectedLeadingIconColor = MaterialTheme.colorScheme.surface,
-        ),
-    )
+    val shape = RoundedCornerShape(50)
+    val content = if (selected) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.onSurface
+    Row(
+        modifier = Modifier
+            .height(36.dp)
+            .then(
+                if (selected) {
+                    Modifier.clip(shape).background(MaterialTheme.colorScheme.onSurface)
+                } else {
+                    Modifier.personGlass(shape)
+                },
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        leadingIcon?.let { icon ->
+            Icon(imageVector = icon, contentDescription = null, tint = content, modifier = Modifier.size(18.dp))
+        }
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+            color = content,
+            maxLines = 1,
+        )
+    }
 }
 
 @Composable
