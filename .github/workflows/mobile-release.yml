@@ -304,6 +304,10 @@ jobs:
           rustup target add aarch64-linux-android
           cargo install cargo-ndk --version 4.1.2 --locked
 
+      # A string defined twice in one language crashes the app when it is shown.
+      - name: Check for duplicate strings
+        run: python3 scripts/check-duplicate-strings.py
+
       - name: Build full release APKs
         run: ./gradlew :androidApp:assembleFullRelease -Pnuvio.app.versionName="${RELEASE_VERSION}" -Pnuvio.android.abis="${RELEASE_ABI}" --stacktrace
 
