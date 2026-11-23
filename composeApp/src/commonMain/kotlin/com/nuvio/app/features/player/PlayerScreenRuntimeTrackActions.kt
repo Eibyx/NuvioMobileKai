@@ -71,6 +71,7 @@ internal fun PlayerScreenRuntime.persistInternalSubtitlePreference(track: Subtit
             addonSubtitleId = null,
             addonSubtitleUrl = null,
             addonSubtitleAddonName = null,
+            subtitleOffAudioLanguage = if (track == null) currentAudioLanguage() else null,
         )
     }
 }
@@ -86,6 +87,7 @@ internal fun PlayerScreenRuntime.persistAddonSubtitlePreference(subtitle: AddonS
             addonSubtitleUrl = subtitle.url,
             addonSubtitleAddonName = subtitle.addonName,
             subtitleIsForced = null,
+            subtitleOffAudioLanguage = null,
         )
     }
 }
@@ -105,6 +107,18 @@ internal fun PlayerScreenRuntime.restorePersistedTrackPreferenceIfNeeded(): Bool
 
     when (preference.subtitleType) {
         PersistedSubtitleSelectionType.DISABLED -> {
+            // Subtitles turned off while listening in one language (a dub) stay on for another.
+            val offAudio = preference.subtitleOffAudioLanguage ?: preference.audioLanguage
+            if (offAudio != null && audioTracks.isEmpty()) return false
+            val playingAudio = currentAudioLanguage()
+            if (offAudio != null && playingAudio != null && !languageMatchesPreference(playingAudio, offAudio)) {
+                InAppLogger.info(
+                    SubtitleSelectionLogTag,
+                    "subtitles were turned off with $offAudio audio; $playingAudio is playing, so the preferred subtitles apply",
+                )
+                trackPreferenceRestoreApplied = true
+                return true
+            }
             InAppLogger.info(SubtitleSelectionLogTag, "subtitles off: you turned them off for this title")
             playerController?.selectSubtitleTrack(-1)
             selectedSubtitleIndex = -1
@@ -162,6 +176,14 @@ internal fun PlayerScreenRuntime.restorePersistedTrackPreferenceIfNeeded(): Bool
         (preference.audioTrackId.isNullOrBlank() && preference.audioLanguage.isNullOrBlank() &&
             preference.audioName.isNullOrBlank())
     return true
+}
+
+/** The language of the audio track playing now (its label when the stream gives no language). */
+internal fun PlayerScreenRuntime.currentAudioLanguage(): String? {
+    val track = audioTracks.firstOrNull { it.index == selectedAudioIndex }
+        ?: audioTracks.firstOrNull { it.isSelected }
+        ?: return null
+    return track.language?.takeIf { it.isNotBlank() } ?: track.label.takeIf { it.isNotBlank() }
 }
 
 internal fun PlayerScreenRuntime.refreshTracks() {

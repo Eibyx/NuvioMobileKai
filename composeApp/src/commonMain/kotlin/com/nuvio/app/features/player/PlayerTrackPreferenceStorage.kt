@@ -12,6 +12,8 @@ data class PersistedPlayerTrackPreference(
     val audioName: String? = null,
     val audioTrackId: String? = null,
     val subtitleIsForced: Boolean? = null,
+    /** The audio language playing when subtitles were turned off: "off" only applies to that audio. */
+    val subtitleOffAudioLanguage: String? = null,
 )
 
 object PersistedSubtitleSelectionType {
