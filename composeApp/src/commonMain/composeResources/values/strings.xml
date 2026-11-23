@@ -694,19 +694,31 @@
     <string name="detail_tab_trailer">Trailer</string>
     <string name="detail_trailer_category_count">%1$s (%2$d)</string>
     <string name="detail_trailers_title">Trailers</string>
-    <string name="downloads_empty_episodes">No completed episodes</string>
+    <string name="downloads_delete_message">This frees %1$s on this device.</string>
+    <string name="downloads_delete_title">Delete %1$s?</string>
+    <string name="downloads_downloading_count">%1$d downloading</string>
+    <string name="downloads_empty_message">Long-press a stream and choose Download file to watch it offline.</string>
     <string name="downloads_empty_title">No downloads yet</string>
-    <string name="downloads_episode_count">%1$d downloaded episode(s)</string>
     <string name="downloads_open_directory">Open downloads folder</string>
     <string name="downloads_open_directory_failed">Couldn&apos;t open downloads folder</string>
+    <string name="downloads_pause_all">Pause all</string>
+    <string name="downloads_resume_all">Resume all</string>
     <string name="downloads_section_active">Active</string>
-    <string name="downloads_section_movies">Movies</string>
-    <string name="downloads_section_shows">Shows</string>
+    <string name="downloads_section_downloaded">Downloaded</string>
     <string name="downloads_show_downloads">Show Downloads</string>
-    <string name="downloads_status_completed">Completed • %1$s</string>
+    <string name="downloads_speed">%1$s/s</string>
     <string name="downloads_status_downloading">Downloading • %1$s</string>
     <string name="downloads_status_failed">Failed</string>
     <string name="downloads_status_paused">Paused • %1$s</string>
+    <string name="downloads_watched_count">%1$d watched</string>
+    <plurals name="downloads_episodes">
+        <item quantity="one">%1$d episode</item>
+        <item quantity="other">%1$d episodes</item>
+    </plurals>
+    <plurals name="downloads_titles">
+        <item quantity="one">%1$d title</item>
+        <item quantity="other">%1$d titles</item>
+    </plurals>
     <string name="episodes_cd_watched">Watched</string>
     <string name="episodes_unavailable">Unavailable</string>
     <string name="episodes_season">Season %1$d</string>
@@ -2329,11 +2341,11 @@
     <string name="home_catalog_default_title">%1$s - %2$s</string>
     <string name="library_empty_message">Saved titles will appear here after you tap Save on a details screen.</string>
     <string name="library_empty_title">Your library is empty</string>
-    <string name="library_filter_all_types">All types</string>
+    <string name="library_filter_all_types">All Types</string>
     <string name="library_filter_genre">Genre</string>
-    <string name="library_filter_list">Select list</string>
-    <string name="library_filter_sort">Sort library</string>
-    <string name="library_filter_type">Select type</string>
+    <string name="library_filter_list">Select List</string>
+    <string name="library_filter_sort">Sort Library</string>
+    <string name="library_filter_type">Select Type</string>
     <string name="library_filter_watched">Watched</string>
     <string name="library_filter_year">Year</string>
     <string name="library_type_all">All</string>
@@ -2374,10 +2386,10 @@
     <string name="library_calendar_weekday_thu">Thu</string>
     <string name="library_calendar_weekday_tue">Tue</string>
     <string name="library_calendar_weekday_wed">Wed</string>
-    <string name="library_sort_added_asc">Oldest added</string>
-    <string name="library_sort_added_desc">Recently added</string>
-    <string name="library_sort_released_asc">Oldest released</string>
-    <string name="library_sort_released_desc">Recently released</string>
+    <string name="library_sort_added_asc">Oldest Added</string>
+    <string name="library_sort_added_desc">Recently Added</string>
+    <string name="library_sort_released_asc">Oldest Released</string>
+    <string name="library_sort_released_desc">Recently Released</string>
     <string name="library_sort_title_asc">Title A–Z</string>
     <string name="library_status_watching">Watching</string>
     <string name="library_status_plan_to_watch">Plan to Watch</string>
@@ -2386,7 +2398,7 @@
     <string name="library_status_dropped">Dropped</string>
     <string name="library_error_sort_failed">Couldn't load sort order. Showing provider order.</string>
     <string name="library_sort_title_desc">Title Z–A</string>
-    <string name="library_sort_provider_order">Tracker order</string>
+    <string name="library_sort_provider_order">Tracker Order</string>
     <string name="library_source_cloud">Cloud</string>
     <string name="library_source_downloaded">Downloaded</string>
     <string name="library_source_saved">Saved</string>
@@ -2431,8 +2443,8 @@
     <string name="cloud_library_provider_all">All</string>
     <string name="cloud_library_refresh">Refresh cloud library</string>
     <string name="cloud_library_search_label">Search cloud library</string>
-    <string name="cloud_library_select_provider">Select provider</string>
-    <string name="cloud_library_select_type">Select type</string>
+    <string name="cloud_library_select_provider">Select Provider</string>
+    <string name="cloud_library_select_type">Select Type</string>
     <string name="cloud_library_status_ready">Ready to play</string>
     <string name="cloud_library_type_all">All</string>
     <string name="cloud_library_type_torrents">Torrents</string>
@@ -3253,4 +3265,18 @@
     <string name="downloads_episodes_out_of_downloaded">Episode %1$d out of %2$d downloaded</string>
     <string name="batch_download_failed_single">%1$d episode could not be queued</string>
     <string name="batch_download_failed_multiple">%1$d episodes could not be queued</string>
+    <string name="downloads_section_movies">Movies</string>
+    <string name="downloads_status_completed">Completed • %1$s</string>
+    <!-- Pin rows and hidden rows feature -->
+    <string name="settings_homescreen_pinned_to_bottom">Pinned to bottom</string>
+    <string name="settings_homescreen_home_placement">Home placement</string>
+    <string name="settings_homescreen_placement_default">Default</string>
+    <string name="settings_homescreen_pin_top">Pin top</string>
+    <string name="settings_homescreen_pin_bottom">Pin bottom</string>
+    <string name="settings_homescreen_hidden_rows_title">HIDDEN ROWS &amp; COLLECTIONS</string>
+    <string name="settings_homescreen_show_hidden">Show hidden</string>
+    <string name="settings_homescreen_hide_hidden">Hide hidden</string>
+    <string name="settings_homescreen_hidden_count">%1$d hidden rows and collections</string>
+    <string name="settings_homescreen_no_visible_rows_title">No visible home rows</string>
+    <string name="settings_homescreen_no_visible_rows_message">All catalog rows and collections are hidden. Open the hidden section below to restore them.</string>
 </resources>
