@@ -207,7 +207,7 @@ internal fun PhonePersonProfile(
     isFavorite: Boolean,
     onToggleFavorite: () -> Unit,
 ) {
-    var tab by remember(person.tmdbId) { mutableStateOf(PersonTab.Overview) }
+    var tab by remember(person.tmdbId) { mutableStateOf(PersonTab.Filmography) }
     val controls = remember(person.tmdbId) {
         PersonFilmographyControls(defaultPersonDepartment(person.filmography, person.knownFor))
     }
