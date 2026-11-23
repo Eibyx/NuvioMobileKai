@@ -1055,7 +1055,7 @@ internal fun LazyListScope.smartSortedStreamSection(
                 }
             },
             onLongClick = {
-                if (stream.playableDirectUrl != null || stream.shouldOpenExternally || stream.isAddonDebridCandidate) {
+                if (stream.playableDirectUrl != null || stream.shouldOpenExternally || stream.isAddonDebridCandidate || com.nuvio.app.features.cloudstorage.CloudStreams.isCloudTarget(stream.serverTarget)) {
                     onStreamLongPress(stream)
                 }
             },

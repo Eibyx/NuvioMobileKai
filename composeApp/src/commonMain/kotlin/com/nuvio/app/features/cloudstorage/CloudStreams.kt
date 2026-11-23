@@ -266,6 +266,24 @@ internal object CloudPlayback {
         )
     }
 
+    /**
+     * The provider's own link and headers, without the local server: for downloads, which carry
+     * the headers themselves and must not depend on the app's loopback port staying open.
+     */
+    suspend fun prepareDirect(stream: StreamItem): StreamItem {
+        val target = stream.serverTarget ?: return stream
+        val accountId = target.item.connectionId.removePrefix(CloudStreams.CONNECTION_PREFIX)
+        val provider = CloudStorageRepository.provider(accountId) ?: throw CloudStorageException(CloudFailure.NOT_FOUND)
+        val file = CloudStorageRepository.file(accountId, target.item.itemId) ?: throw CloudStorageException(CloudFailure.NOT_FOUND)
+        val source = provider.resolve(file, forceRefresh = false)
+        return stream.copy(
+            url = source.url,
+            behaviorHints = stream.behaviorHints.copy(
+                proxyHeaders = com.nuvio.app.features.streams.StreamProxyHeaders(request = source.headers),
+            ),
+        )
+    }
+
     fun stop(url: String?) {
         CloudPlaybackGateway.close(url)
         synchronized(lock) { url?.let(sidecarUrls::remove) }?.forEach(CloudPlaybackGateway::close)

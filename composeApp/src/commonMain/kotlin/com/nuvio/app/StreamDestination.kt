@@ -643,12 +643,15 @@ internal fun StreamDestination(
                     }
                 val serverResumeMs = serverResumePositionMs(prepared)
                 preparingServerStream = false
+                // A cloud file can go to an external player (the local address carries the session);
+                // media server sessions stay in the app's player, which reports their progress.
+                val cloud = com.nuvio.app.features.cloudstorage.CloudStreams.isCloudTarget(stream.serverTarget)
                 openSelectedStream(
                     stream = prepared,
                     resolvedResumePositionMs = serverResumeMs ?: resolvedResumePositionMs,
                     resolvedResumeProgressFraction = resolvedResumeProgressFraction.takeIf { serverResumeMs == null },
-                    forceExternal = false,
-                    forceInternal = true,
+                    forceExternal = cloud && forceExternal,
+                    forceInternal = !(cloud && forceExternal),
                 )
             }
             return

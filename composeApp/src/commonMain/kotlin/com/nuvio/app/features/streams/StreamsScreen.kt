@@ -4,6 +4,9 @@ import com.nuvio.app.core.ui.NuvioWindowSize
 import com.nuvio.app.core.ui.NuvioDarkSurface
 import com.nuvio.app.core.ui.isDarkAppearance
 import com.nuvio.app.core.ui.surfaceOverlay
+import com.nuvio.app.features.cloudstorage.CloudPlayback
+import com.nuvio.app.features.cloudstorage.CloudStreams
+import com.nuvio.app.features.servers.ServerPlayback
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
@@ -276,7 +279,36 @@ fun StreamsScreen(
 
     val startStreamDownload: (StreamItem) -> Unit = { stream ->
 
-            if (DirectDebridPlaybackResolver.shouldResolveToPlayableStream(stream)) {
+            if (stream.playableDirectUrl == null && CloudStreams.isCloudTarget(stream.serverTarget)) {
+                // A cloud file: the provider's own link with the account's headers, so the download
+                // does not depend on the app's local server staying open.
+                downloadScope.launch {
+                    val prepared = runCatching { CloudPlayback.prepareDirect(stream) }
+                        .onFailure { if (it is kotlinx.coroutines.CancellationException) throw it }
+                        .getOrNull()
+                    if (prepared?.playableDirectUrl == null) {
+                        NuvioToastController.show(noDirectStreamLinkText)
+                        return@launch
+                    }
+                    val result = DownloadsRepository.enqueueFromStream(
+                        contentType = type,
+                        videoId = videoId,
+                        parentMetaId = parentMetaId,
+                        parentMetaType = parentMetaType,
+                        title = title,
+                        logo = logo,
+                        poster = poster,
+                        background = background,
+                        seasonNumber = seasonNumber,
+                        episodeNumber = episodeNumber,
+                        episodeTitle = episodeTitle,
+                        episodeThumbnail = episodeThumbnail,
+                        stream = prepared,
+                        episodeOverview = episodeOverview,
+                    )
+                    NuvioToastController.show(result.toastMessage())
+                }
+            } else if (DirectDebridPlaybackResolver.shouldResolveToPlayableStream(stream)) {
                 downloadScope.launch {
                     val resolved = DirectDebridPlaybackResolver.resolveToPlayableStream(
                         stream = stream,
@@ -418,7 +450,22 @@ fun StreamsScreen(
             onDismiss = { streamActionsTarget = null },
             onCopyLink = { stream ->
                 val directUrl = stream.playableDirectUrl ?: stream.externalOpenUrl
-                if (!directUrl.isNullOrBlank()) {
+                if (directUrl.isNullOrBlank() && CloudStreams.isCloudTarget(stream.serverTarget)) {
+                    // A cloud file: the app's local address, which adds the account's session to
+                    // every request, so other apps on this device can open it while Nuvio runs.
+                    downloadScope.launch {
+                        val prepared = runCatching { ServerPlayback.prepare(stream) }
+                            .onFailure { if (it is kotlinx.coroutines.CancellationException) throw it }
+                            .getOrNull()
+                        val url = prepared?.playableDirectUrl
+                        if (!url.isNullOrBlank()) {
+                            clipboardManager.setText(AnnotatedString(url))
+                            NuvioToastController.show(streamLinkCopiedText)
+                        } else {
+                            NuvioToastController.show(noDirectStreamLinkText)
+                        }
+                    }
+                } else if (!directUrl.isNullOrBlank()) {
                     clipboardManager.setText(AnnotatedString(directUrl))
                     NuvioToastController.show(streamLinkCopiedText)
                 } else if (DirectDebridPlaybackResolver.shouldResolveToPlayableStream(stream)) {
@@ -1110,7 +1157,12 @@ private fun LazyListScope.streamSection(
                     }
                 },
                 onLongClick = {
-                    if (stream.playableDirectUrl != null || stream.shouldOpenExternally || stream.isAddonDebridCandidate) {
+                    if (
+                        stream.playableDirectUrl != null ||
+                        stream.shouldOpenExternally ||
+                        stream.isAddonDebridCandidate ||
+                        CloudStreams.isCloudTarget(stream.serverTarget)
+                    ) {
                         onStreamLongPress(stream)
                     }
                 },
