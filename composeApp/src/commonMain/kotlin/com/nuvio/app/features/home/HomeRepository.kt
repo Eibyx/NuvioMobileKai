@@ -199,6 +199,8 @@ object HomeRepository {
         snapshotSaveJob = null
         lastRefreshAddonSignature = null
         collectionHeroResolving = false
+        heroFromSnapshot = false
+        lastHeroSourceItems = emptyList()
         _uiState.value = HomeUiState()
         restoreSnapshot()
     }
@@ -222,6 +224,7 @@ object HomeRepository {
     private fun applySnapshot(snapshot: HomeSnapshot) {
         if (snapshot.sections.isEmpty()) return
         cachedSections = snapshot.sections.toMap()
+        heroFromSnapshot = snapshot.heroItems.isNotEmpty()
         _uiState.value = HomeUiState(
             isLoading = true,
             heroItems = snapshot.heroItems,
@@ -233,7 +236,12 @@ object HomeRepository {
         val profileKey = HomeSnapshotStore.currentProfileKey() ?: return
         val entries = lastPublishedEntries
         if (entries.isEmpty()) return
-        val heroItems = _uiState.value.heroItems
+        // The next launch opens on a new draw from the hero sources and keeps it for that session,
+        // instead of showing this one and swapping it once the rows have loaded.
+        val heroItems = lastHeroSourceItems
+            .shuffled(Random(Clock.System.now().toEpochMilliseconds()))
+            .take(HOME_HERO_ITEM_LIMIT)
+            .ifEmpty { _uiState.value.heroItems }
         snapshotSaveJob?.cancel()
         snapshotSaveJob = scope.launch {
             delay(HOME_SNAPSHOT_SAVE_DELAY_MS)
@@ -298,10 +306,29 @@ object HomeRepository {
         val catalogHeroItems = heroSourceItems
             .shuffled(heroRandom)
             .take(HOME_HERO_ITEM_LIMIT)
+        if (heroSourceItems.isNotEmpty()) lastHeroSourceItems = heroSourceItems
+        // The hero the app opened with stays for the session while its titles are still among the
+        // hero sources; it is not swapped for a new draw when the fresh rows arrive.
+        val keptSnapshotHero = if (heroFromSnapshot && snapshot.heroEnabled && heroSourceItems.isNotEmpty()) {
+            val sourceKeys = heroSourceItems.mapTo(HashSet()) { item -> "${item.type}:${item.id}" }
+            _uiState.value.heroItems
+                .filter { item -> "${item.type}:${item.id}" in sourceKeys }
+                .let { kept ->
+                    // Refreshed copies of the same titles (new artwork, ratings) from the rows.
+                    val fresh = heroSourceItems.associateBy { item -> "${item.type}:${item.id}" }
+                    kept.map { item -> fresh["${item.type}:${item.id}"] ?: item }
+                }
+                .takeIf { kept -> kept.size * 2 >= _uiState.value.heroItems.size && kept.isNotEmpty() }
+        } else {
+            null
+        }
+        if (!isLoading && keptSnapshotHero == null) heroFromSnapshot = false
         lastPublishedCatalogHeroEmpty = snapshot.heroEnabled && catalogHeroItems.isEmpty()
         val visibleHeroItems = _uiState.value.heroItems
         val heroItems = if (snapshot.heroEnabled) {
-            if (
+            if (keptSnapshotHero != null) {
+                keptSnapshotHero
+            } else if (
                 keepVisibleHeroWhilePending &&
                 visibleHeroItems.isNotEmpty() &&
                 isHeroResolutionPending(isLoading) &&
@@ -344,6 +371,12 @@ object HomeRepository {
     }
 
     private var lastHeroSourcesLog: String? = null
+
+    /** The hero on screen came from the saved Home of the last launch. */
+    private var heroFromSnapshot = false
+
+    /** Every title of the hero sources, from the last publish, to draw the next launch's hero. */
+    private var lastHeroSourceItems: List<MetaPreview> = emptyList()
 
     /** Once per change: how many hero sources there are, how many loaded, and where the shown items come from. */
     private fun logHeroSources(sources: Int, loaded: Int, sourceItems: Int, collectionItems: Int, shown: Int) {
