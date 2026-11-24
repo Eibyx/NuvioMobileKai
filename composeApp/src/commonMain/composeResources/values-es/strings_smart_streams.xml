@@ -85,4 +85,6 @@
     <string name="smart_streams_autoplay_searching">Buscando la mejor fuente… %1$d/%2$d</string>
     <string name="smart_streams_autoplay_candidate">La mejor hasta ahora: %1$s</string>
     <string name="smart_streams_reason_language">Audio en %1$s, tu idioma preferido</string>
+    <string name="settings_smart_sorting_title">Ordenación inteligente</string>
+    <string name="settings_smart_sorting_description">Muestra en la pantalla de streams el orden y los filtros de Smart Streams y «Reproducir lo mejor para este dispositivo». Si la apagas, los streams siguen el orden de los addons. La auto-reproducción inteligente sigue funcionando.</string>
 </resources>

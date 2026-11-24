@@ -248,6 +248,7 @@ actual fun PlatformPlayerSurface(
                             language = trackLanguage,
                             trackId = trackId,
                         ),
+                        formatBadge = subtitleFormatBadgeForCodec(bridge.getSubtitleTrackCodec(i)),
                     )
                 }
                 Logger.d(TAG) { "getSubtitleTracks: found ${tracks.size} tracks" }
@@ -375,6 +376,10 @@ actual fun PlatformPlayerSurface(
                 bridge.setSubtitleDelayMs(targetMs)
             }
 
+            override val supportsAssStyleCustomization = true
+
+            override val rendersAssNatively = true
+
             override fun applySubtitleStyle(style: SubtitleStyleState) {
                 InAppLogger.debug(
                     "Player/iOS",
@@ -392,6 +397,8 @@ actual fun PlatformPlayerSurface(
                     stripSdh = style.stripSdh,
                     styledOverlay = style.requiresComposeStyledOverlay,
                     outlineBlur = style.mpvNativeOutlineBlurLevel,
+                    customizeAss = style.appearance.customizeAss,
+                    assScale = style.assScale,
                 )
             }
 

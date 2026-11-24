@@ -2610,4 +2610,5 @@
     <string name="person_department_lighting">Iluminación</string>
     <string name="person_department_creator">Creación</string>
     <string name="person_department_crew">Equipo</string>
+    <string name="subtitle_customize_ass">Personalizar estilo ASS/SSA</string>
 </resources>

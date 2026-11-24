@@ -67,6 +67,7 @@ data class PlayerSettingsUiState(
     val preferredSubtitleLanguage: String = SubtitleLanguageOption.NONE,
     val secondaryPreferredSubtitleLanguage: String? = null,
     val subtitleStyle: SubtitleStyleState = SubtitleStyleState.DEFAULT,
+    val assSubtitleStyle: SubtitleStyleState = SubtitleStyleState.DEFAULT,
     val streamReuseLastLinkEnabled: Boolean = false,
     val streamReuseLastLinkCacheHours: Int = 24,
     // Kai keeps Auto: anime on libmpv (where the shaders are), everything else on ExoPlayer.
@@ -213,6 +214,7 @@ object PlayerSettingsRepository {
     private var preferredSubtitleLanguage = SubtitleLanguageOption.NONE
     private var secondaryPreferredSubtitleLanguage: String? = null
     private var subtitleStyle = SubtitleStyleState.DEFAULT
+    private var assSubtitleStyle = SubtitleStyleState.DEFAULT
     private var streamReuseLastLinkEnabled = false
     private var streamReuseLastLinkCacheHours = 24
     private var androidPlaybackEngine = AndroidPlaybackEngine.Auto
@@ -341,6 +343,7 @@ object PlayerSettingsRepository {
         preferredSubtitleLanguage = SubtitleLanguageOption.NONE
         secondaryPreferredSubtitleLanguage = null
         subtitleStyle = SubtitleStyleState.DEFAULT
+        assSubtitleStyle = SubtitleStyleState.DEFAULT
         streamReuseLastLinkEnabled = false
         streamReuseLastLinkCacheHours = 24
         androidPlaybackEngine = AndroidPlaybackEngine.Auto
@@ -499,6 +502,7 @@ object PlayerSettingsRepository {
             profileId = ProfileRepository.activeProfileId,
             legacyStyle = legacySubtitleStyle,
         )
+        assSubtitleStyle = decodeAssSubtitleStyle(PlayerSettingsStorage.loadAssSubtitleStyle())
         streamReuseLastLinkEnabled = PlayerSettingsStorage.loadStreamReuseLastLinkEnabled() ?: false
         streamReuseLastLinkCacheHours = PlayerSettingsStorage.loadStreamReuseLastLinkCacheHours() ?: 24
         androidPlaybackEngine = PlayerSettingsStorage.loadAndroidPlaybackEngine()
@@ -905,6 +909,27 @@ object PlayerSettingsRepository {
         subtitleStyle = normalized
         publish()
         SubtitleDevicePreferencesRepository.save(ProfileRepository.activeProfileId, normalized)
+    }
+
+    fun setAssSubtitleStyle(style: SubtitleStyleState) {
+        ensureLoaded()
+        setSubtitleStyle(
+            subtitleStyle.copy(
+                stripSdh = style.stripSdh,
+                useForcedSubtitles = style.useForcedSubtitles,
+                showOnlyPreferredLanguages = style.showOnlyPreferredLanguages,
+            ),
+        )
+        val normalized = style.copy(
+            fontSizeSp = style.fontSizeSp.coerceIn(subtitleFontSizeRangeSp),
+            outlineWidth = style.outlineWidth.coerceIn(subtitleOutlineWidthRange),
+            bottomOffset = style.bottomOffset.coerceIn(0, 200),
+            appearance = style.appearance.normalized(),
+        )
+        if (assSubtitleStyle == normalized) return
+        assSubtitleStyle = normalized
+        publish()
+        PlayerSettingsStorage.saveAssSubtitleStyle(normalized.encodeAssStyle())
     }
 
     fun setStreamReuseLastLinkEnabled(enabled: Boolean) {
@@ -1687,6 +1712,11 @@ object PlayerSettingsRepository {
             preferredSubtitleLanguage = preferredSubtitleLanguage,
             secondaryPreferredSubtitleLanguage = secondaryPreferredSubtitleLanguage,
             subtitleStyle = subtitleStyle,
+            assSubtitleStyle = assSubtitleStyle.copy(
+                stripSdh = subtitleStyle.stripSdh,
+                useForcedSubtitles = subtitleStyle.useForcedSubtitles,
+                showOnlyPreferredLanguages = subtitleStyle.showOnlyPreferredLanguages,
+            ),
             streamReuseLastLinkEnabled = streamReuseLastLinkEnabled,
             streamReuseLastLinkCacheHours = streamReuseLastLinkCacheHours,
             androidPlaybackEngine = androidPlaybackEngine,
