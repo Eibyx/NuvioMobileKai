@@ -1375,6 +1375,10 @@ actual object PlayerSettingsStorage {
 
     actual fun saveLibmpvBufferOnDisk(value: Boolean) {}
 
+    actual fun loadLibmpvBufferAppliesToExo(): Boolean? = null
+
+    actual fun saveLibmpvBufferAppliesToExo(value: Boolean) {}
+
     actual fun loadPlaybackTargetBufferMb(): Int? = null
 
     actual fun savePlaybackTargetBufferMb(value: Int) {}

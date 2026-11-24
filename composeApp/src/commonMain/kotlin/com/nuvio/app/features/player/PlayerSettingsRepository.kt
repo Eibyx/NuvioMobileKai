@@ -110,6 +110,8 @@ data class PlayerSettingsUiState(
     val libmpvForwardBufferMaxMb: Int = LibmpvBufferLimits.DEFAULT_FORWARD_MB,
     val libmpvBackBufferMb: Int = LibmpvBufferLimits.DEFAULT_BACK_MB,
     val libmpvBufferOnDisk: Boolean = false,
+    /** The libmpv buffer above also sizes ExoPlayer's (unless ExoPlayer's own custom buffers are on). */
+    val libmpvBufferAppliesToExo: Boolean = true,
     val playbackTargetBufferMb: Int = 256,
     val vodDiskCacheSizeMb: Int = 2048,
     val streamAutoPlayMode: StreamAutoPlayMode = StreamAutoPlayMode.MANUAL,
@@ -256,6 +258,7 @@ object PlayerSettingsRepository {
     private var libmpvForwardBufferMaxMb = LibmpvBufferLimits.DEFAULT_FORWARD_MB
     private var libmpvBackBufferMb = LibmpvBufferLimits.DEFAULT_BACK_MB
     private var libmpvBufferOnDisk = false
+    private var libmpvBufferAppliesToExo = true
     private var playbackTargetBufferMb = 256
     private var vodDiskCacheSizeMb = 2048
     private var streamAutoPlayMode = StreamAutoPlayMode.MANUAL
@@ -385,6 +388,7 @@ object PlayerSettingsRepository {
         libmpvForwardBufferMaxMb = LibmpvBufferLimits.DEFAULT_FORWARD_MB
         libmpvBackBufferMb = LibmpvBufferLimits.DEFAULT_BACK_MB
         libmpvBufferOnDisk = false
+        libmpvBufferAppliesToExo = true
         playbackTargetBufferMb = 256
         vodDiskCacheSizeMb = 2048
         streamAutoPlayMode = StreamAutoPlayMode.MANUAL
@@ -554,6 +558,7 @@ object PlayerSettingsRepository {
         libmpvForwardBufferMaxMb = PlayerSettingsStorage.loadLibmpvForwardBufferMaxMb() ?: LibmpvBufferLimits.DEFAULT_FORWARD_MB
         libmpvBackBufferMb = PlayerSettingsStorage.loadLibmpvBackBufferMb() ?: LibmpvBufferLimits.DEFAULT_BACK_MB
         libmpvBufferOnDisk = PlayerSettingsStorage.loadLibmpvBufferOnDisk() ?: false
+        libmpvBufferAppliesToExo = PlayerSettingsStorage.loadLibmpvBufferAppliesToExo() ?: true
         playbackTargetBufferMb = PlayerSettingsStorage.loadPlaybackTargetBufferMb() ?: 256
         vodDiskCacheSizeMb = PlayerSettingsStorage.loadVodDiskCacheSizeMb() ?: 2048
         streamAutoPlayMode = PlayerSettingsStorage.loadStreamAutoPlayMode()
@@ -1259,6 +1264,14 @@ object PlayerSettingsRepository {
         PlayerSettingsStorage.saveLibmpvBackBufferMb(clamped)
     }
 
+    fun setLibmpvBufferAppliesToExo(value: Boolean) {
+        ensureLoaded()
+        if (libmpvBufferAppliesToExo == value) return
+        libmpvBufferAppliesToExo = value
+        PlayerSettingsStorage.saveLibmpvBufferAppliesToExo(value)
+        publish()
+    }
+
     /** Moving the buffer back to RAM brings sizes typed for the disk down to the RAM limits. */
     fun setLibmpvBufferOnDisk(value: Boolean) {
         ensureLoaded()
@@ -1758,6 +1771,7 @@ object PlayerSettingsRepository {
             libmpvForwardBufferMaxMb = libmpvForwardBufferMaxMb,
             libmpvBackBufferMb = libmpvBackBufferMb,
             libmpvBufferOnDisk = libmpvBufferOnDisk,
+            libmpvBufferAppliesToExo = libmpvBufferAppliesToExo,
             playbackTargetBufferMb = playbackTargetBufferMb,
             vodDiskCacheSizeMb = vodDiskCacheSizeMb,
             streamAutoPlayMode = streamAutoPlayMode,

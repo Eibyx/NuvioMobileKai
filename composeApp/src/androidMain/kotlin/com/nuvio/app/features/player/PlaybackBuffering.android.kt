@@ -36,6 +36,13 @@ internal fun isProgressivePlaybackSource(
     playbackMediaItemFromUrl(url, responseHeaders, streamType).localConfiguration?.mimeType,
 ) == C.CONTENT_TYPE_OTHER
 
+/**
+ * The libmpv buffer (Playback > Buffer and cache) also sizes ExoPlayer's, unless ExoPlayer's own
+ * custom buffers are on: those were set for ExoPlayer on purpose and win.
+ */
+internal val PlayerSettingsUiState.exoUsesLibmpvBuffer: Boolean
+    get() = libmpvCustomBufferEnabled && libmpvBufferAppliesToExo && !customPlaybackBuffersEnabled
+
 internal fun PlayerSettingsUiState.buildPlaybackLoadControl(localFileSource: Boolean = false): DefaultLoadControl {
     val heapLimitBytes = PlaybackMemoryInfo.javaHeapBufferLimitMb() * MB
     val builder = DefaultLoadControl.Builder()
@@ -62,6 +69,25 @@ internal fun PlayerSettingsUiState.buildPlaybackLoadControl(localFileSource: Boo
                 .setBufferDurationsMs(minMs, maxMs, startMs, rebufferMs)
                 .setTargetBufferBytes(minOf(playbackTargetBufferMb * MB, heapLimitBytes).toInt())
         }
+        // The libmpv buffer's time ahead is what ExoPlayer keeps loaded; the bytes ahead are read
+        // by the read-ahead below (RAM or storage), so the heap only holds what is about to play.
+        // The time behind follows the libmpv sizes: the same share of the time ahead as MB behind to MB ahead.
+        exoUsesLibmpvBuffer -> {
+            val aheadMs = libmpvForwardBufferSeconds.coerceIn(LibmpvBufferLimits.forwardSecondsRange) * 1000
+            val forwardMb = libmpvForwardBufferMaxMb.coerceAtLeast(1)
+            val backMs = (aheadMs.toLong() * libmpvBackBufferMb.coerceAtLeast(0) / forwardMb)
+                .coerceIn(0L, aheadMs.toLong()).toInt()
+            builder
+                .setBackBuffer(backMs, true)
+                .setBufferDurationsMs(
+                    aheadMs,
+                    aheadMs,
+                    DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_MS,
+                    DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS,
+                )
+                .setTargetBufferBytes(heapLimitBytes.toInt())
+                .setPrioritizeTimeOverSizeThresholds(false)
+        }
         exoNativeMemoryEnabled -> builder
             .setBackBuffer(10_000, true)
             .setBufferDurationsMs(
@@ -83,6 +109,23 @@ internal fun PlayerSettingsUiState.buildPlaybackLoadControl(localFileSource: Boo
     return builder.build()
 }
 
+/** Bytes read ahead of ExoPlayer, and whether they live on storage instead of RAM. */
+private data class ReadAhead(val bytes: Long, val onDisk: Boolean)
+
+private fun PlayerSettingsUiState.readAhead(directory: File): ReadAhead {
+    if (exoUsesLibmpvBuffer) {
+        val forwardMb = libmpvForwardBufferMaxMb.toLong()
+        if (libmpvBufferOnDisk) {
+            val budgetMb = directory.usableSpace / MB - LibmpvBufferLimits.DISK_SPARE_MB
+            if (budgetMb >= LibmpvBufferLimits.MIN_FORWARD_MB) {
+                return ReadAhead(minOf(forwardMb, budgetMb) * MB, onDisk = true)
+            }
+        }
+        return ReadAhead(minOf(forwardMb, PlaybackMemoryInfo.safeBufferLimitMb().toLong()) * MB, onDisk = false)
+    }
+    return ReadAhead(nativeReadAheadBytes(), onDisk = false)
+}
+
 private fun PlayerSettingsUiState.nativeReadAheadBytes(): Long = when {
     !exoNativeMemoryEnabled -> 0L
     customPlaybackBuffersEnabled ->
@@ -95,7 +138,12 @@ internal fun DataSource.Factory.withPlaybackBuffering(
     settings: PlayerSettingsUiState,
     bufferedUrls: Set<String>,
 ): DataSource.Factory {
-    if (bufferedUrls.isEmpty() || (!settings.vodDiskCacheEnabled && !settings.exoNativeMemoryEnabled)) return this
+    if (
+        bufferedUrls.isEmpty() ||
+        (!settings.vodDiskCacheEnabled && !settings.exoNativeMemoryEnabled && !settings.exoUsesLibmpvBuffer)
+    ) {
+        return this
+    }
     val plainFactory = this
     val cacheDirectory = context.cacheDir
     var bufferedFactory: DataSource.Factory = plainFactory
@@ -105,11 +153,25 @@ internal fun DataSource.Factory.withPlaybackBuffering(
             .setUpstreamDataSourceFactory(plainFactory)
             .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
     }
-    val readAheadBytes = settings.nativeReadAheadBytes()
-    if (readAheadBytes > 0L) {
+    val readAhead = settings.readAhead(cacheDirectory)
+    if (readAhead.bytes > 0L) {
         val upstreamFactory = bufferedFactory
+        val directory = if (readAhead.onDisk) {
+            // Its own folder in the app cache; leftovers of an earlier session are cleared here.
+            File(cacheDirectory, EXO_READ_AHEAD_DIR).apply {
+                mkdirs()
+                listFiles()?.forEach { it.delete() }
+            }
+        } else {
+            cacheDirectory
+        }
+        com.nuvio.app.core.logging.InAppLogger.info(
+            "Player/Buffer",
+            "exo read-ahead ${readAhead.bytes / MB}MB ${if (readAhead.onDisk) "disk" else "ram"}" +
+                if (settings.exoUsesLibmpvBuffer) " (libmpv buffer)" else "",
+        )
         bufferedFactory = DataSource.Factory {
-            NativeReadAheadDataSource(upstreamFactory.createDataSource(), readAheadBytes, cacheDirectory)
+            NativeReadAheadDataSource(upstreamFactory.createDataSource(), readAhead.bytes, directory, readAhead.onDisk)
         }
     }
     val finalBufferedFactory = bufferedFactory
@@ -175,8 +237,10 @@ private class NativeBlock(val buffer: ByteBuffer, private val onFree: () -> Unit
     fun free() = onFree()
 }
 
-private fun allocateNativeBlock(directory: File): NativeBlock {
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+private const val EXO_READ_AHEAD_DIR = "exo_read_ahead"
+
+private fun allocateNativeBlock(directory: File, onDisk: Boolean = false): NativeBlock {
+    if (!onDisk && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
         val memory = SharedMemory.create("nuvio_read_ahead", READ_AHEAD_BLOCK_BYTES)
         val mapped = memory.mapReadWrite()
         return NativeBlock(mapped) {
@@ -195,6 +259,8 @@ private class NativeReadAheadDataSource(
     private val upstream: DataSource,
     private val capacityBytes: Long,
     private val directory: File,
+    /** Blocks as files in [directory] (the storage) rather than shared memory (RAM). */
+    private val onDisk: Boolean = false,
 ) : DataSource {
     private class Chunk(val block: NativeBlock) {
         var written = 0
@@ -265,7 +331,7 @@ private class NativeReadAheadDataSource(
     private fun obtainBlock(current: Session): NativeBlock {
         synchronized(current.lock) { current.freeBlocks.removeLastOrNull() }?.let { return it }
         return try {
-            allocateNativeBlock(directory)
+            allocateNativeBlock(directory, onDisk)
         } catch (error: Throwable) {
             throw IOException(error)
         }

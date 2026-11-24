@@ -139,6 +139,7 @@ actual object PlayerSettingsStorage {
     private const val libmpvForwardBufferMaxMbKey = "libmpv_forward_buffer_max_mb"
     private const val libmpvBackBufferMbKey = "libmpv_back_buffer_mb"
     private const val libmpvBufferOnDiskKey = "libmpv_buffer_on_disk"
+    private const val libmpvBufferAppliesToExoKey = "libmpv_buffer_applies_to_exo"
     private const val playbackMaxBufferSecondsKey = "playback_max_buffer_seconds"
     private const val playbackMinBufferSecondsKey = "playback_min_buffer_seconds"
     private const val playbackRebufferSecondsKey = "playback_rebuffer_seconds"
@@ -1490,6 +1491,19 @@ actual object PlayerSettingsStorage {
         preferences
             ?.edit()
             ?.putBoolean(ProfileScopedKey.of(libmpvBufferOnDiskKey), value)
+            ?.apply()
+    }
+
+    actual fun loadLibmpvBufferAppliesToExo(): Boolean? =
+        preferences?.let { sharedPreferences ->
+            val key = ProfileScopedKey.of(libmpvBufferAppliesToExoKey)
+            if (sharedPreferences.contains(key)) sharedPreferences.getBoolean(key, true) else null
+        }
+
+    actual fun saveLibmpvBufferAppliesToExo(value: Boolean) {
+        preferences
+            ?.edit()
+            ?.putBoolean(ProfileScopedKey.of(libmpvBufferAppliesToExoKey), value)
             ?.apply()
     }
 

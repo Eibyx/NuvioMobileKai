@@ -26,7 +26,8 @@ internal fun PlaybackBufferSettings(
     val exoOptionsEnabled = !settings.externalPlayerEnabled && settings.androidPlaybackEngine != AndroidPlaybackEngine.Libmpv
     // ExoPlayer's buffer for ExoPlayer and Auto; mpv's for libmpv and Auto (anime goes to mpv).
     val showExoOptions = settings.androidPlaybackEngine != AndroidPlaybackEngine.Libmpv
-    val showLibmpvOptions = settings.androidPlaybackEngine != AndroidPlaybackEngine.ExoPlayer
+    // The libmpv buffer can size ExoPlayer's too, so it shows whatever the engine.
+    val showLibmpvOptions = true
     Column(verticalArrangement = Arrangement.spacedBy(if (isTablet) 18.dp else 12.dp)) {
         if (showExoOptions) SettingsSection(
             title = stringResource(Res.string.settings_playback_page_buffer),
@@ -241,6 +242,22 @@ private fun LibmpvBufferSettings(
                     isTablet = isTablet,
                     onCheckedChange = PlayerSettingsRepository::setLibmpvBufferOnDisk,
                 )
+                SettingsGroupDivider(isTablet = isTablet)
+                SettingsSwitchRow(
+                    title = stringResource(Res.string.settings_playback_libmpv_buffer_exo),
+                    description = stringResource(Res.string.settings_playback_libmpv_buffer_exo_description),
+                    checked = settings.libmpvBufferAppliesToExo,
+                    enabled = enabled,
+                    isTablet = isTablet,
+                    onCheckedChange = PlayerSettingsRepository::setLibmpvBufferAppliesToExo,
+                )
+                if (settings.libmpvBufferAppliesToExo && settings.customPlaybackBuffersEnabled) {
+                    PlaybackSettingsNote(
+                        text = stringResource(Res.string.settings_playback_libmpv_buffer_exo_overridden),
+                        color = MaterialTheme.colorScheme.error,
+                        isTablet = isTablet,
+                    )
+                }
                 PlaybackSettingsNote(
                     text = stringResource(Res.string.settings_playback_libmpv_buffer_note),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,

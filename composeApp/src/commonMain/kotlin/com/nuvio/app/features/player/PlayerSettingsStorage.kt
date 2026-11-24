@@ -177,6 +177,8 @@ internal expect object PlayerSettingsStorage {
     fun saveLibmpvBackBufferMb(value: Int)
     fun loadLibmpvBufferOnDisk(): Boolean?
     fun saveLibmpvBufferOnDisk(value: Boolean)
+    fun loadLibmpvBufferAppliesToExo(): Boolean?
+    fun saveLibmpvBufferAppliesToExo(value: Boolean)
     fun loadPlaybackTargetBufferMb(): Int?
     fun savePlaybackTargetBufferMb(value: Int)
     fun loadVodDiskCacheSizeMb(): Int?

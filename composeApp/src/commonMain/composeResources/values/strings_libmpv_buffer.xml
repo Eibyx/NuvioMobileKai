@@ -14,4 +14,7 @@
     <string name="settings_playback_libmpv_buffer_on_disk">Keep the buffer on storage</string>
     <string name="settings_playback_libmpv_buffer_on_disk_description">Uses the app's cache on storage instead of RAM, so it can be far bigger. Cleared when the video closes.</string>
     <string name="settings_playback_libmpv_buffer_note">In RAM, up to 2048 MB ahead and 1024 MB behind. On storage, up to 65536 MB and 32768 MB, always leaving 2 GB free. If there is not enough room, both shrink. mpv uses these settings for anime with the Auto engine too.</string>
+    <string name="settings_playback_libmpv_buffer_exo">Also for ExoPlayer</string>
+    <string name="settings_playback_libmpv_buffer_exo_description">ExoPlayer uses this buffer too: it keeps this time loaded, reads these MB ahead (on storage if chosen above) and keeps the same share behind for seeking back.</string>
+    <string name="settings_playback_libmpv_buffer_exo_overridden">ExoPlayer\'s own custom buffers are on, so ExoPlayer uses those instead.</string>
 </resources>
