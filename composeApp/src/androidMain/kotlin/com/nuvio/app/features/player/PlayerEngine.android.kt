@@ -677,6 +677,9 @@ private fun ExoPlayerSurface(
         val liveAnimeSettings = PlayerSettingsRepository.uiState.value
         val animeUpscaleEnabled = latestAnimeContent.value && liveAnimeSettings.androidAnimeUpscaleEnabled
         val animeLineSharpenEnabled = latestAnimeContent.value && liveAnimeSettings.androidAnimeLineSharpenEnabled
+        // With anime, the effects pipeline is set up from the start even with both shaders off, so
+        // turning them on or off later swaps the effects in place instead of rebuilding the player.
+        val preconfigureAnimePipeline = latestAnimeContent.value && !playerSettings.tunnelingEnabled
         val animeVideoEffects = if (playerSettings.tunnelingEnabled) {
             emptyList()
         } else {
@@ -730,7 +733,9 @@ private fun ExoPlayerSurface(
                 // detects a selected ASS track, it flips to true which triggers a
                 // player rebuild via the remember key.
                 var assVideoEffects = emptyList<Effect>()
-                if (videoEffectsNeeded) {
+                // With anime the libass effect joins the pipeline from the start (it draws nothing
+                // until an ASS track is shown), so selecting the ASS track does not rebuild the player.
+                if (videoEffectsNeeded || preconfigureAnimePipeline) {
                     val effectiveMode = when {
                         playerSettings.tunnelingEnabled -> "OVERLAY"
                         animeVideoEffects.isNotEmpty() -> "VIDEO_EFFECT"
@@ -743,14 +748,15 @@ private fun ExoPlayerSurface(
                     }
                 }
                 val videoEffects = animeVideoEffects + assVideoEffects
-                if (videoEffects.isNotEmpty()) {
+                if (videoEffects.isNotEmpty() || preconfigureAnimePipeline) {
                     builtPlayer.setVideoEffects(videoEffects)
                 }
                 exoVideoEffects.update(
-                    pipelineConfigured = videoEffects.isNotEmpty(),
+                    pipelineConfigured = videoEffects.isNotEmpty() || preconfigureAnimePipeline,
                     animeBuilt = animeVideoEffects.isNotEmpty(),
                     upscaleEnabled = animeUpscaleEnabled,
                     lineSharpenEnabled = animeLineSharpenEnabled,
+                    otherEffects = assVideoEffects,
                 )
             }
         } else {
@@ -765,11 +771,11 @@ private fun ExoPlayerSurface(
                 .setMediaSourceFactory(AudioDelayMediaSourceFactory(mediaSourceFactory, audioDelayUs::get))
                 .build()
                 .also { builtPlayer ->
-                    if (animeVideoEffects.isNotEmpty()) {
+                    if (animeVideoEffects.isNotEmpty() || preconfigureAnimePipeline) {
                         builtPlayer.setVideoEffects(animeVideoEffects)
                     }
                     exoVideoEffects.update(
-                        pipelineConfigured = animeVideoEffects.isNotEmpty(),
+                        pipelineConfigured = animeVideoEffects.isNotEmpty() || preconfigureAnimePipeline,
                         animeBuilt = animeVideoEffects.isNotEmpty(),
                         upscaleEnabled = animeUpscaleEnabled,
                         lineSharpenEnabled = animeLineSharpenEnabled,
@@ -1010,6 +1016,32 @@ private fun ExoPlayerSurface(
             return@LaunchedEffect
         }
         delay(ANIME_EFFECTS_REBUILD_DEBOUNCE_MS)
+        if (exoVideoEffects.pipelineConfigured) {
+            // The pipeline is already there: swap the shaders in place, playback goes on.
+            val animeEffects = AnimeShaders.exoVideoEffects(
+                context = context,
+                upscaleEnabled = upscale,
+                lineSharpenEnabled = sharpen,
+                statusTracker = animeStatusTracker,
+            )
+            val applied = runCatching {
+                exoPlayer.setVideoEffects(animeEffects + exoVideoEffects.otherEffects)
+            }.onFailure { error ->
+                InAppLogger.warn("ExoPlayer/Android", "anime effects live update failed, rebuilding: ${error.message}")
+            }.isSuccess
+            if (applied) {
+                InAppLogger.info("ExoPlayer/Android", "anime effects changed in place upscale=$upscale lineSharpen=$sharpen")
+                exoVideoEffects.update(
+                    pipelineConfigured = true,
+                    animeBuilt = exoVideoEffects.animeBuilt,
+                    upscaleEnabled = upscale,
+                    lineSharpenEnabled = sharpen,
+                    otherEffects = exoVideoEffects.otherEffects,
+                )
+                if (animeEffects.isEmpty()) animeEnhancementStatus = null
+                return@LaunchedEffect
+            }
+        }
         InAppLogger.info("ExoPlayer/Android", "anime effects changed, rebuilding player upscale=$upscale lineSharpen=$sharpen")
         preserveAudioSelectionForReload("animeEffectsRebuild")
         val selectedSubtitle = exoPlayer.currentTracks.selectedTextTrackOrdinal()
@@ -1324,7 +1356,12 @@ private fun ExoPlayerSurface(
                 }
                 // Trigger player rebuild with video effects when ASS track becomes selected
                 // and render mode is VIDEO_EFFECT.
-                if (!videoEffectsNeeded && useLibass && exoVideoEffects.libassRenderMode(libassRenderMode) != "OVERLAY") {
+                if (
+                    !videoEffectsNeeded &&
+                    exoVideoEffects.otherEffects.isEmpty() &&
+                    useLibass &&
+                    exoVideoEffects.libassRenderMode(libassRenderMode) != "OVERLAY"
+                ) {
                     val hasSelectedAss = tracks.groups.any { group ->
                         group.isSelected && group.type == C.TRACK_TYPE_TEXT &&
                             (0 until group.length).any { i ->
@@ -3737,13 +3774,19 @@ private class ExoVideoEffectsHolder {
     private var upscaleEnabled = false
     @Volatile
     private var lineSharpenEnabled = false
+    /** Effects in the pipeline besides the anime shaders (libass drawn as a video effect). */
+    @Volatile
+    var otherEffects: List<Effect> = emptyList()
+        private set
 
     fun update(
         pipelineConfigured: Boolean,
         animeBuilt: Boolean,
         upscaleEnabled: Boolean,
         lineSharpenEnabled: Boolean,
+        otherEffects: List<Effect> = emptyList(),
     ) {
+        this.otherEffects = otherEffects
         this.pipelineConfigured = pipelineConfigured
         this.animeBuilt = animeBuilt
         this.upscaleEnabled = upscaleEnabled
