@@ -6,7 +6,6 @@ enum class PlayerToolbarButton(val storageId: String) {
     RESIZE("resize"),
     SUBTITLES("subtitles"),
     /** Kai: mpv shaders panel (only shown while mpv plays). */
-    SHADERS("shaders"),
     CHAPTERS("chapters"),
     AUDIO("audio"),
     NIGHT_MODE("night_mode"),
@@ -60,7 +59,6 @@ data class PlayerToolbarLayout(val entries: List<PlayerToolbarEntry>) {
                 PlayerToolbarButton.SPEED,
                 PlayerToolbarButton.RESIZE,
                 PlayerToolbarButton.SUBTITLES,
-                PlayerToolbarButton.SHADERS,
                 PlayerToolbarButton.CHAPTERS,
                 PlayerToolbarButton.NIGHT_MODE,
             ).map { PlayerToolbarEntry(it, visible = true) } +

@@ -1152,19 +1152,6 @@ private fun ProgressControls(
                                             )
                                         }
                                     }
-                                    LegacyBottomButton.SHADERS -> {
-                                        if (onShadersClick != null) {
-                                            Box {
-                                                PlayerActionPillButton(
-                                                    label = stringResource(Res.string.compose_player_shaders),
-                                                    icon = Icons.Rounded.AutoAwesome,
-                                                    onClick = onShadersClick,
-                                                    stateDescription = if (shadersActive) stringResource(Res.string.compose_player_shaders_active) else null,
-                                                )
-                                                if (shadersActive) ActiveDot(Modifier.align(Alignment.TopStart).padding(start = 22.dp, top = 8.dp))
-                                            }
-                                        }
-                                    }
                                     LegacyBottomButton.NIGHT_MODE -> {
                                         if (onNightModeClick != null) {
                                             PlayerActionPillButton(

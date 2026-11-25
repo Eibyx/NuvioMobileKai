@@ -195,7 +195,6 @@ object ProfileRepository {
         PosterCardStyleRepository.onProfileChanged()
         CardDepthStyleRepository.onProfileChanged()
         PlayerSettingsRepository.onProfileChanged()
-        com.nuvio.app.features.player.shaders.ShaderSettingsRepository.onProfileChanged()
         StreamBadgeSettingsRepository.onProfileChanged()
         PinnedStreamSourcesRepository.onProfileChanged()
         P2pSettingsRepository.onProfileChanged()

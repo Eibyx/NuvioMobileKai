@@ -81,12 +81,6 @@ private fun rememberNetworkCondition(): NetworkCondition {
 
 @Composable
 internal fun PlayerScreenRuntime.BindPlayerRuntimeEffects() {
-    LaunchedEffect(Unit) {
-        com.nuvio.app.features.player.shaders.ShaderPlaybackSession.warnings.collect { warning ->
-            NuvioToastController.show(com.nuvio.app.features.player.shaders.shaderWarningText(warning), 4_000L)
-        }
-    }
-    BindShaderEffects()
     val networkCondition = rememberNetworkCondition()
     val currentFeedback = liveGestureFeedback ?: gestureFeedback
     LaunchedEffect(currentFeedback) {

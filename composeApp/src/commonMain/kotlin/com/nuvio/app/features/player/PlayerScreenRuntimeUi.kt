@@ -565,12 +565,6 @@ private fun PlayerScreenRuntime.RenderPlayerControls(
     val partyState by PartyRepository.state.collectAsStateWithLifecycle()
     val partyActive = partyState.party != null
     val playerBadges = rememberPlayerBadges()
-    val shaderPlan by com.nuvio.app.features.player.shaders.ShaderController.plan.collectAsStateWithLifecycle()
-    val shaderState by com.nuvio.app.features.player.shaders.ShaderPlaybackSession.state.collectAsStateWithLifecycle()
-    val shaderInputs by com.nuvio.app.features.player.shaders.ShaderController.inputs.collectAsStateWithLifecycle()
-    // While comparing the chain is empty on purpose: the button must stay to be released.
-    val shadersRunning = shaderInputs.comparing ||
-        (shaderPlan?.active == true && shaderState.mpvActive && shaderState.appliedChain.isNotEmpty())
     // Live TV channel artwork is not a title logo; retain the program title text instead.
     val playerTitleLogo = if (isLiveTvPlayback) null else logo
     val showPlayerTitleLogo = playerSettingsUiState.showPlayerTitleLogo && !isLiveTvPlayback
@@ -676,10 +670,6 @@ private fun PlayerScreenRuntime.RenderPlayerControls(
                 refreshTracks()
                 showAudioModal = true
             },
-            onShadersClick = if (com.nuvio.app.features.player.shaders.ShaderFiles.isSupported) {
-                { showShaderPanel = true }
-            } else null,
-            shadersActive = shadersRunning,
             onCastClick = if (playbackSnapshot.castAvailable || playbackSnapshot.castDeviceName != null) {
                 { playerController?.showCastDialog() }
             } else null,
@@ -1051,7 +1041,6 @@ private fun PlayerScreenRuntime.playbackResolutionLabel(forButton: Boolean): Str
 @Composable
 private fun PlayerScreenRuntime.RenderPlayerModals() {
     if (com.nuvio.app.features.player.shaders.ShaderFiles.isSupported) {
-        ShaderPanel(visible = showShaderPanel, onDismiss = { showShaderPanel = false })
     }
     val displayedPositionMs = if (showChaptersPanel || showSubmitIntroModal) {
         scrubbingPositionMs ?: playbackSnapshot.positionMs

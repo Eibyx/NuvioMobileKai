@@ -2858,7 +2858,29 @@ private class NuvioLibmpvView(
             videoHeight = videoHeight,
             mediaInfoJson = buildLibmpvMediaInfoJson(),
             chapters = chaptersFor(durationMs),
+            animeEnhancement = animeStatus(),
         )
+    }
+
+    private var animeStatusKey: String? = null
+    private var animeStatusValue: com.nuvio.app.features.player.AnimeEnhancementStatus? = null
+
+    /** What the Anime4K shaders do to this video (shown in the anime panel), worked out once per size. */
+    private fun animeStatus(): com.nuvio.app.features.player.AnimeEnhancementStatus? {
+        val paths = shaders.animePaths
+        if (paths.isEmpty()) return null
+        val sourceWidth = mpv.getPropertyInt("video-params/w") ?: 0
+        val sourceHeight = mpv.getPropertyInt("video-params/h") ?: 0
+        val outputWidth = mpv.getPropertyInt("osd-width") ?: width
+        val outputHeight = mpv.getPropertyInt("osd-height") ?: height
+        val key = "${paths.joinToString()}|$sourceWidth|$sourceHeight|$outputWidth|$outputHeight"
+        if (key != animeStatusKey) {
+            animeStatusKey = key
+            animeStatusValue = com.nuvio.app.features.player.anime.AnimeShaders.mpvStatus(
+                context, paths, sourceWidth, sourceHeight, outputWidth, outputHeight,
+            )
+        }
+        return animeStatusValue
     }
 
     private fun chaptersFor(durationMs: Long): List<PlayerChapter> {

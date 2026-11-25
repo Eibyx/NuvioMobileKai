@@ -158,9 +158,10 @@ open class MainActivity : AppCompatActivity() {
         com.nuvio.app.features.player.SubtitleFontDirectoryPlatform.initialize(applicationContext)
         com.nuvio.app.features.subtitlelibrary.SubtitleLibraryService.initialize(applicationContext)
         com.nuvio.app.features.player.MpvRenderer.initialize(applicationContext)
-        com.nuvio.app.features.player.shaders.ShaderFiles.initialize(applicationContext)
-        com.nuvio.app.features.player.shaders.ShaderSettingsStorage.initialize(applicationContext)
-        com.nuvio.app.features.player.shaders.ShaderSettingsRepository.ensureLoaded()
+        // The mpv shader library is gone (Anime4K stays): its installed and imported files go too.
+        java.io.File(filesDir, "shaders").takeIf { it.exists() }?.let { folder ->
+            Thread { runCatching { folder.deleteRecursively() } }.start()
+        }
         com.nuvio.app.features.player.seekpreview.SeekPreviewAndroid.initialize(applicationContext)
         PlayerTrackPreferenceStorage.initialize(applicationContext)
         P2pSettingsStorage.initialize(applicationContext)

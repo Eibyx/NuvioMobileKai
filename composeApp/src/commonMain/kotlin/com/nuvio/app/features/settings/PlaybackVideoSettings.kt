@@ -183,7 +183,6 @@ internal fun PlaybackVideoSettings(
             }
         }
 
-        ShaderSettingsSection(isTablet = isTablet)
     }
 
     if (showDecoderPriorityDialog) {

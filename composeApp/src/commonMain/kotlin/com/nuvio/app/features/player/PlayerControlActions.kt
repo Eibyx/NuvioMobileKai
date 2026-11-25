@@ -99,14 +99,6 @@ internal fun PlayerToolbar(
 ) {
     Row(modifier = modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Spacer(Modifier.weight(1f))
-        if (showShaderCompare) {
-            HoldToCompareButton(
-                enabled = true,
-                tint = Color.White,
-                modifier = Modifier.playerLiquidGlass(CircleShape, refractionHeight = 8.dp, refractionAmount = 12.dp),
-            )
-            Spacer(Modifier.width(8.dp))
-        }
         // Toolbar actions share one liquid-glass capsule; close sits in its own glass circle.
         Row(
             modifier = Modifier.playerLiquidGlass(
@@ -236,13 +228,6 @@ internal fun PlayerControlActions(
             stringResource(Res.string.compose_player_subtitles), onSubtitleClick,
             painter = appIconPainter(AppIconResource.PlayerSubtitles),
         )
-        onShadersClick?.let {
-            this[PlayerToolbarButton.SHADERS] = PlayerControlAction(
-                stringResource(if (shadersActive) Res.string.compose_player_shaders_active else Res.string.compose_player_shaders), it,
-                icon = Icons.Rounded.AutoAwesome,
-                active = shadersActive,
-            )
-        }
         onChaptersClick?.let {
             this[PlayerToolbarButton.CHAPTERS] = PlayerControlAction(
                 stringResource(Res.string.player_chapters), it,
