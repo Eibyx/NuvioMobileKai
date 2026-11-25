@@ -98,6 +98,9 @@ internal class MpvShaderController(private val mpv: MPVLib, private var backend:
     private var unattributedError: String? = null
     private var backendLogged = false
     private var fellBackToOpenGl = false
+    /** The Anime4K files of the player's anime toggles (upscale, line sharpen), after the library chain. */
+    var animePaths: List<String> = emptyList()
+    private var appliedPaths: String? = null
 
     fun applyOptions() {
         mpv.setOptionString("vo", backend.vo)
@@ -113,13 +116,18 @@ internal class MpvShaderController(private val mpv: MPVLib, private var backend:
     /** Gives mpv the effective chain when it changed; mpv swaps shaders live, keeping the position. */
     fun syncChain() {
         val chain = ShaderPlaybackSession.effectiveChain()
-        if (chain == applied) return
-        val paths = chain.joinToString(":") { it.path }
+        val paths = (chain.map { it.path } + animePaths).joinToString(":")
+        if (chain == applied && paths == appliedPaths) return
         runCatching { mpv.setPropertyString("glsl-shaders", paths) }
             .onFailure { InAppLogger.warn(TAG, "glsl-shaders could not be set: ${InAppLogger.throwableSummary(it)}") }
         applied = chain
+        appliedPaths = paths
         ShaderPlaybackSession.onChainApplied(chain)
-        InAppLogger.info(TAG, "chain applied: ${if (chain.isEmpty()) "none" else chain.joinToString(" → ") { it.title }}")
+        InAppLogger.info(
+            TAG,
+            "chain applied: ${if (chain.isEmpty()) "none" else chain.joinToString(" → ") { it.title }}" +
+                " anime4k=${animePaths.joinToString(",") { it.substringAfterLast('/') }.ifEmpty { "off" }}",
+        )
     }
 
     /**

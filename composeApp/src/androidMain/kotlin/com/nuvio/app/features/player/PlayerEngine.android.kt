@@ -1026,6 +1026,10 @@ private fun ExoPlayerSurface(
             )
             val applied = runCatching {
                 exoPlayer.setVideoEffects(animeEffects + exoVideoEffects.otherEffects)
+                // The pipeline restarts with the new effects and waits for a new frame, which a
+                // paused player never sends (the picture froze on resume). A seek to where playback
+                // re-decodes from there through the new effects, without reopening the source.
+                exoPlayer.seekTo(exoPlayer.currentPosition.coerceAtLeast(0L))
             }.onFailure { error ->
                 InAppLogger.warn("ExoPlayer/Android", "anime effects live update failed, rebuilding: ${error.message}")
             }.isSuccess
@@ -2292,6 +2296,23 @@ private fun LibmpvPlayerSurface(
         ShaderPlaybackSession.requestedOptions.collect { view.syncShaders() }
     }
 
+    // The anime toggles (Anime4K upscale and line sharpen) on libmpv too, like on ExoPlayer.
+    LaunchedEffect(playerViewRef, animeContent, animeUpscaleEnabled, animeLineSharpenEnabled) {
+        val view = playerViewRef ?: return@LaunchedEffect
+        val paths = if (animeContent) {
+            withContext(Dispatchers.IO) {
+                com.nuvio.app.features.player.anime.AnimeShaders.mpvShaderPaths(
+                    view.context,
+                    animeUpscaleEnabled,
+                    animeLineSharpenEnabled,
+                )
+            }
+        } else {
+            emptyList()
+        }
+        view.setAnimeShaders(paths)
+    }
+
     LaunchedEffect(playerViewRef) {
         val view = playerViewRef ?: return@LaunchedEffect
         while (isActive) {
@@ -3409,6 +3430,12 @@ private class NuvioLibmpvView(
             latestAudioTracks = extractLibmpvTracks(context, type = "audio")
             latestSubtitleTracks = extractLibmpvTracks(context, type = "sub")
         }
+    }
+
+    /** The Anime4K toggles' shaders, swapped in live like the library chain (no reload). */
+    fun setAnimeShaders(paths: List<String>) = executeMpv {
+        shaders.animePaths = paths
+        shaders.syncChain()
     }
 
     fun syncShaders() = executeMpv {
