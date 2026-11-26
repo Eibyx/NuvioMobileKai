@@ -326,6 +326,8 @@ internal object SubtitleDownloaderRepository {
             val fontFolders = SubtitleStore.fontFolders(job.showTitle, job.season)
             var saved = 0
             var reused = 0
+            var lastLog = 0L
+            InAppLogger.info("SubtitleDownloader", "Start ${job.label}: ${detection.strategy}, ${detection.layout.fileSize} bytes, cues ${detection.tracks.map { "${it.indexedWithPosition}/${it.expectedEvents ?: "?"}" }}, ${netSummary(session)}")
             val budget = (detection.layout.fileSize * job.budgetPercent.coerceIn(1, 100) / 100.0).toLong()
             val result = session.extract(
                 ExtractionRequest(selected.map { it.number }.toSet(), fontIndexes, ExtractionMode.valueOf(job.mode), budget),
@@ -336,6 +338,11 @@ internal object SubtitleDownloaderRepository {
             ) { p ->
                 applyCeiling(session)
                 _progress.update { it + (id to p) }
+                val now = System.currentTimeMillis()
+                if (now - lastLog >= 10_000) {
+                    lastLog = now
+                    InAppLogger.info("SubtitleDownloader", "${p.phase} ${p.strategy} ${p.elapsedMs} ms · events ${p.events}/${p.expectedEvents ?: "?"} · fonts ${p.fontsDone}/${p.fontsTotal} · ${netSummary(session)}")
+                }
             }
             val names = HashSet<String>()
             val outcomes = result.tracks.map { track ->
@@ -368,7 +375,7 @@ internal object SubtitleDownloaderRepository {
                     ),
                 )
             }
-            InAppLogger.info("SubtitleDownloader", "Done ${job.label}: ${result.strategy} ${result.elapsedMs} ms, ${result.requests} requests, ${result.trafficBytes} of ${result.fileSize} bytes")
+            InAppLogger.info("SubtitleDownloader", "Done ${job.label}: ${result.strategy} ${result.elapsedMs} ms · ${outcomes.map { "${it.events}/${it.expected ?: "?"} ${it.integrity}" }} · ${netSummary(session)}")
         } catch (e: CancellationException) {
             throw e
         } catch (e: BudgetExceededException) {
@@ -383,9 +390,20 @@ internal object SubtitleDownloaderRepository {
                 is com.nuvio.app.features.subtitledownloader.engine.MkvFormatException -> "not-mkv"
                 else -> "error"
             }
-            InAppLogger.warn("SubtitleDownloader", "Failed ${job.label}: $code ${com.nuvio.app.features.subtitlelibrary.LibraryRedaction.text(e.message)}")
+            InAppLogger.warn("SubtitleDownloader", "Failed ${job.label}: $code ${e.javaClass.simpleName} ${com.nuvio.app.features.subtitlelibrary.LibraryRedaction.text(e.message)}" +
+                (sessions.values.firstOrNull()?.let { " · " + netSummary(it.session) } ?: ""))
             update(id) { it.copy(status = JobStatus.FAILED, message = code) }
         }
+    }
+
+    /** Requests, traffic and how the server answered: no links, cookies or tokens. */
+    private fun netSummary(session: SubtitleSession): String {
+        val s = session.stats
+        val m = session.model
+        return "req ${s.requests.get()} · ${s.trafficBytes / 1024} KiB · limit ${session.limiter.limit}/${session.limiter.externalCeiling} · " +
+            "status ${s.statuses()} · overloads ${s.overloads.get()} · retries ${s.retries.get()} · errors ${s.errors.get()} · refreshes ${s.refreshes.get()} · " +
+            "redirects ${s.redirects.get()} · conn new ${s.newConnections.get()}/reused ${s.reusedConnections.get()} · h2 ${s.http2Requests.get()} · " +
+            "ttfb new ${(m.latencyNew() * 1000).toInt()} ms reused ${(m.latencyReused() * 1000).toInt()} ms · ${(m.connectionBandwidth() / 1024).toInt()} KiB/s"
     }
 
     private class NoMatchException : Exception("no matching release")

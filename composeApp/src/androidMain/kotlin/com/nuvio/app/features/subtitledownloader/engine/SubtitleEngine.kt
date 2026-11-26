@@ -291,7 +291,7 @@ internal class SubtitleSession(
                 phase.set(EngineProgress.Phase.INDEX)
                 strategy.set(Strategy.INDEX)
                 val fontBytes = fontsWanted.sumOf { a -> reader.cache.missing(a.dataPosition, a.dataSize).sumOf { it.last - it.first + 1 } }
-                val outcome = IndexedExtractor(reader, layout, withIndex, { wanted -> planMerge(wanted, request.mode, fontBytes) }) { }.run()
+                val outcome = IndexedExtractor(reader, layout, withIndex, { wanted -> planMerge(wanted, request.mode, fontBytes) }) { n -> eventCount.addAndGet(n) }.run()
                 add(outcome.events)
                 walkClusters = outcome.walkClusters
                 if (outcome.invalidCues > 0) notes += "${outcome.invalidCues} index entries didn't point at a subtitle block"
