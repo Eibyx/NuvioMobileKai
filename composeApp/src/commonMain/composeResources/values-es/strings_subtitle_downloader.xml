@@ -31,7 +31,7 @@
     <string name="subdl_mode_saver">Ahorro máximo de datos</string>
     <string name="subdl_mode_speed">Máxima velocidad dentro del presupuesto</string>
     <string name="subdl_budget">Presupuesto de descarga</string>
-    <string name="subdl_budget_value">Como máximo el %1$d %% del MKV (%2$s)</string>
+    <string name="subdl_budget_value">Como máximo el %1$d % del MKV (%2$s)</string>
     <string name="subdl_destination">Destino</string>
     <string name="subdl_destination_default">Download/Nuvio/Subtitles</string>
     <string name="subdl_change_folder">Elegir carpeta</string>
@@ -71,7 +71,7 @@
     <string name="subdl_resume">Reanudar</string>
     <string name="subdl_cancel">Cancelar</string>
     <string name="subdl_remove">Quitar</string>
-    <string name="subdl_raise_budget">Ampliar presupuesto al %1$d %%</string>
+    <string name="subdl_raise_budget">Ampliar presupuesto al %1$d %</string>
     <string name="subdl_pause_all">Pausar todo</string>
     <string name="subdl_resume_all">Reanudar todo</string>
     <string name="subdl_clear_history">Borrar historial</string>
