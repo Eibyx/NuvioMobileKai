@@ -45,6 +45,7 @@ import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.PushPin
 import androidx.compose.material.icons.rounded.SearchOff
+import androidx.compose.material.icons.rounded.Subtitles
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -210,6 +211,7 @@ fun StreamsScreen(
     val streamLinkCopiedText = stringResource(Res.string.streams_link_copied)
     val noDirectStreamLinkText = stringResource(Res.string.streams_no_direct_link)
     var streamActionsTarget by remember(videoId) { mutableStateOf<StreamItem?>(null) }
+    var subtitleDownloaderTarget by remember(videoId) { mutableStateOf<StreamItem?>(null) }
     var streamSearchQuery by rememberSaveable(videoId) { mutableStateOf("") }
     val downloadScope = rememberCoroutineScope()
     var preferredFilterApplied by remember(videoId) { mutableStateOf(false) }
@@ -498,6 +500,9 @@ fun StreamsScreen(
                 }
             },
             onDownload = startStreamDownload,
+            onSubtitles = if (com.nuvio.app.features.subtitledownloader.subtitleDownloaderAvailable) {
+                { stream -> subtitleDownloaderTarget = stream }
+            } else null,
             onOpen = { stream, openExternally ->
                 onStreamActionOpen(
                     stream,
@@ -506,6 +511,22 @@ fun StreamsScreen(
                     effectiveResumeProgressFraction,
                 )
             },
+        )
+        com.nuvio.app.features.subtitledownloader.SubtitleDownloaderHost(
+            request = subtitleDownloaderTarget?.let { stream ->
+                com.nuvio.app.features.subtitledownloader.SubtitleDownloaderRequest(
+                    stream = stream,
+                    contentType = type,
+                    videoId = videoId,
+                    parentMetaId = parentMetaId,
+                    parentMetaType = parentMetaType,
+                    title = title,
+                    season = seasonNumber,
+                    episode = episodeNumber,
+                    episodeTitle = episodeTitle,
+                )
+            },
+            onDismiss = { subtitleDownloaderTarget = null },
         )
     }
 }
@@ -1384,6 +1405,7 @@ private fun StreamActionsSheet(
     onDismiss: () -> Unit,
     onCopyLink: (StreamItem) -> Unit,
     onDownload: (StreamItem) -> Unit,
+    onSubtitles: ((StreamItem) -> Unit)? = null,
     onOpen: (StreamItem, openExternally: Boolean) -> Unit,
 ) {
     if (stream == null) return
@@ -1483,6 +1505,18 @@ private fun StreamActionsSheet(
                     title = stringResource(Res.string.streams_download_file),
                     onClick = {
                         onDownload(stream)
+                        coroutineScope.launch {
+                            dismissNuvioBottomSheet(sheetState = sheetState, onDismiss = onDismiss)
+                        }
+                    },
+                )
+            }
+            if (onSubtitles != null && !stream.isLocalDownload) {
+                NuvioBottomSheetActionRow(
+                    icon = Icons.Rounded.Subtitles,
+                    title = stringResource(Res.string.subdl_action),
+                    onClick = {
+                        onSubtitles(stream)
                         coroutineScope.launch {
                             dismissNuvioBottomSheet(sheetState = sheetState, onDismiss = onDismiss)
                         }

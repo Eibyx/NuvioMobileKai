@@ -177,6 +177,11 @@ actual fun PlatformPlayerSurface(
         PlayerSettingsRepository.ensureLoaded()
         PlayerSettingsRepository.uiState.value
     }
+    // Subtitle Downloader leaves the server's connections to playback while the player is on.
+    androidx.compose.runtime.DisposableEffect(Unit) {
+        com.nuvio.app.features.subtitledownloader.SubtitleDownloaderPriority.playbackStarted()
+        onDispose { com.nuvio.app.features.subtitledownloader.SubtitleDownloaderPriority.playbackStopped() }
+    }
     val playerSourceKey = listOf(
         sourceUrl,
         sourceAudioUrl.orEmpty(),
