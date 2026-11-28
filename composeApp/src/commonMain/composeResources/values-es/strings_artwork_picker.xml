@@ -18,4 +18,5 @@
     <string name="artwork_fanart_empty">Fanart.tv todavía no tiene imágenes de este título.</string>
     <string name="artwork_fanart_no_id">No se pudo consultar Fanart.tv: el título no tiene id de TVDB/TMDB.</string>
     <string name="artwork_fanart_network">No se pudo conectar con Fanart.tv. Inténtalo más tarde.</string>
+    <string name="artwork_fanart_key_format">La clave de Fanart.tv tiene 32 caracteres: solo números y las letras de la a a la f.</string>
 </resources>

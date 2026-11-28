@@ -85,10 +85,26 @@ object ArtworkChoices {
     }
 
     var fanartKey: String?
-        get() = runCatching { ArtworkChoiceStorage.loadFanartKey() }.getOrNull()?.takeIf { it.isNotBlank() }
+        get() = runCatching { ArtworkChoiceStorage.loadFanartKey() }.getOrNull()?.let(::normalizeFanartKey)?.takeIf { it.isNotBlank() }
         set(value) {
-            runCatching { ArtworkChoiceStorage.saveFanartKey(value?.trim()?.takeIf { it.isNotEmpty() }) }
+            runCatching { ArtworkChoiceStorage.saveFanartKey(value?.let(::normalizeFanartKey)?.takeIf { it.isNotEmpty() }) }
         }
+
+    /**
+     * A Fanart.tv key as its API takes it: 32 hexadecimal characters. Spaces, line breaks and
+     * dashes from copying are dropped, and the letters a keyboard or font mixes up with digits
+     * (l and I for 1, O for 0) are read as the digits, since a key has no such letters.
+     */
+    fun normalizeFanartKey(value: String): String {
+        val cleaned = value.filter { it.isLetterOrDigit() }.lowercase()
+        if (FANART_KEY.matches(cleaned)) return cleaned
+        val fixed = cleaned.map { when (it) { 'l', 'i' -> '1'; 'o' -> '0'; else -> it } }.joinToString("")
+        return if (FANART_KEY.matches(fixed)) fixed else cleaned
+    }
+
+    fun isValidFanartKey(value: String): Boolean = FANART_KEY.matches(normalizeFanartKey(value))
+
+    private val FANART_KEY = Regex("^[0-9a-f]{32}$")
 }
 
 /** The artwork picked for [id], recomposing when it changes. */

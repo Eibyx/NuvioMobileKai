@@ -18,4 +18,5 @@
     <string name="artwork_fanart_empty">Fanart.tv has no images of this title yet.</string>
     <string name="artwork_fanart_no_id">Fanart.tv couldn\'t be asked: this title has no TVDB/TMDB id.</string>
     <string name="artwork_fanart_network">Fanart.tv couldn\'t be reached. Try again later.</string>
+    <string name="artwork_fanart_key_format">A Fanart.tv key has 32 characters, only digits and the letters a to f.</string>
 </resources>

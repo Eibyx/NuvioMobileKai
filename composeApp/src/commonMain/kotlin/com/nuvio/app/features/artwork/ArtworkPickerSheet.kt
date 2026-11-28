@@ -152,10 +152,16 @@ fun ArtworkPickerSheet(
                                 onValueChange = { keyText = it },
                                 singleLine = true,
                                 label = { Text(stringResource(Res.string.artwork_fanart_key)) },
+                                isError = keyText.isNotBlank() && !ArtworkChoices.isValidFanartKey(keyText),
+                                supportingText = if (keyText.isNotBlank() && !ArtworkChoices.isValidFanartKey(keyText)) {
+                                    { Text(stringResource(Res.string.artwork_fanart_key_format)) }
+                                } else null,
+                                textStyle = MaterialTheme.typography.bodyMedium.copy(fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace),
                                 modifier = Modifier.weight(1f),
                             )
-                            TextButton(onClick = {
+                            TextButton(enabled = ArtworkChoices.isValidFanartKey(keyText), onClick = {
                                 ArtworkChoices.fanartKey = keyText
+                                keyText = ArtworkChoices.fanartKey.orEmpty()
                                 ArtworkCandidateLoader.clearCache()
                                 reload++
                             }) { Text(stringResource(Res.string.artwork_fanart_save)) }
