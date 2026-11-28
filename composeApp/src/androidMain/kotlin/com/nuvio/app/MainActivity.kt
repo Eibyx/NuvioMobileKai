@@ -214,6 +214,7 @@ open class MainActivity : AppCompatActivity() {
         SmartStreamSettingsStorage.initialize(applicationContext)
         WatchedThresholdStorage.initialize(applicationContext)
         StreamBadgeSettingsStorage.initialize(applicationContext)
+        com.nuvio.app.features.artwork.ArtworkChoiceStorage.initialize(applicationContext)
         BingeGroupCacheStorage.initialize(applicationContext)
         ProfileTitleFactsStorage.initialize(applicationContext)
         PluginStorage.initialize(applicationContext)

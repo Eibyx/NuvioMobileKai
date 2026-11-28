@@ -91,7 +91,7 @@ fun PlayerScreen(
             onOpenExternalUrl = onOpenExternalUrl,
             onOpenMetaDetails = onOpenMetaDetails,
             modifier = modifier,
-            logo = resolvedLogo,
+            logo = com.nuvio.app.features.artwork.rememberArtworkChoice(parentMetaId)?.logo ?: resolvedLogo,
             poster = poster,
             background = background,
             seasonNumber = seasonNumber,

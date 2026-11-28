@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="artwork_picker_title">Elegir arte</string>
+    <string name="artwork_kind_logo">Logo</string>
+    <string name="artwork_kind_background">Fondo</string>
+    <string name="artwork_kind_poster">Póster</string>
+    <string name="artwork_custom">Se usa tu elección</string>
+    <string name="artwork_from_addon">Se usa el arte del addon de metadatos</string>
+    <string name="artwork_restore">Restablecer</string>
+    <string name="artwork_restore_all">Restablecer todo</string>
+    <string name="artwork_loading">Buscando imágenes…</string>
+    <string name="artwork_load_failed">No se pudieron cargar las imágenes.</string>
+    <string name="artwork_none">No hay imágenes de este tipo.</string>
+    <string name="artwork_fanart_hint">Añade tu clave API de Fanart.tv para ver también sus logos, fondos y pósters.</string>
+    <string name="artwork_fanart_failed">Fanart.tv no respondió con esa clave.</string>
+    <string name="artwork_fanart_key">Clave API de Fanart.tv</string>
+    <string name="artwork_fanart_save">Guardar</string>
+</resources>

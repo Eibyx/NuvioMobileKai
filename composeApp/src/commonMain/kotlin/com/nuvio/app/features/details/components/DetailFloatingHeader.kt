@@ -91,7 +91,8 @@ fun DetailFloatingHeader(
     } else {
         MaterialTheme.colorScheme.background
     }
-    var logoLoadError by remember(meta.id, meta.logo) {
+    val chosenLogo = com.nuvio.app.features.artwork.rememberArtworkChoice(meta.id)?.logo ?: meta.logo
+    var logoLoadError by remember(meta.id, chosenLogo) {
         mutableStateOf(false)
     }
 
@@ -159,9 +160,9 @@ fun DetailFloatingHeader(
                         .padding(horizontal = 10.dp),
                     contentAlignment = Alignment.Center,
                 ) {
-                    if (!meta.logo.isNullOrBlank() && !logoLoadError) {
+                    if (!chosenLogo.isNullOrBlank() && !logoLoadError) {
                         ArtworkLogoImage(
-                            model = meta.logo,
+                            model = chosenLogo,
                             contentDescription = stringResource(Res.string.detail_logo_content_description, meta.name),
                             modifier = Modifier
                                 .width(logoWidth)

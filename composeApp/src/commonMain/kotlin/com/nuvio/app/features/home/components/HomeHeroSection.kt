@@ -762,9 +762,12 @@ private data class HeroPageLayer(
     val itemIndex: Int,
 )
 
-private fun heroArtworkUrl(item: MetaPreview, source: HomeHeroArtworkSource): String? = when (source) {
-    HomeHeroArtworkSource.POSTER -> item.poster ?: item.banner
-    HomeHeroArtworkSource.BACKDROP -> item.banner ?: item.poster
+private fun heroArtworkUrl(item: MetaPreview, source: HomeHeroArtworkSource): String? {
+    val chosen = com.nuvio.app.features.artwork.ArtworkChoices.choice(item.id)
+    return when (source) {
+        HomeHeroArtworkSource.POSTER -> chosen?.poster ?: item.poster ?: chosen?.background ?: item.banner
+        HomeHeroArtworkSource.BACKDROP -> chosen?.background ?: item.banner ?: chosen?.poster ?: item.poster
+    }
 }
 
 private fun heroPageOffset(
@@ -842,10 +845,11 @@ private fun HeroContentBlock(
     showMdbListRatings: Boolean,
     onItemClick: ((MetaPreview) -> Unit)?,
 ) {
-    var logoLoadError by remember(item.type, item.id, item.logo) {
+    val chosenLogo = com.nuvio.app.features.artwork.rememberArtworkChoice(item.id)?.logo ?: item.logo
+    var logoLoadError by remember(item.type, item.id, chosenLogo) {
         mutableStateOf(false)
     }
-    val logoUrl = item.logo?.takeIf { it.isNotBlank() }
+    val logoUrl = chosenLogo?.takeIf { it.isNotBlank() }
 
     Column(
         modifier = Modifier

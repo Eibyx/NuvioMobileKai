@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="artwork_picker_title">Choose artwork</string>
+    <string name="artwork_kind_logo">Logo</string>
+    <string name="artwork_kind_background">Background</string>
+    <string name="artwork_kind_poster">Poster</string>
+    <string name="artwork_custom">Your choice is in use</string>
+    <string name="artwork_from_addon">Using the metadata addon\'s artwork</string>
+    <string name="artwork_restore">Restore</string>
+    <string name="artwork_restore_all">Restore all</string>
+    <string name="artwork_loading">Looking for images…</string>
+    <string name="artwork_load_failed">Couldn\'t load the images.</string>
+    <string name="artwork_none">No images of this kind.</string>
+    <string name="artwork_fanart_hint">Add your Fanart.tv API key to see its logos, backgrounds and posters too.</string>
+    <string name="artwork_fanart_failed">Fanart.tv didn\'t answer with that key.</string>
+    <string name="artwork_fanart_key">Fanart.tv API key</string>
+    <string name="artwork_fanart_save">Save</string>
+</resources>

@@ -162,6 +162,11 @@ fun StreamsScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // Artwork picked for the title from its logo, if any.
+    val chosenArtwork = com.nuvio.app.features.artwork.rememberArtworkChoice(parentMetaId)
+    @Suppress("NAME_SHADOWING") val logo = chosenArtwork?.logo ?: logo
+    @Suppress("NAME_SHADOWING") val background = chosenArtwork?.background ?: background
+    @Suppress("NAME_SHADOWING") val poster = chosenArtwork?.poster ?: poster
     LaunchedEffect(Unit) { com.nuvio.app.features.player.closeBackgroundPlayerForNewPlayback() }
     // The user's subtitle folders: find this episode's subtitle and fonts while the streams load.
     LaunchedEffect(videoId) {

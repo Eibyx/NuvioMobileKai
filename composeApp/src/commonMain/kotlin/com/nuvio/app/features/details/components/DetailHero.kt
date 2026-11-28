@@ -16,6 +16,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -117,10 +118,31 @@ fun DetailHero(
         val heroChromeEndPadding = nativeBarAnchor?.let { it.trailingCenterX - muteIconSize / 2 }
             ?: (12.dp + (40.dp - muteIconSize) / 2)
         val bottomGradientColor = heroGradientColor ?: MaterialTheme.colorScheme.background
-        var logoLoadError by remember(meta.id, meta.logo) {
+        val artworkChoice = com.nuvio.app.features.artwork.rememberArtworkChoice(meta.id)
+        val chosenLogo = artworkChoice?.logo ?: meta.logo
+        var logoLoadError by remember(meta.id, chosenLogo) {
             mutableStateOf(false)
         }
-        val logoUrl = meta.logo?.takeIf { it.isNotBlank() }
+        val logoUrl = chosenLogo?.takeIf { it.isNotBlank() }
+        var artworkPickerOpen by remember { mutableStateOf(false) }
+        if (artworkPickerOpen) {
+            com.nuvio.app.features.artwork.ArtworkPickerSheet(
+                id = meta.id,
+                type = meta.type,
+                name = meta.name,
+                imdbId = meta.imdbId,
+                tvdbId = meta.tvdbId,
+                language = com.nuvio.app.features.tmdb.TmdbSettingsRepository.snapshot().language,
+                onDismiss = { artworkPickerOpen = false },
+            )
+        }
+        // Holding the logo (or the title in its place) opens the artwork picker.
+        val logoLongPress = Modifier.combinedClickable(
+            interactionSource = null,
+            indication = null,
+            onClick = {},
+            onLongClick = { artworkPickerOpen = true },
+        )
 
         val heroBaseHeightPx = with(LocalDensity.current) { heroHeight.roundToPx() }
         LaunchedEffect(heroBaseHeightPx) { onHeightChanged(heroBaseHeightPx) }
@@ -143,7 +165,7 @@ fun DetailHero(
                         .fillMaxSize()
                         .then(if (cinematicBackground) Modifier.featherArtwork() else Modifier),
                 ) {
-                    val imageUrl = meta.background ?: meta.poster
+                    val imageUrl = artworkChoice?.background ?: meta.background ?: artworkChoice?.poster ?: meta.poster
                     if (imageUrl != null) {
                         val backdropFocus = rememberBackdropFocusState(imageUrl)
                         AsyncImage(
@@ -294,7 +316,8 @@ fun DetailHero(
                             modifier = Modifier
                                 .fillMaxWidth(((if (isTablet) 0.56f else 0.6f) * logoScale).coerceAtMost(1f))
                                 .widthIn(max = contentMaxWidth)
-                                .height((if (isTablet) 72.dp else 80.dp) * logoScale),
+                                .height((if (isTablet) 72.dp else 80.dp) * logoScale)
+                                .then(logoLongPress),
                             alignment = Alignment.Center,
                             contentScale = ContentScale.Fit,
                             onError = { logoLoadError = true },
@@ -302,7 +325,7 @@ fun DetailHero(
                     } else {
                         Text(
                             text = meta.name,
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier.fillMaxWidth().then(logoLongPress),
                             style = if (isTablet) MaterialTheme.typography.displaySmall else MaterialTheme.typography.displayLarge,
                             color = MaterialTheme.colorScheme.onBackground,
                             textAlign = TextAlign.Center,
