@@ -9,6 +9,11 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.contentOrNull
+import com.nuvio.app.core.logging.InAppLogger
 
 /** One image a title can use, with where it comes from. */
 data class ArtworkCandidate(
@@ -25,6 +30,8 @@ data class ArtworkCandidates(
     val posters: List<ArtworkCandidate> = emptyList(),
     val fanartUsed: Boolean = false,
     val fanartFailed: Boolean = false,
+    /** Why Fanart.tv gave nothing: "no-id", "empty", "key", "network". */
+    val fanartIssue: String? = null,
 ) {
     fun of(kind: ArtworkKind) = when (kind) {
         ArtworkKind.LOGO -> logos
@@ -57,25 +64,6 @@ object ArtworkCandidateLoader {
     @Serializable
     private data class TmdbExternal(@SerialName("tvdb_id") val tvdbId: Int? = null, @SerialName("imdb_id") val imdbId: String? = null)
 
-    @Serializable
-    private data class FanartImage(val url: String? = null, val lang: String? = null, val likes: String? = null)
-
-    @Serializable
-    private data class FanartTv(
-        val hdtvlogo: List<FanartImage> = emptyList(),
-        val clearlogo: List<FanartImage> = emptyList(),
-        val showbackground: List<FanartImage> = emptyList(),
-        val tvposter: List<FanartImage> = emptyList(),
-    )
-
-    @Serializable
-    private data class FanartMovie(
-        val hdmovielogo: List<FanartImage> = emptyList(),
-        val movielogo: List<FanartImage> = emptyList(),
-        val moviebackground: List<FanartImage> = emptyList(),
-        val movieposter: List<FanartImage> = emptyList(),
-    )
-
     suspend fun load(id: String, type: String, imdbId: String?, tvdbId: String?, language: String?): ArtworkCandidates = coroutineScope {
         val fanartKey = ArtworkChoices.fanartKey
         val cacheKey = "$type:$id:${fanartKey != null}"
@@ -84,18 +72,28 @@ object ArtworkCandidateLoader {
         val tmdbId = runCatching { TmdbService.ensureTmdbId(id, mediaType, imdbId) }.getOrNull()
         val tmdb = async { tmdbId?.let { tmdbImages(it, mediaType) } }
         val fanart = async {
-            if (fanartKey == null) return@async null
+            if (fanartKey == null) return@async null to null
             val target = if (mediaType == "tv") {
-                tvdbId?.takeIf { it.all(Char::isDigit) } ?: tmdbId?.let { externalTvdb(it) }
+                tvdbId?.removePrefix("tvdb:")?.takeIf { it.isNotEmpty() && it.all(Char::isDigit) } ?: tmdbId?.let { externalTvdb(it) }
             } else {
                 tmdbId ?: imdbId
             }
-            target?.let { runCatching { fanartImages(it, mediaType, fanartKey) }.getOrElse { FAILED } }
+            if (target == null) return@async null to "no-id"
+            runCatching { fanartImages(target, mediaType, fanartKey) }.fold(
+                onSuccess = { found ->
+                    val empty = found.logos.isEmpty() && found.backgrounds.isEmpty() && found.posters.isEmpty()
+                    found to (if (empty) "empty" else null)
+                },
+                onFailure = { e ->
+                    val message = e.message.orEmpty()
+                    InAppLogger.warn("Artwork", "Fanart.tv $mediaType id=$target failed: ${e::class.simpleName} ${message.replace(fanartKey, "[REDACTADO]")}")
+                    null to (if ("401" in message || "403" in message) "key" else "network")
+                },
+            )
         }
         val t = tmdb.await()
-        val f = fanart.await()
-        val failed = f === FAILED
-        val fan = f.takeUnless { failed }
+        val (fan, issue) = fanart.await()
+        val failed = issue == "key" || issue == "network"
         fun sorted(list: List<ArtworkCandidate>) = list.sortedWith(
             compareByDescending<ArtworkCandidate> { it.language != null && it.language == language }
                 .thenByDescending { it.language == null || it.language == "en" || it.language == "00" },
@@ -106,12 +104,11 @@ object ArtworkCandidateLoader {
             posters = sorted(fan?.posters.orEmpty() + t?.posters.orEmpty()),
             fanartUsed = fan != null,
             fanartFailed = failed,
+            fanartIssue = issue,
         )
         cache[cacheKey] = result
         result
     }
-
-    private val FAILED = ArtworkCandidates()
 
     private suspend fun tmdbImages(tmdbId: String, mediaType: String): ArtworkCandidates? {
         val key = TmdbSettingsRepository.effectiveApiKey().takeIf { it.isNotBlank() } ?: return null
@@ -142,22 +139,24 @@ object ArtworkCandidateLoader {
     private suspend fun fanartImages(target: String, mediaType: String, key: String): ArtworkCandidates {
         val kind = if (mediaType == "tv") "tv" else "movies"
         val body = httpGetText("https://webservice.fanart.tv/v3/$kind/$target?api_key=$key")
-        fun map(items: List<FanartImage>, label: String) = items.mapNotNull { image ->
-            val url = image.url?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
+        val root = json.parseToJsonElement(body) as? JsonObject ?: return ArtworkCandidates()
+        fun list(name: String, label: String): List<ArtworkCandidate> = (root[name] as? JsonArray).orEmpty().mapNotNull { element ->
+            val item = element as? JsonObject ?: return@mapNotNull null
+            val url = (item["url"] as? JsonPrimitive)?.contentOrNull?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
+            val lang = (item["lang"] as? JsonPrimitive)?.contentOrNull?.takeIf { it.isNotBlank() }
+            val likes = (item["likes"] as? JsonPrimitive)?.contentOrNull?.toIntOrNull() ?: 0
             ArtworkCandidate(
                 url = url,
                 previewUrl = url.replace("/fanart/", "/preview/"),
                 source = "Fanart.tv",
-                language = image.lang?.takeIf { it.isNotBlank() },
-                detail = listOfNotNull(label, image.likes?.takeIf { it != "0" }?.let { "♥ $it" }).joinToString(" · "),
-            )
-        }.sortedByDescending { it.detail?.substringAfter("♥ ", "0")?.toIntOrNull() ?: 0 }
+                language = lang,
+                detail = listOfNotNull(label, likes.takeIf { it > 0 }?.let { "♥ $it" }).joinToString(" · "),
+            ) to likes
+        }.sortedByDescending { it.second }.map { it.first }
         return if (mediaType == "tv") {
-            val data = json.decodeFromString<FanartTv>(body)
-            ArtworkCandidates(map(data.hdtvlogo, "HD logo") + map(data.clearlogo, "ClearLogo"), map(data.showbackground, "Fondo"), map(data.tvposter, "Póster"))
+            ArtworkCandidates(list("hdtvlogo", "HD logo") + list("clearlogo", "ClearLogo"), list("showbackground", "Fondo"), list("tvposter", "Póster"))
         } else {
-            val data = json.decodeFromString<FanartMovie>(body)
-            ArtworkCandidates(map(data.hdmovielogo, "HD logo") + map(data.movielogo, "Logo"), map(data.moviebackground, "Fondo"), map(data.movieposter, "Póster"))
+            ArtworkCandidates(list("hdmovielogo", "HD logo") + list("movielogo", "Logo"), list("moviebackground", "Fondo"), list("movieposter", "Póster"))
         }
     }
 

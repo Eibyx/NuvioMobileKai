@@ -12,7 +12,10 @@
     <string name="artwork_load_failed">No se pudieron cargar las imágenes.</string>
     <string name="artwork_none">No hay imágenes de este tipo.</string>
     <string name="artwork_fanart_hint">Añade tu clave API de Fanart.tv para ver también sus logos, fondos y pósters.</string>
-    <string name="artwork_fanart_failed">Fanart.tv no respondió con esa clave.</string>
+    <string name="artwork_fanart_failed">Fanart.tv rechazó esa clave.</string>
     <string name="artwork_fanart_key">Clave API de Fanart.tv</string>
     <string name="artwork_fanart_save">Guardar</string>
+    <string name="artwork_fanart_empty">Fanart.tv todavía no tiene imágenes de este título.</string>
+    <string name="artwork_fanart_no_id">No se pudo consultar Fanart.tv: el título no tiene id de TVDB/TMDB.</string>
+    <string name="artwork_fanart_network">No se pudo conectar con Fanart.tv. Inténtalo más tarde.</string>
 </resources>

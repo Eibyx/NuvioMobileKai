@@ -129,9 +129,20 @@ fun ArtworkPickerSheet(
                     Text(stringResource(Res.string.artwork_loading))
                 }
                 else -> {
+                    when (loaded.fanartIssue) {
+                        "empty" -> Res.string.artwork_fanart_empty
+                        "no-id" -> Res.string.artwork_fanart_no_id
+                        else -> null
+                    }?.let { Text(stringResource(it), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
                     if (ArtworkChoices.fanartKey == null || loaded.fanartFailed) {
                         Text(
-                            stringResource(if (loaded.fanartFailed) Res.string.artwork_fanart_failed else Res.string.artwork_fanart_hint),
+                            stringResource(
+                                when {
+                                    loaded.fanartIssue == "key" -> Res.string.artwork_fanart_failed
+                                    loaded.fanartIssue == "network" -> Res.string.artwork_fanart_network
+                                    else -> Res.string.artwork_fanart_hint
+                                },
+                            ),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
