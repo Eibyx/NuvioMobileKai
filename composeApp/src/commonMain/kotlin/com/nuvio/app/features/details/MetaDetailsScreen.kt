@@ -243,8 +243,17 @@ fun MetaDetailsScreen(
         shuffleWasInactive = !active
     }
     val uiState by MetaDetailsRepository.uiState.collectAsStateWithLifecycle()
-    val displayedMeta = uiState.meta?.takeIf { it.type == type && it.id == id }
-        ?: MetaDetailsRepository.peek(type, id)
+    // The artwork picked for this title (logo, background, poster) replaces the addon's everywhere on the page.
+    val artworkChoice = com.nuvio.app.features.artwork.rememberArtworkChoice(id)
+    val displayedMeta = (uiState.meta?.takeIf { it.type == type && it.id == id }
+        ?: MetaDetailsRepository.peek(type, id))
+        ?.let { meta ->
+            if (artworkChoice == null) meta else meta.copy(
+                logo = artworkChoice.logo ?: meta.logo,
+                background = artworkChoice.background ?: meta.background,
+                poster = artworkChoice.poster ?: meta.poster,
+            )
+        }
     val metaScreenSettingsUiState by remember {
         MetaScreenSettingsRepository.ensureLoaded()
         MetaScreenSettingsRepository.uiState

@@ -230,6 +230,7 @@ internal fun HomeHeroSection(
     onActiveArtworkChange: ((String?) -> Unit)? = null,
 ) {
     if (items.isEmpty()) return
+    val artworkChoices by com.nuvio.app.features.artwork.ArtworkChoices.state.collectAsState()
 
     val pagerState = key(items.size) {
         rememberPagerState(
@@ -350,13 +351,13 @@ internal fun HomeHeroSection(
             }
             val currentItem = items[currentPage % items.size]
 
-            val activeArtworkUrl = heroArtworkUrl(items[pagerState.targetPage % items.size], effectiveArtworkSource)
+            val activeArtworkUrl = heroArtworkUrl(items[pagerState.targetPage % items.size], effectiveArtworkSource, artworkChoices)
             LaunchedEffect(onActiveArtworkChange, activeArtworkUrl) {
                 onActiveArtworkChange?.invoke(activeArtworkUrl)
             }
             if (onActiveArtworkChange != null && rememberDynamicArtworkBackgroundEnabled()) {
-                val heroArtworkUrls = remember(items, effectiveArtworkSource) {
-                    items.mapNotNull { item -> heroArtworkUrl(item, effectiveArtworkSource) }
+                val heroArtworkUrls = remember(items, effectiveArtworkSource, artworkChoices) {
+                    items.mapNotNull { item -> heroArtworkUrl(item, effectiveArtworkSource, artworkChoices) }
                 }
                 PrefetchArtworkDominantColors(heroArtworkUrls)
             }
@@ -370,7 +371,7 @@ internal fun HomeHeroSection(
                     .distinct()
                 val imageLoader = SingletonImageLoader.get(platformContext)
                 neighbours.forEach { item ->
-                    listOfNotNull(heroArtworkUrl(item, effectiveArtworkSource), item.logo?.takeIf { it.isNotBlank() })
+                    listOfNotNull(heroArtworkUrl(item, effectiveArtworkSource, artworkChoices), item.logo?.takeIf { it.isNotBlank() })
                         .forEach { url ->
                             imageLoader.enqueue(ImageRequest.Builder(platformContext).data(url).build())
                         }
@@ -468,7 +469,7 @@ internal fun HomeHeroSection(
                     ) {
                         visiblePages.forEach { layer ->
                             val item = items[layer.itemIndex]
-                            val artworkUrl = heroArtworkUrl(item, effectiveArtworkSource)
+                            val artworkUrl = heroArtworkUrl(item, effectiveArtworkSource, artworkChoices)
                             val isCurrentLayer = layer.page == currentPage
                             key(effectiveArtworkSource, item.type, item.id, artworkUrl) {
                                 val backdropFocus = rememberBackdropFocusState(artworkUrl)
@@ -762,8 +763,12 @@ private data class HeroPageLayer(
     val itemIndex: Int,
 )
 
-private fun heroArtworkUrl(item: MetaPreview, source: HomeHeroArtworkSource): String? {
-    val chosen = com.nuvio.app.features.artwork.ArtworkChoices.choice(item.id)
+private fun heroArtworkUrl(
+    item: MetaPreview,
+    source: HomeHeroArtworkSource,
+    choices: Map<String, com.nuvio.app.features.artwork.ArtworkChoice> = emptyMap(),
+): String? {
+    val chosen = choices[item.id]
     return when (source) {
         HomeHeroArtworkSource.POSTER -> chosen?.poster ?: item.poster ?: chosen?.background ?: item.banner
         HomeHeroArtworkSource.BACKDROP -> chosen?.background ?: item.banner ?: chosen?.poster ?: item.poster
