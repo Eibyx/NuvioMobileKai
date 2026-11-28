@@ -8,6 +8,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.MutatePriority
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -855,6 +856,19 @@ private fun HeroContentBlock(
         mutableStateOf(false)
     }
     val logoUrl = chosenLogo?.takeIf { it.isNotBlank() }
+    var artworkPickerOpen by remember(item.id) { mutableStateOf(false) }
+    if (artworkPickerOpen) {
+        val details = com.nuvio.app.features.details.MetaDetailsRepository.peek(item.type, item.id)
+        com.nuvio.app.features.artwork.ArtworkPickerSheet(
+            id = item.id,
+            type = item.type,
+            name = item.name,
+            imdbId = details?.imdbId,
+            tvdbId = details?.tvdbId,
+            language = com.nuvio.app.features.tmdb.TmdbSettingsRepository.snapshot().language,
+            onDismiss = { artworkPickerOpen = false },
+        )
+    }
 
     Column(
         modifier = Modifier
@@ -870,9 +884,11 @@ private fun HeroContentBlock(
                 modifier = Modifier
                     .fillMaxWidth((layout.logoWidthFraction * logoScale).coerceAtMost(1f))
                     .aspectRatio(2.6f)
-                    .clickable(enabled = onItemClick != null) {
-                        onItemClick?.invoke(item)
-                    },
+                    .combinedClickable(
+                        onClick = { onItemClick?.invoke(item) },
+                        // Holding the logo (or the title in its place) opens the artwork picker.
+                        onLongClick = { artworkPickerOpen = true },
+                    ),
                 alignment = if (layout.isTablet) Alignment.CenterStart else Alignment.Center,
                 contentScale = ContentScale.Fit,
                 onError = { logoLoadError = true },
@@ -882,9 +898,11 @@ private fun HeroContentBlock(
                 text = item.name,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable(enabled = onItemClick != null) {
-                        onItemClick?.invoke(item)
-                    },
+                    .combinedClickable(
+                        onClick = { onItemClick?.invoke(item) },
+                        // Holding the logo (or the title in its place) opens the artwork picker.
+                        onLongClick = { artworkPickerOpen = true },
+                    ),
                 style = if (layout.isTablet) {
                     MaterialTheme.typography.displaySmall
                 } else {
